@@ -8,6 +8,11 @@ dependencies = [
     "pydantic>=2.9",
     "pillow==9.5.0",
     "numpy<2.0",
+    # Unpinned deliberately: pinning ">=4.10" here is ResolutionImpossible
+    # together with numpy<2.0 (iopaint's opencv/numpy chain needs an
+    # opencv-python-headless build old enough to accept numpy<2). Letting
+    # pip pick resolved to 4.11.0.86 in verification; the floor isn't load-
+    # bearing for anything this project calls today.
     "opencv-python-headless",
     "iopaint>=1.6",
     "transformers>=4.45",
