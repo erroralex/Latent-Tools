@@ -25,27 +25,42 @@ class Florence2Detector:
 
     def detect(self, image: Image.Image) -> Image.Image:
         rgb_image = image.convert("RGB")
-        prompt = _TASK + "watermark"
-        inputs = self._processor(text=prompt, images=rgb_image, return_tensors="pt").to(
-            self._device, torch.float16
-        )
-        generated_ids = self._model.generate(
-            input_ids=inputs["input_ids"],
-            pixel_values=inputs["pixel_values"],
-            max_new_tokens=1024,
-            num_beams=3,
-        )
-        generated_text = self._processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-        parsed = self._processor.post_process_generation(
-            generated_text, task=_TASK, image_size=(rgb_image.width, rgb_image.height)
-        )
-        bboxes = parsed.get(_TASK, {}).get("bboxes", [])
-        return _mask_from_bboxes(bboxes, rgb_image.size)
+        all_bboxes: list[list[float]] = []
 
+        prompts = [
+            _TASK + "watermark",
+            _TASK + "text watermark",
+            _TASK + "logo watermark",
+        ]
+
+        for prompt in prompts:
+            try:
+                inputs = self._processor(text=prompt, images=rgb_image, return_tensors="pt").to(
+                    self._device, torch.float16
+                )
+                generated_ids = self._model.generate(
+                    input_ids=inputs["input_ids"],
+                    pixel_values=inputs["pixel_values"],
+                    max_new_tokens=1024,
+                    num_beams=3,
+                )
+                generated_text = self._processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
+                parsed = self._processor.post_process_generation(
+                    generated_text, task=_TASK, image_size=(rgb_image.width, rgb_image.height)
+                )
+                bboxes = parsed.get(_TASK, {}).get("bboxes", [])
+                all_bboxes.extend(bboxes)
+            except Exception:
+                pass
+
+        return _mask_from_bboxes(all_bboxes, rgb_image.size)
 
 
 def _mask_from_bboxes(bboxes: list[list[float]], size: tuple[int, int]) -> Image.Image:
     mask = np.zeros((size[1], size[0]), dtype=np.uint8)
+    max_box_area = 0.25 * (size[0] * size[1])  # Ignore boxes covering > 25% of total image area
+
+    drawn_any = False
     for box in bboxes:
         if len(box) == 4:
             x1, y1, x2, y2 = box
@@ -55,11 +70,21 @@ def _mask_from_bboxes(bboxes: list[list[float]], size: tuple[int, int]) -> Image
             x1, y1, x2, y2 = min(x_coords), min(y_coords), max(x_coords), max(y_coords)
         else:
             continue
+
+        w = abs(x2 - x1)
+        h = abs(y2 - y1)
+        # Filter out giant false-positive boxes (e.g. whole doors, walls, or curtains)
+        if w * h > max_box_area or h > 0.65 * size[1]:
+            continue
+
         cv2.rectangle(mask, (int(x1), int(y1)), (int(x2), int(y2)), color=255, thickness=-1)
-    if bboxes:
+        drawn_any = True
+
+    if drawn_any:
         kernel = np.ones((_MASK_DILATE_PX, _MASK_DILATE_PX), dtype=np.uint8)
         mask = cv2.dilate(mask, kernel)
     return Image.fromarray(mask, mode="L")
+
 
 
 
