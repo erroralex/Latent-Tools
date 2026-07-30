@@ -14,24 +14,25 @@ Full spec: [`docs/implementation-plan.md`](docs/implementation-plan.md) —
 architecture, component breakdown, IPC/HTTP contract, error handling, UI/UX
 flow, testing strategy, and 6 phased milestones.
 
-## Where we are: Phases 1–4 complete
+## Where we are: Phases 1–5 complete
 
 **Phase 1** ("sidecar + single-image round trip, one format") is complete.
 **Phase 2** ("multi-format conversion") is complete.
 **Phase 3** ("captioning") is complete.
-**Phase 4** ("manual mask adjustment UI") is complete — added interactive canvas mask overlay (`rgba(255, 0, 0, 0.5)`), Add/Erase brush tools, brush size slider (5–100px), Clear & Reset mask controls, `mask:update` IPC channel round-tripping, and updated inpainting flow.
+**Phase 4** ("manual mask adjustment UI") is complete.
+**Phase 5** ("bulk / batch dataset processing") is complete — added mode tabs, folder pickers (`folder:select`), batch item pipeline (`bulk:process-item`), live progress bar, cancellation, custom frameless dark titlebar (`frame: false`), window dragging, window controls (`window:minimize`, `window:maximize`, `window:close`), and startup maximized by default.
 
 ## What's built right now
 
 - **Sidecar** (`sidecar/`, FastAPI): `/health`, `/normalize`, `/detect` (Florence-2), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-7B-Instruct).
-- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`mask:update`), writing matching `.txt` sidecar files on export.
-- **Renderer**: modern HTML/TS UI with image preview, canvas mask overlay with brush editing tools, watermark detection/inpainting, caption generation & editing, and Export Settings panel.
+- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), custom frameless window starting maximized by default.
+- **Renderer**: modern HTML/TS UI with custom drag titlebar, Single Image Editor view, Bulk Dataset Processor view, interactive canvas mask overlay with brush editing & undo/redo, watermark detection/inpainting, caption generation & editing, and Export Settings panel.
 - **IntelliJ tooling**: `.idea/runConfigurations/` has a `Sidecar` (Python) config, an `Electron App` (npm) config, and a `Latent Tools (Full Stack)` compound combining both.
 
-## Known gaps (not bugs — deliberately out of Phase 1–4 scope)
+## Known gaps (not bugs — deliberately out of Phase 1–5 scope)
 
 - **Only one watermark detected/removed per image** — untested against an image with multiple watermarks.
-- **No bulk/batch mode yet** (Phase 5).
+- **Phase 6** ("Polish, packaging, edge-case robustness, install docs").
 
 ## Verified technical facts worth not re-discovering
 
@@ -61,7 +62,8 @@ Tests: `npm test` (TS) and, from `sidecar/`, `.venv/Scripts/python -m pytest tes
 
 ## Suggested next step
 
-Per the plan's phase order: **Phase 5 (bulk processing)** is next.
+Per the plan's phase order: **Phase 6 (Polish, packaging & robustness)** is next.
+
 
 
 
