@@ -144,7 +144,14 @@ describe("registerIpcHandlers", () => {
 
     expect(client.caption).toHaveBeenCalledWith(Buffer.from("normalized-png-bytes"));
     expect(result.caption).toBe("A detailed caption of the image.");
+
+    await captionHandler({}, { imageId, systemPrompt: "Include trigger word 'ohwx man'." });
+    expect(client.caption).toHaveBeenCalledWith(
+      Buffer.from("normalized-png-bytes"),
+      "Include trigger word 'ohwx man'.",
+    );
   });
+
 
   it("image:export writes sidecar .txt file when caption option is passed", async () => {
     const { handlers, writeFile } = setup("C:\\chosen\\output.jpg");

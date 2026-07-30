@@ -38,7 +38,7 @@ def is_refusal_or_empty(text: str | None) -> bool:
 
 
 class Captioner(Protocol):
-    def caption(self, image: Image.Image) -> str | None: ...
+    def caption(self, image: Image.Image, system_prompt: str | None = None) -> str | None: ...
 
 
 class Qwen2VLCaptioner:
@@ -70,17 +70,19 @@ class Qwen2VLCaptioner:
         self._processor = AutoProcessor.from_pretrained(model_id)
 
 
-    def caption(self, image: Image.Image) -> str | None:
+    def caption(self, image: Image.Image, system_prompt: str | None = None) -> str | None:
         rgb_image = image.convert("RGB")
+        prompt_text = system_prompt.strip() if system_prompt and system_prompt.strip() else _SYSTEM_PROMPT
         messages = [
             {
                 "role": "user",
                 "content": [
                     {"type": "image", "image": rgb_image},
-                    {"type": "text", "text": _SYSTEM_PROMPT},
+                    {"type": "text", "text": prompt_text},
                 ],
             }
         ]
+
         text = self._processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         image_inputs, video_inputs = self._process_vision_info(messages)
         inputs = self._processor(

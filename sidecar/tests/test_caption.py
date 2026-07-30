@@ -10,9 +10,11 @@ class FakeCaptioner:
     def __init__(self, canned_response: str | None = "A high quality photo of a landscape with mountains.") -> None:
         self._canned_response = canned_response
 
-    def caption(self, image: Image.Image) -> str | None:
+    def caption(self, image: Image.Image, system_prompt: str | None = None) -> str | None:
         if is_refusal_or_empty(self._canned_response):
             return None
+        if system_prompt:
+            return f"{system_prompt.strip()} {self._canned_response}"
         return self._canned_response
 
 
@@ -30,8 +32,17 @@ def test_caption_endpoint_returns_caption(client):
 
         assert response.status_code == 200
         assert response.json()["caption"] == "A photo of a cat on a couch."
+
+        # Custom system prompt test
+        resp_prompt = client.post(
+            "/caption",
+            json={"image_base64": _png_base64(image), "system_prompt": "Include trigger word 'ohwx man'."},
+        )
+        assert resp_prompt.status_code == 200
+        assert resp_prompt.json()["caption"] == "Include trigger word 'ohwx man'. A photo of a cat on a couch."
     finally:
         app.dependency_overrides.clear()
+
 
 
 def test_caption_endpoint_maps_refusal_to_null(client):

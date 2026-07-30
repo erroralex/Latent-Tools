@@ -44,6 +44,8 @@ class ConvertResponseBody(BaseModel):
 
 class CaptionRequestBody(BaseModel):
     image_base64: str
+    system_prompt: str | None = None
+
 
 
 class CaptionResponseBody(BaseModel):

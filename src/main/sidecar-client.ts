@@ -95,12 +95,17 @@ export class SidecarClient {
     };
   }
 
-  async caption(imagePng: Buffer): Promise<string | null> {
-
+  async caption(imagePng: Buffer, systemPrompt?: string): Promise<string | null> {
+    const payload: { image_base64: string; system_prompt?: string } = {
+      image_base64: imagePng.toString("base64"),
+    };
+    if (systemPrompt && systemPrompt.trim()) {
+      payload.system_prompt = systemPrompt.trim();
+    }
     const response = await fetch(`${this.baseUrl}/caption`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image_base64: imagePng.toString("base64") }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       throw new Error(`Sidecar /caption failed: ${response.status}`);
@@ -108,6 +113,7 @@ export class SidecarClient {
     const body = (await response.json()) as { caption: string | null };
     return body.caption;
   }
+
 }
 
 

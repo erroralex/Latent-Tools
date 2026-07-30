@@ -56,8 +56,16 @@ const bulkOutputPath = document.getElementById("bulk-output-path") as HTMLSpanEl
 
 const bulkRemoveWatermark = document.getElementById("bulk-remove-watermark") as HTMLInputElement;
 const bulkGenerateCaptions = document.getElementById("bulk-generate-captions") as HTMLInputElement;
+const bulkPromptContainer = document.getElementById("bulk-prompt-container") as HTMLDivElement;
+const bulkSystemPrompt = document.getElementById("bulk-system-prompt") as HTMLTextAreaElement;
+
+bulkGenerateCaptions.addEventListener("change", () => {
+  bulkPromptContainer.style.display = bulkGenerateCaptions.checked ? "block" : "none";
+});
+
 const bulkStartBtn = document.getElementById("bulk-start-btn") as HTMLButtonElement;
 const bulkCancelBtn = document.getElementById("bulk-cancel-btn") as HTMLButtonElement;
+
 
 const progressBarFill = document.getElementById("progress-bar-fill") as HTMLDivElement;
 const bulkProgressText = document.getElementById("bulk-progress-text") as HTMLSpanElement;
@@ -145,7 +153,9 @@ bulkStartBtn.addEventListener("click", async () => {
           compressLevel: parseInt(compressSelect.value, 10),
           metadataMode: metadataSelect.value,
           flattenColor: flattenColor.value,
+          systemPrompt: bulkSystemPrompt.value,
         });
+
         processedCount++;
         const pct = Math.round((processedCount / files.length) * 100);
         progressBarFill.style.width = `${pct}%`;
@@ -675,12 +685,14 @@ inpaintBtn.addEventListener("click", async () => {
   }
 });
 
+const systemPromptInput = document.getElementById("system-prompt-input") as HTMLTextAreaElement;
+
 captionBtn.addEventListener("click", async () => {
   if (currentImageId === undefined) return;
   captionBtn.disabled = true;
   captionStatus.innerHTML = '<span class="spinner"></span> Generating caption...';
   try {
-    const { caption } = await window.api.captionImage(currentImageId);
+    const { caption } = await window.api.captionImage(currentImageId, systemPromptInput.value);
     if (caption) {
       captionText.value = caption;
       captionStatus.textContent = "Generated";
@@ -694,6 +706,7 @@ captionBtn.addEventListener("click", async () => {
     captionBtn.disabled = false;
   }
 });
+
 
 
 exportBtn.addEventListener("click", async () => {

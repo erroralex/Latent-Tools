@@ -93,6 +93,7 @@ export function registerIpcHandlers(
       compressLevel = 6,
       metadataMode = "strip",
       flattenColor = "#FFFFFF",
+      systemPrompt,
     } = args as {
       inputPath: string;
       outputFolder: string;
@@ -104,6 +105,7 @@ export function registerIpcHandlers(
       compressLevel?: number;
       metadataMode?: string;
       flattenColor?: string;
+      systemPrompt?: string;
     };
 
     if (!readFile) throw new Error("readFile handler not configured");
@@ -118,8 +120,12 @@ export function registerIpcHandlers(
 
     let captionText: string | null = null;
     if (generateCaption) {
-      captionText = await client.caption(workingNormalized);
+      captionText = systemPrompt
+        ? await client.caption(workingNormalized, systemPrompt)
+        : await client.caption(workingNormalized);
     }
+
+
 
     const { result } = await client.convert(workingNormalized, {
       format,
@@ -195,14 +201,18 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle("image:caption", async (_event, args) => {
-    const { imageId } = args as { imageId: string };
+    const { imageId, systemPrompt } = args as { imageId: string; systemPrompt?: string };
     const entry = images.get(imageId);
     if (entry === undefined) {
       throw new Error(`Unknown imageId: ${imageId}`);
     }
-    const caption = await client.caption(entry.normalized);
+    const caption = systemPrompt
+      ? await client.caption(entry.normalized, systemPrompt)
+      : await client.caption(entry.normalized);
     return { caption };
   });
+
+
 
   ipcMain.handle("image:export", async (_event, args) => {
     const {

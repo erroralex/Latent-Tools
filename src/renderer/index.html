@@ -455,11 +455,21 @@
               <span>Dataset Caption (.txt sidecar)</span>
               <span id="caption-status" style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);"></span>
             </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label for="system-prompt-input" style="font-weight: 500; font-size: 0.82rem; color: var(--text-muted);">
+                System Prompt & Trigger Words
+              </label>
+              <textarea id="system-prompt-input" rows="2" style="background-color: #121418; border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 10px; border-radius: 6px; font-size: 0.82rem; width: 100%; font-family: inherit; resize: vertical; outline: none;" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually...">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
+            </div>
             <div class="form-group" style="margin-bottom: 0;">
+              <label for="caption-text" style="font-weight: 500; font-size: 0.82rem; color: var(--text-muted);">
+                Generated Caption Output
+              </label>
               <textarea id="caption-text" rows="4" placeholder="Generated dataset caption will appear here..." style="background-color: #121418; border: 1px solid var(--border-color); color: var(--text-color); padding: 10px; border-radius: 6px; font-size: 0.9rem; font-family: inherit; resize: vertical; outline: none;"></textarea>
             </div>
           </div>
         </div>
+
 
         <div class="card">
           <div class="card-title">Export Settings</div>
@@ -555,7 +565,15 @@
               Generate dataset image captions (.txt sidecars via Qwen2-VL)
             </label>
 
+            <div id="bulk-prompt-container" class="form-group" style="margin-top: 4px; margin-bottom: 0;">
+              <label for="bulk-system-prompt" style="font-weight: 500; font-size: 0.82rem; color: var(--text-muted);">
+                Batch Caption System Prompt & Trigger Words
+              </label>
+              <textarea id="bulk-system-prompt" rows="2" style="background-color: #121418; border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 10px; border-radius: 6px; font-size: 0.82rem; width: 100%; font-family: inherit; resize: vertical; outline: none;" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually...">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
+            </div>
+
             <div style="display: flex; gap: 12px; margin-top: 8px;">
+
               <button id="bulk-start-btn" class="btn" style="flex: 1;" disabled>Start Bulk Processing</button>
               <button id="bulk-cancel-btn" class="btn btn-secondary" style="display: none; background-color: #7f1d1d; color: white;">Cancel</button>
             </div>

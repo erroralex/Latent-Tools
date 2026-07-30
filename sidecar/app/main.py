@@ -33,8 +33,9 @@ def caption(
     body: CaptionRequestBody, captioner: Captioner = Depends(get_captioner)
 ) -> CaptionResponseBody:
     image = _decode_png(body.image_base64)
-    result_caption = captioner.caption(image)
+    result_caption = captioner.caption(image, system_prompt=body.system_prompt)
     return CaptionResponseBody(caption=result_caption)
+
 
 
 
