@@ -38,6 +38,20 @@ flow, testing strategy, and 6 phased milestones.
 - **Speed and optimizations** Currently, it takes minutes per image to remove watermark and caption. We need to improve this while still keeping original image resolution intact
 - **Logs** Logs should be better utilized in dev/intellij instead of using the just /health checks. Write out starting detetection/removing watermark etc.
 
+## Planned: UI rework (not started)
+
+A full visual rework of the renderer is planned but not yet implemented —
+see [`docs/ui-rework-implementation-plan.md`](docs/ui-rework-implementation-plan.md)
+for the full spec. Source-of-truth mockup: `docs/Latent Tools.dc.html`
+(Nocturne design system). Summary: replaces the top tab bar with a left
+sidebar app shell, turns the Single editor's inspector into a Caption/Export
+tabbed panel and the Bulk view into a 3-tab flow (Setup/Export
+Settings/Progress & Logs), adds a dataset thumbnail grid, drag-and-drop
+folder tiles, and export presets. Scoped to `src/renderer/` only — no IPC
+contract, main-process, or sidecar changes; every existing element `id`
+used by `renderer.ts` is preserved. Both files are currently untracked in
+git — pending a decision to start the work.
+
 ## Verified technical facts worth not re-discovering
 
 (These cost real GPU/network time to verify during Phase 1–6 development — see the plan doc's "Verified facts" section for full detail.)
