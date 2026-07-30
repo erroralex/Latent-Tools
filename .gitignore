@@ -7,3 +7,13 @@
 
 # Setup kit (used to generate AGENTS.md/.agents/.claude — not part of the app)
 drop-in-brain-main/
+
+# Node
+node_modules/
+dist/
+
+# Python
+sidecar/.venv/
+sidecar/**/__pycache__/
+sidecar/.pytest_cache/
+*.egg-info/
