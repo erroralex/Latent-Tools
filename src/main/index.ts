@@ -51,24 +51,35 @@ async function createWindow(): Promise<void> {
     }
   });
 
-  registerIpcHandlers(
-    ipcMain,
-    client,
-    async (defaultPath) => {
-      const result = await dialog.showSaveDialog({ defaultPath });
-      return result.canceled ? undefined : result.filePath;
-    },
-    (filePath, data) => fsPromises.writeFile(filePath, data),
-  );
-
   const window = new BrowserWindow({
-    width: 1024,
-    height: 768,
+    width: 1280,
+    height: 800,
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
     },
   });
+  window.maximize();
+
+  registerIpcHandlers(
+    ipcMain,
+    client,
+    async (defaultPath) => {
+      const result = await dialog.showSaveDialog(window, { defaultPath });
+      return result.canceled ? undefined : result.filePath;
+    },
+    (filePath, data) => fsPromises.writeFile(filePath, data),
+    async () => {
+      const result = await dialog.showOpenDialog(window, { properties: ["openDirectory"] });
+      return result.canceled ? undefined : result.filePaths[0];
+    },
+    (folderPath) => fsPromises.readdir(folderPath),
+    (filePath) => fsPromises.readFile(filePath),
+    () => window,
+  );
+
   void window.loadFile(path.join(__dirname, "../renderer/index.html"));
+
 
   await sidecarProcess.start();
 

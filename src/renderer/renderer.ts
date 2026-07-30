@@ -1,3 +1,156 @@
+// Titlebar controls
+const winMin = document.getElementById("win-min") as HTMLButtonElement;
+const winMax = document.getElementById("win-max") as HTMLButtonElement;
+const winClose = document.getElementById("win-close") as HTMLButtonElement;
+
+winMin.addEventListener("click", () => window.api.minimizeWindow());
+winMax.addEventListener("click", () => window.api.maximizeWindow());
+winClose.addEventListener("click", () => window.api.closeWindow());
+
+// Mode Switcher Tabs
+const tabSingle = document.getElementById("tab-single") as HTMLButtonElement;
+const tabBulk = document.getElementById("tab-bulk") as HTMLButtonElement;
+const singleView = document.getElementById("single-view") as HTMLDivElement;
+const bulkView = document.getElementById("bulk-view") as HTMLDivElement;
+
+tabSingle.addEventListener("click", () => {
+  tabSingle.classList.add("active");
+  tabBulk.classList.remove("active");
+  singleView.style.display = "flex";
+  bulkView.style.display = "none";
+});
+
+tabBulk.addEventListener("click", () => {
+  tabBulk.classList.add("active");
+  tabSingle.classList.remove("active");
+  bulkView.style.display = "flex";
+  singleView.style.display = "none";
+});
+
+// Bulk Processing State & Elements
+const bulkInputBtn = document.getElementById("bulk-input-btn") as HTMLButtonElement;
+const bulkInputPath = document.getElementById("bulk-input-path") as HTMLSpanElement;
+const bulkOutputBtn = document.getElementById("bulk-output-btn") as HTMLButtonElement;
+const bulkOutputPath = document.getElementById("bulk-output-path") as HTMLSpanElement;
+
+const bulkRemoveWatermark = document.getElementById("bulk-remove-watermark") as HTMLInputElement;
+const bulkGenerateCaptions = document.getElementById("bulk-generate-captions") as HTMLInputElement;
+const bulkStartBtn = document.getElementById("bulk-start-btn") as HTMLButtonElement;
+const bulkCancelBtn = document.getElementById("bulk-cancel-btn") as HTMLButtonElement;
+
+const progressBarFill = document.getElementById("progress-bar-fill") as HTMLDivElement;
+const bulkProgressText = document.getElementById("bulk-progress-text") as HTMLSpanElement;
+const bulkLogBox = document.getElementById("bulk-log-box") as HTMLDivElement;
+
+let selectedInputFolder: string | undefined;
+let selectedOutputFolder: string | undefined;
+let isBulkRunning = false;
+let isBulkCancelled = false;
+
+function updateBulkStartButton() {
+  bulkStartBtn.disabled = !(selectedInputFolder && selectedOutputFolder && !isBulkRunning);
+}
+
+function appendBulkLog(msg: string) {
+  const line = document.createElement("div");
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  bulkLogBox.appendChild(line);
+  bulkLogBox.scrollTop = bulkLogBox.scrollHeight;
+}
+
+bulkInputBtn.addEventListener("click", async () => {
+  const { folderPath } = await window.api.selectFolder();
+  if (folderPath) {
+    selectedInputFolder = folderPath;
+    bulkInputPath.textContent = folderPath;
+    appendBulkLog(`Input folder set to: ${folderPath}`);
+    updateBulkStartButton();
+  }
+});
+
+bulkOutputBtn.addEventListener("click", async () => {
+  const { folderPath } = await window.api.selectFolder();
+  if (folderPath) {
+    selectedOutputFolder = folderPath;
+    bulkOutputPath.textContent = folderPath;
+    appendBulkLog(`Output folder set to: ${folderPath}`);
+    updateBulkStartButton();
+  }
+});
+
+bulkStartBtn.addEventListener("click", async () => {
+  if (!selectedInputFolder || !selectedOutputFolder || isBulkRunning) return;
+
+  isBulkRunning = true;
+  isBulkCancelled = false;
+  bulkStartBtn.disabled = true;
+  bulkCancelBtn.style.display = "inline-block";
+  bulkLogBox.innerHTML = "";
+  progressBarFill.style.width = "0%";
+
+  try {
+    appendBulkLog("Scanning input folder for images...");
+    const { files } = await window.api.listImagesInFolder(selectedInputFolder);
+
+    if (files.length === 0) {
+      appendBulkLog("No supported image files (.png, .jpg, .webp) found in input folder.");
+      bulkProgressText.textContent = "No images found.";
+      return;
+    }
+
+    appendBulkLog(`Found ${files.length} images. Starting batch processing...`);
+    let processedCount = 0;
+
+    for (const file of files) {
+      if (isBulkCancelled) {
+        appendBulkLog("Bulk processing cancelled by user.");
+        bulkProgressText.textContent = `Cancelled at ${processedCount}/${files.length}`;
+        break;
+      }
+
+      const inputPath = `${selectedInputFolder}/${file}`;
+      bulkProgressText.textContent = `Processing (${processedCount + 1}/${files.length}): ${file}`;
+      appendBulkLog(`Processing: ${file}...`);
+
+      try {
+        await window.api.processBulkItem({
+          inputPath,
+          outputFolder: selectedOutputFolder,
+          autoRemoveWatermark: bulkRemoveWatermark.checked,
+          generateCaption: bulkGenerateCaptions.checked,
+          format: formatSelect.value,
+          quality: parseInt(qualityRange.value, 10),
+          lossless: losslessCheckbox.checked,
+          compressLevel: parseInt(compressSelect.value, 10),
+          metadataMode: metadataSelect.value,
+          flattenColor: flattenColor.value,
+        });
+        processedCount++;
+        const pct = Math.round((processedCount / files.length) * 100);
+        progressBarFill.style.width = `${pct}%`;
+        appendBulkLog(`Done: ${file}`);
+      } catch (err) {
+        appendBulkLog(`ERROR processing ${file}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    if (!isBulkCancelled) {
+      appendBulkLog(`Batch processing complete! ${processedCount}/${files.length} images exported successfully.`);
+      bulkProgressText.textContent = `Complete: ${processedCount}/${files.length} images processed`;
+    }
+  } finally {
+    isBulkRunning = false;
+    bulkCancelBtn.style.display = "none";
+    updateBulkStartButton();
+  }
+});
+
+bulkCancelBtn.addEventListener("click", () => {
+  isBulkCancelled = true;
+  appendBulkLog("Cancelling after current item...");
+});
+
+// Single Image Editor State
 let currentImageId: string | undefined;
 let currentMaskBase64: string | undefined;
 let originalDetectedMaskBase64: string | undefined;
@@ -41,6 +194,7 @@ let lastY = 0;
 const offscreenCanvas = document.createElement("canvas");
 const offscreenCtx = offscreenCanvas.getContext("2d")!;
 const visibleCtx = maskCanvas.getContext("2d")!;
+
 
 const undoStack: ImageData[] = [];
 const redoStack: ImageData[] = [];

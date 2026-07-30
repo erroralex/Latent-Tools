@@ -22,10 +22,90 @@ describe("registerIpcHandlers", () => {
     } as unknown as SidecarClient;
     const showSaveDialog = vi.fn().mockResolvedValue(showSaveDialogResult);
     const writeFile = vi.fn().mockResolvedValue(undefined);
+    const showOpenDialog = vi.fn().mockResolvedValue("C:\\chosen\\input_dir");
+    const readDir = vi.fn().mockResolvedValue(["img1.png", "img2.jpg", "doc.pdf", "notes.txt"]);
+    const readFile = vi.fn().mockResolvedValue(Buffer.from("input-image-data"));
+    const dummyWindow = {
+      isMinimized: vi.fn().mockReturnValue(false),
+      isMaximized: vi.fn().mockReturnValue(true),
+      minimize: vi.fn(),
+      maximize: vi.fn(),
+      unmaximize: vi.fn(),
+      close: vi.fn(),
+    };
 
-    registerIpcHandlers(ipcMain, client, showSaveDialog, writeFile);
-    return { handlers, client, showSaveDialog, writeFile };
+    registerIpcHandlers(
+      ipcMain,
+      client,
+      showSaveDialog,
+      writeFile,
+      showOpenDialog,
+      readDir,
+      readFile,
+      () => dummyWindow,
+    );
+    return { handlers, client, showSaveDialog, writeFile, showOpenDialog, readDir, readFile, dummyWindow };
   }
+
+  it("window controls minimize, maximize, and close call target window methods", async () => {
+    const { handlers, dummyWindow } = setup("C:\\chosen\\output.png");
+    const minHandler = handlers.get("window:minimize");
+    const maxHandler = handlers.get("window:maximize");
+    const closeHandler = handlers.get("window:close");
+
+    if (!minHandler || !maxHandler || !closeHandler) throw new Error("handlers missing");
+
+    await minHandler({});
+    expect(dummyWindow.minimize).toHaveBeenCalled();
+
+    await maxHandler({});
+    expect(dummyWindow.unmaximize).toHaveBeenCalled();
+
+    await closeHandler({});
+    expect(dummyWindow.close).toHaveBeenCalled();
+  });
+
+  it("folder:list-images filters only supported image extensions", async () => {
+    const { handlers } = setup("C:\\chosen\\output.png");
+    const listHandler = handlers.get("folder:list-images");
+    if (!listHandler) throw new Error("folder:list-images missing");
+
+    const { files } = (await listHandler({}, { folderPath: "C:\\my_folder" })) as { files: string[] };
+    expect(files).toEqual(["img1.png", "img2.jpg"]);
+  });
+
+  it("bulk:process-item runs complete normalization, detect, inpaint, caption, and export pipeline", async () => {
+    const { handlers, client, writeFile } = setup("C:\\chosen\\output.png");
+    const bulkHandler = handlers.get("bulk:process-item");
+    if (!bulkHandler) throw new Error("bulk:process-item missing");
+
+    const result = (await bulkHandler(
+      {},
+      {
+        inputPath: "C:\\my_folder\\photo.png",
+        outputFolder: "C:\\out_folder",
+        autoRemoveWatermark: true,
+        generateCaption: true,
+        format: "webp",
+      },
+    )) as { success: boolean; outputPath: string };
+
+    expect(client.normalize).toHaveBeenCalled();
+    expect(client.detect).toHaveBeenCalled();
+    expect(client.inpaint).toHaveBeenCalled();
+    expect(client.caption).toHaveBeenCalled();
+    expect(client.convert).toHaveBeenCalled();
+    expect(writeFile).toHaveBeenCalledWith(
+      "C:\\out_folder\\photo.webp",
+      Buffer.from("converted-bytes"),
+    );
+    expect(writeFile).toHaveBeenCalledWith(
+      "C:\\out_folder\\photo.txt",
+      Buffer.from("A detailed caption of the image.", "utf-8"),
+    );
+    expect(result.success).toBe(true);
+  });
+
 
   it("mask:update stores currentMask and image:inpaint uses stored mask when not passed", async () => {
     const { handlers, client } = setup("C:\\chosen\\output.png");
