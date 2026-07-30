@@ -1,8 +1,15 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("api", {
+  // Sidecar State Listener
+  onSidecarStateChange: (callback: (state: string) => void) => {
+    ipcRenderer.on("sidecar:state", (_event, data: { state: string }) => callback(data.state));
+  },
+
+
   // Window Controls
   minimizeWindow: () => ipcRenderer.invoke("window:minimize"),
+
   maximizeWindow: () => ipcRenderer.invoke("window:maximize"),
   closeWindow: () => ipcRenderer.invoke("window:close"),
   isWindowMaximized: () => ipcRenderer.invoke("window:isMaximized"),

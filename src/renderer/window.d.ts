@@ -1,7 +1,11 @@
 interface Window {
   api: {
+    // Sidecar Listener
+    onSidecarStateChange: (callback: (state: string) => void) => void;
+
     // Window Controls
     minimizeWindow: () => Promise<{ success: boolean }>;
+
     maximizeWindow: () => Promise<{ isMaximized: boolean }>;
     closeWindow: () => Promise<{ success: boolean }>;
     isWindowMaximized: () => Promise<{ isMaximized: boolean }>;

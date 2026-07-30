@@ -1,3 +1,23 @@
+// Sidecar Status Listener
+const sidecarStatusPill = document.getElementById("sidecar-status-pill") as HTMLDivElement;
+const sidecarStatusText = document.getElementById("sidecar-status-text") as HTMLSpanElement;
+
+if (window.api && window.api.onSidecarStateChange) {
+  window.api.onSidecarStateChange((state: string) => {
+    sidecarStatusPill.className = "status-pill";
+    if (state === "ready" || state === "online") {
+      sidecarStatusPill.classList.add("status-online");
+      sidecarStatusText.textContent = "GPU Sidecar: Online";
+    } else if (state === "starting" || state === "restarting") {
+      sidecarStatusPill.classList.add("status-starting");
+      sidecarStatusText.textContent = `GPU Sidecar: ${state.charAt(0).toUpperCase() + state.slice(1)}...`;
+    } else {
+      sidecarStatusPill.classList.add("status-offline");
+      sidecarStatusText.textContent = `GPU Sidecar: ${state.charAt(0).toUpperCase() + state.slice(1)}`;
+    }
+  });
+}
+
 // Titlebar controls
 const winMin = document.getElementById("win-min") as HTMLButtonElement;
 const winMax = document.getElementById("win-max") as HTMLButtonElement;
@@ -6,6 +26,7 @@ const winClose = document.getElementById("win-close") as HTMLButtonElement;
 winMin.addEventListener("click", () => window.api.minimizeWindow());
 winMax.addEventListener("click", () => window.api.maximizeWindow());
 winClose.addEventListener("click", () => window.api.closeWindow());
+
 
 // Mode Switcher Tabs
 const tabSingle = document.getElementById("tab-single") as HTMLButtonElement;
