@@ -3,9 +3,12 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("api", {
   importImage: (buffer: Uint8Array) => ipcRenderer.invoke("image:import", { buffer }),
   detect: (imageId: string) => ipcRenderer.invoke("image:detect", { imageId }),
-  inpaint: (imageId: string, maskBase64: string) =>
+  inpaint: (imageId: string, maskBase64?: string) =>
     ipcRenderer.invoke("image:inpaint", { imageId, maskBase64 }),
+  updateMask: (imageId: string, maskBase64: string) =>
+    ipcRenderer.invoke("mask:update", { imageId, maskBase64 }),
   save: (imageId: string) => ipcRenderer.invoke("image:save", { imageId }),
+
   captionImage: (imageId: string) => ipcRenderer.invoke("image:caption", { imageId }),
   exportImage: (
     imageId: string,

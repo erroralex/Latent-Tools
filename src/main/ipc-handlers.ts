@@ -14,7 +14,7 @@ export function registerIpcHandlers(
   showSaveDialog: ShowSaveDialogFn,
   writeFile: WriteFileFn,
 ): void {
-  const images = new Map<string, { normalized: Buffer; original: Buffer }>();
+  const images = new Map<string, { normalized: Buffer; original: Buffer; currentMask?: Buffer }>();
 
   ipcMain.handle("image:import", async (_event, args) => {
     const { buffer } = args as { buffer: Uint8Array };
@@ -32,20 +32,36 @@ export function registerIpcHandlers(
       throw new Error(`Unknown imageId: ${imageId}`);
     }
     const mask = await client.detect(entry.normalized);
+    images.set(imageId, { ...entry, currentMask: mask });
     return { maskBase64: mask.toString("base64") };
   });
 
-  ipcMain.handle("image:inpaint", async (_event, args) => {
+  ipcMain.handle("mask:update", async (_event, args) => {
     const { imageId, maskBase64 } = args as { imageId: string; maskBase64: string };
     const entry = images.get(imageId);
     if (entry === undefined) {
       throw new Error(`Unknown imageId: ${imageId}`);
     }
-    const mask = Buffer.from(maskBase64, "base64");
+    const currentMask = Buffer.from(maskBase64, "base64");
+    images.set(imageId, { ...entry, currentMask });
+    return { success: true };
+  });
+
+  ipcMain.handle("image:inpaint", async (_event, args) => {
+    const { imageId, maskBase64 } = args as { imageId: string; maskBase64?: string };
+    const entry = images.get(imageId);
+    if (entry === undefined) {
+      throw new Error(`Unknown imageId: ${imageId}`);
+    }
+    const mask = maskBase64 ? Buffer.from(maskBase64, "base64") : entry.currentMask;
+    if (mask === undefined) {
+      throw new Error(`No mask available for imageId: ${imageId}`);
+    }
     const result = await client.inpaint(entry.normalized, mask);
     images.set(imageId, { ...entry, normalized: result });
     return { resultBase64: result.toString("base64") };
   });
+
 
   ipcMain.handle("image:caption", async (_event, args) => {
     const { imageId } = args as { imageId: string };

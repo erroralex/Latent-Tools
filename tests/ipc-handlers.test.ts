@@ -27,15 +27,27 @@ describe("registerIpcHandlers", () => {
     return { handlers, client, showSaveDialog, writeFile };
   }
 
-  it("registers image:import, image:detect, image:inpaint, image:caption, image:save, and image:export", () => {
-    const { handlers } = setup("C:\\chosen\\output.png");
-    expect(handlers.has("image:import")).toBe(true);
-    expect(handlers.has("image:detect")).toBe(true);
-    expect(handlers.has("image:inpaint")).toBe(true);
-    expect(handlers.has("image:caption")).toBe(true);
-    expect(handlers.has("image:save")).toBe(true);
-    expect(handlers.has("image:export")).toBe(true);
+  it("mask:update stores currentMask and image:inpaint uses stored mask when not passed", async () => {
+    const { handlers, client } = setup("C:\\chosen\\output.png");
+    const importHandler = handlers.get("image:import");
+    const updateMaskHandler = handlers.get("mask:update");
+    const inpaintHandler = handlers.get("image:inpaint");
+    if (importHandler === undefined || updateMaskHandler === undefined || inpaintHandler === undefined) {
+      throw new Error("handlers not registered");
+    }
+
+    const { imageId } = (await importHandler({}, { buffer: Buffer.from("png-bytes") })) as {
+      imageId: string;
+    };
+    await updateMaskHandler({}, { imageId, maskBase64: Buffer.from("edited-mask").toString("base64") });
+    await inpaintHandler({}, { imageId });
+
+    expect(client.inpaint).toHaveBeenCalledWith(
+      Buffer.from("normalized-png-bytes"),
+      Buffer.from("edited-mask"),
+    );
   });
+
 
   it("image:caption calls client.caption with normalized image", async () => {
     const { handlers, client } = setup("C:\\chosen\\output.png");
