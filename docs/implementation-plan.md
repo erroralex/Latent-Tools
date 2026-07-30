@@ -3,7 +3,7 @@
 ## Product summary
 
 A local-first Electron desktop app for bulk dataset prep on images: watermark
-removal (AI detection + inpainting), format conversion, and NSFW/mature-content-
+removal (AI detection + inpainting), format conversion, and uncensored
 tolerant image captioning, running entirely on-device (target hardware: RTX
 5080, 9800X3D). No cloud calls, no telemetry by default, no size limits, no
 signup. Bulk (folder-of-images) processing is a first-class mode, not an

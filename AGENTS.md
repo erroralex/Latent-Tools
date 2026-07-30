@@ -4,7 +4,7 @@
 ## Project
 
 - **Name:** Latent Tools
-- **Purpose:** Local-first Electron desktop app for bulk image-dataset prep: watermark removal (AI detection + inpainting), format conversion (JPEG/PNG/WEBP), and NSFW-tolerant image captioning, running entirely on-device. Bulk (folder) processing is first-class, not an afterthought.
+- **Purpose:** Local-first Electron desktop app for bulk image-dataset prep: watermark removal (AI detection + inpainting), format conversion (JPEG/PNG/WEBP), and uncensored image captioning, running entirely on-device. Bulk (folder) processing is first-class, not an afterthought.
 - **Stack:** Electron (TypeScript, strict) renderer + main process; Python sidecar (FastAPI — Florence-2 detection, IOPaint/LaMa inpainting, Qwen2-VL captioning planned) over localhost HTTP. Target hardware: RTX 5080. See `docs/implementation-plan.md` for the full architecture and `docs/superpowers/plans/2026-07-30-phase1-sidecar-round-trip.md` for the current phase's detailed plan. **See `HANDOVER.md` for exactly where the project stands right now.**
 - **Build:** `npm run build` (TypeScript, at repo root). Sidecar has no build step — `cd sidecar && pip install -e ".[dev]"` into a venv (see Run locally).
 - **Test:** `npm test` (Vitest, repo root) for the Electron/TS side. `cd sidecar && <venv>/Scripts/python -m pytest tests/ -v` for the Python side (GPU-marked tests are excluded by default via `pyproject.toml`'s `addopts`).

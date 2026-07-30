@@ -6,7 +6,7 @@ _Last updated: 2026-07-30_
 
 Latent Tools: a local-first Electron desktop app for **bulk image-dataset
 prep** — watermark removal (AI detection + inpainting), format conversion
-(JPEG/PNG/WEBP), and NSFW/mature-content-tolerant image captioning. Bulk
+(JPEG/PNG/WEBP), and uncensored image captioning. Bulk
 (folder) processing is first-class, not an afterthought; it exists as much
 to prepare training datasets (e.g. LoRA) as for one-off cleanup.
 

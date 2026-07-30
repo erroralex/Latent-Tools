@@ -6,7 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.108-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Electron](https://img.shields.io/badge/Electron-31-47848F?style=for-the-badge&logo=electron&logoColor=white)
 
-A local-first, on-device desktop application for bulk image dataset preparation: automated AI watermark detection and removal, multi-format image conversion (JPEG/PNG/WEBP), and NSFW-tolerant training dataset captioning—running entirely offline powered by an embedded Python GPU sidecar.
+A local-first, on-device desktop application for bulk image dataset preparation: automated AI watermark detection and removal, multi-format image conversion (JPEG/PNG/WEBP), and uncensored training dataset captioning—running entirely offline powered by an embedded Python GPU sidecar.
 
 ---
 
@@ -31,9 +31,9 @@ Engineered for AI trainers and dataset creators preparing image libraries for Lo
   * Fine-tune AI-generated masks on an interactive visual overlay canvas (`rgba(255, 0, 0, 0.5)`).
   * Smooth **Add Mask** and **Erase Mask** brush tools with real-time size adjustments (5px – 100px).
   * Unlimited **Undo / Redo** history (`Ctrl+Z`, `Ctrl+Shift+Z` / `Ctrl+Y`) with **Clear** and **Reset** controls.
-* **NSFW & Mature-Content Tolerant Captioning:**
+* **Uncensored Dataset Captioning:**
   * Powered by `Qwen/Qwen2-VL-7B-Instruct` for detailed, factual dataset training descriptions.
-  * Custom system prompts and refusal filters bypass false-positive safety refusals on mature/NSFW dataset art while maintaining objective description quality.
+  * Custom system prompts and refusal filters bypass false-positive safety refusals on uncensored dataset art while maintaining objective description quality.
 * **Multi-Format Dataset Conversion:**
   * Convert images to **PNG**, **JPEG**, or **WEBP**.
   * Adjust quality sliders (1–100), WEBP lossless mode, and PNG compression levels (0–9).

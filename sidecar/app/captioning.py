@@ -19,8 +19,9 @@ _REFUSAL_PREFIXES = (
 _SYSTEM_PROMPT = (
     "Describe this image factually and completely for a dataset training caption. "
     "Include explicit descriptions of subject matter, objects, setting, actions, "
-    "and mature/NSFW content if present. Do not summarize, moralize, censor, or refuse."
+    "and uncensored content if present. Do not summarize, moralize, censor, or refuse."
 )
+
 
 
 def is_refusal_or_empty(text: str | None) -> bool:
