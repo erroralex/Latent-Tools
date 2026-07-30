@@ -103,8 +103,32 @@ function loadMaskToOffscreen(base64Png: string): Promise<void> {
     img.onload = () => {
       offscreenCanvas.width = img.naturalWidth;
       offscreenCanvas.height = img.naturalHeight;
-      offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-      offscreenCtx.drawImage(img, 0, 0);
+      
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = img.naturalWidth;
+      tempCanvas.height = img.naturalHeight;
+      const tempCtx = tempCanvas.getContext("2d")!;
+      tempCtx.drawImage(img, 0, 0);
+      const imgData = tempCtx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
+      const data = imgData.data;
+
+      const offscreenData = offscreenCtx.createImageData(img.naturalWidth, img.naturalHeight);
+      const offData = offscreenData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const val = data[i] ?? 0;
+        if (val > 128) {
+          offData[i] = 255;
+          offData[i + 1] = 255;
+          offData[i + 2] = 255;
+          offData[i + 3] = 255;
+        } else {
+          offData[i] = 0;
+          offData[i + 1] = 0;
+          offData[i + 2] = 0;
+          offData[i + 3] = 0;
+        }
+      }
+      offscreenCtx.putImageData(offscreenData, 0, 0);
       syncVisibleCanvas();
       maskCanvas.style.display = "block";
       resolve();
@@ -149,7 +173,36 @@ function drawStroke(x1: number, y1: number, x2: number, y2: number) {
 }
 
 async function exportOffscreenMask(): Promise<string> {
-  const dataUrl = offscreenCanvas.toDataURL("image/png");
+  const width = offscreenCanvas.width;
+  const height = offscreenCanvas.height;
+  if (width === 0 || height === 0) return "";
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempCtx = tempCanvas.getContext("2d")!;
+
+  const srcData = offscreenCtx.getImageData(0, 0, width, height);
+  const dstData = tempCtx.createImageData(width, height);
+
+  for (let i = 0; i < srcData.data.length; i += 4) {
+    const alpha = srcData.data[i + 3] ?? 0;
+    if (alpha > 128) {
+      dstData.data[i] = 255;
+      dstData.data[i + 1] = 255;
+      dstData.data[i + 2] = 255;
+      dstData.data[i + 3] = 255;
+    } else {
+      dstData.data[i] = 0;
+      dstData.data[i + 1] = 0;
+      dstData.data[i + 2] = 0;
+      dstData.data[i + 3] = 255;
+    }
+  }
+
+  tempCtx.putImageData(dstData, 0, 0);
+
+  const dataUrl = tempCanvas.toDataURL("image/png");
   const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
   currentMaskBase64 = base64;
   if (currentImageId) {
@@ -157,6 +210,7 @@ async function exportOffscreenMask(): Promise<string> {
   }
   return base64;
 }
+
 
 maskCanvas.addEventListener("pointerdown", (e) => {
   if (offscreenCanvas.width === 0) return;
