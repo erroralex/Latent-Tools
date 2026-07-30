@@ -4,11 +4,11 @@
 ## Project
 
 - **Name:** Latent Tools
-- **Purpose:** Local-first Electron desktop app that removes watermarks from images (AI detection + inpainting) and converts between JPEG/PNG/WEBP, running entirely on-device.
-- **Stack:** Electron (TypeScript) renderer + main process; Python sidecar (IOPaint — Florence-2/YOLO detection, LaMa inpainting) over localhost HTTP. Target hardware: RTX 5080. See `docs/implementation-plan.md` for the full architecture.
-- **Build:** `<not yet set up — no package.json/pyproject yet>`
-- **Test:** `<not yet set up>`
-- **Run locally:** `<not yet set up>`
+- **Purpose:** Local-first Electron desktop app for bulk image-dataset prep: watermark removal (AI detection + inpainting), format conversion (JPEG/PNG/WEBP), and NSFW-tolerant image captioning, running entirely on-device. Bulk (folder) processing is first-class, not an afterthought.
+- **Stack:** Electron (TypeScript, strict) renderer + main process; Python sidecar (FastAPI — Florence-2 detection, IOPaint/LaMa inpainting, Qwen2-VL captioning planned) over localhost HTTP. Target hardware: RTX 5080. See `docs/implementation-plan.md` for the full architecture and `docs/superpowers/plans/2026-07-30-phase1-sidecar-round-trip.md` for the current phase's detailed plan. **See `HANDOVER.md` for exactly where the project stands right now.**
+- **Build:** `npm run build` (TypeScript, at repo root). Sidecar has no build step — `cd sidecar && pip install -e ".[dev]"` into a venv (see Run locally).
+- **Test:** `npm test` (Vitest, repo root) for the Electron/TS side. `cd sidecar && <venv>/Scripts/python -m pytest tests/ -v` for the Python side (GPU-marked tests are excluded by default via `pyproject.toml`'s `addopts`).
+- **Run locally:** One-time sidecar setup: `cd sidecar && python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" && .venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128` (plain `pip install torch` gives a CPU-only wheel — GPU needs the cu128 index explicitly). Then from repo root: `npm install && npm start`.
 
 ## Workflow
 
