@@ -33,3 +33,23 @@ def test_detect_endpoint_returns_mask(client):
         assert mask.getpixel((50, 50)) == 0     # outside
     finally:
         app.dependency_overrides.clear()
+
+
+def test_mask_from_bboxes_combines_multiple_watermarks_and_quads():
+    from app.detection import _mask_from_bboxes
+
+    # Multiple bounding boxes across different corners & quad_box format
+    bboxes = [
+        [0, 0, 10, 10],                        # Top-left box
+        [50, 50, 60, 60],                      # Bottom-right box
+        [20, 20, 30, 20, 30, 30, 20, 30],      # Quad box [x1,y1, x2,y2, x3,y3, x4,y4]
+    ]
+    mask = _mask_from_bboxes(bboxes, (100, 100))
+
+    # All three regions should be masked (value 255)
+    assert mask.getpixel((5, 5)) == 255
+    assert mask.getpixel((55, 55)) == 255
+    assert mask.getpixel((25, 25)) == 255
+    # Unmasked region remains 0
+    assert mask.getpixel((80, 10)) == 0
+
