@@ -27,23 +27,23 @@ flow, testing strategy, and 6 phased milestones.
 
 - **Sidecar** (`sidecar/`, FastAPI): `/health`, `/gpu` (real-time GPU Name, VRAM usage & Temp telemetry), `/normalize`, `/detect` (Florence-2 open-vocabulary detection + adaptive Canny stroke contouring), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-2B-Instruct / Qwen2-VL-7B-Instruct or a custom local model folder, selectable per-request via `model_id`, with custom system prompts & trigger words), `/shutdown` (graceful termination, reachable regardless of who started the process).
 - **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`gpu:status`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), custom frameless window starting maximized by default. `SidecarProcess` skips spawning a duplicate sidecar if one is already reachable (e.g. started via the IntelliJ "Sidecar" run config), and on app quit calls the sidecar's `/shutdown` endpoint before exiting so no orphaned process (or stuck IntelliJ run config) is left behind.
-- **Renderer UI**:
-  - **Frameless Custom Titlebar**: Windows window controls, brand logo, and live GPU Sidecar status pill.
-  - **Captioning Model Selector**: shared dropdown (visible in both views) for Qwen2-VL-2B-Instruct (recommended), Qwen2-VL-7B-Instruct, or a custom local model folder via file explorer.
-  - **Single Image Editor**: Full-featured canvas mask overlay with adaptive brush editing (live brush-size cursor circle that scales with zoom) — the brush is paintable immediately after import, no AI detection required first, for fully manual/custom masking — plus undo/redo history, **mousewheel zoom (`0.5x`–`5.0x`)**, **click & drag panning**, system prompt & trigger word editor, generated dataset caption viewer, and export options.
-  - **Bulk Dataset Processor**: Disclaimer banner noting batch watermark removal may miss some watermarks and recommending manual cleanup in Single Image Editor. Full-width stacked layout for Folder Configuration, Batch Processing Options (watermark removal, caption generation with custom trigger words, target format selection for PNG/JPEG/WEBP with quality/compression/flattening/metadata options), **live GPU Telemetry Box (with green/orange/red color-coded VRAM % and Temp °C)**, progress bar, and a scrollable real-time terminal log viewer.
+- **Renderer UI** (Nocturne design system — dark ground, violet accent, `src/renderer/styles/{tokens,components,app}.css`):
+  - **App shell**: frameless custom titlebar (window controls, brand logo, live GPU Sidecar status pill, disabled dark-only theme toggle stub) + left sidebar (Single/Bulk nav, shared captioning model selector, GPU mini-widget with VRAM bar).
+  - **Captioning Model Selector**: Qwen2-VL-2B-Instruct (recommended), Qwen2-VL-7B-Instruct, or a custom local model folder via file explorer.
+  - **Single Image Editor**: pipeline stepper (Detect → Remove → Caption) above a preview/inspector grid. Preview side has the full-featured canvas mask overlay with adaptive brush editing (live brush-size cursor circle that scales with zoom, paintable immediately after import with no AI detection required), undo/redo history, mousewheel zoom (`0.5x`–`5.0x`), and click & drag panning. Inspector is a Caption/Export tab pair — Caption has the system prompt & trigger word editor plus generated caption viewer; Export has format/quality/compression/metadata options and export presets (LoRA/Archive/Web, plus `localStorage`-backed custom presets).
+  - **Bulk Dataset Processor**: disclaimer banner, then a Setup/Export Settings/Progress & Logs 3-tab flow. Setup has input/output folder drop-tiles (drag-over highlight; click-to-browse is the only working path-selection method — see below), watermark removal & captioning toggle switches, and a dataset thumbnail grid. Export Settings mirrors the Single editor's export options + presets. Progress & Logs has the progress bar, live GPU Telemetry (green/orange/red color-coded VRAM % and Temp °C), and a scrollable real-time terminal log viewer.
 - **IntelliJ tooling**: `.idea/runConfigurations/` has a `Sidecar` (Python) config, an `Electron App` (npm) config, and a `Latent Tools (Full Stack)` compound combining both.
 
 ## TODO
 - **Speed and optimizations** Currently, it takes minutes per image to remove watermark and caption. We need to improve this while still keeping original image resolution intact
 - **Logs** Logs should be better utilized in dev/intellij instead of using the just /health checks. Write out starting detetection/removing watermark etc.
 
-## UI rework: implemented (on `ui-rework` branch, not yet merged)
+## UI rework: shipped
 
 The renderer visual rework described in
 [`docs/ui-rework-implementation-plan.md`](docs/ui-rework-implementation-plan.md)
 (Nocturne design system, source mockup `docs/Latent Tools.dc.html`) is
-implemented: `src/renderer/styles/{tokens,components,app}.css` (new),
+merged to `main`: `src/renderer/styles/{tokens,components,app}.css` (new),
 `src/renderer/index.html` and `renderer.ts` rewritten in place, and
 `scripts/copy-renderer-html.js` updated to also copy `styles/` into
 `dist/renderer`. Left sidebar app shell replaces the top tab bar; Single
@@ -52,6 +52,7 @@ Setup/Export Settings/Progress & Logs 3-tab flow with a dataset thumbnail
 grid and export presets (`localStorage`-backed custom presets). Scoped to
 `src/renderer/` only, per plan — no IPC/main/sidecar changes; every id
 `renderer.ts` used is preserved (cross-checked against the markup).
+Manually QA'd and confirmed working.
 
 Two deliberate deviations from the plan text:
 - **Fonts**: system font stack instead of vendoring Inter — avoids adding
@@ -62,13 +63,6 @@ Two deliberate deviations from the plan text:
   which conflicts with the plan's own "renderer-only, no preload changes"
   scope constraint — click-to-browse (existing `folder:select` IPC) is
   the only working path-selection method for now.
-
-Verified: `npm run build` and `npm test` both pass; launched the app and
-confirmed no renderer console errors (temporary `console-message`
-forwarding, reverted after checking). Full manual visual QA (§7 point 6
-of the plan) was not performed in this session — no way to screenshot the
-Electron window without capturing the rest of the desktop, so do a visual
-pass before merging.
 
 ## Verified technical facts worth not re-discovering
 
