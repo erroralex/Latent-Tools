@@ -124,9 +124,34 @@ const bulkStartBtn = document.getElementById("bulk-start-btn") as HTMLButtonElem
 const bulkCancelBtn = document.getElementById("bulk-cancel-btn") as HTMLButtonElement;
 
 
+const bulkFormatSelect = document.getElementById("bulk-format-select") as HTMLSelectElement;
+const bulkQualityContainer = document.getElementById("bulk-quality-container") as HTMLDivElement;
+const bulkQualityRange = document.getElementById("bulk-quality-range") as HTMLInputElement;
+const bulkQualityVal = document.getElementById("bulk-quality-val") as HTMLSpanElement;
+const bulkLosslessContainer = document.getElementById("bulk-lossless-container") as HTMLDivElement;
+const bulkLosslessCheckbox = document.getElementById("bulk-lossless-checkbox") as HTMLInputElement;
+const bulkCompressContainer = document.getElementById("bulk-compress-container") as HTMLDivElement;
+const bulkCompressSelect = document.getElementById("bulk-compress-select") as HTMLSelectElement;
+const bulkFlattenContainer = document.getElementById("bulk-flatten-container") as HTMLDivElement;
+const bulkFlattenColor = document.getElementById("bulk-flatten-color") as HTMLInputElement;
+const bulkMetadataSelect = document.getElementById("bulk-metadata-select") as HTMLSelectElement;
+
+bulkQualityRange.addEventListener("input", () => {
+  bulkQualityVal.textContent = bulkQualityRange.value;
+});
+
+bulkFormatSelect.addEventListener("change", () => {
+  const fmt = bulkFormatSelect.value;
+  bulkQualityContainer.style.display = fmt === "jpeg" || fmt === "webp" ? "block" : "none";
+  bulkLosslessContainer.style.display = fmt === "webp" ? "block" : "none";
+  bulkCompressContainer.style.display = fmt === "png" ? "block" : "none";
+  bulkFlattenContainer.style.display = fmt === "jpeg" ? "block" : "none";
+});
+
 const progressBarFill = document.getElementById("progress-bar-fill") as HTMLDivElement;
 const bulkProgressText = document.getElementById("bulk-progress-text") as HTMLSpanElement;
 const bulkLogBox = document.getElementById("bulk-log-box") as HTMLDivElement;
+
 
 let selectedInputFolder: string | undefined;
 let selectedOutputFolder: string | undefined;
@@ -204,14 +229,15 @@ bulkStartBtn.addEventListener("click", async () => {
           outputFolder: selectedOutputFolder,
           autoRemoveWatermark: bulkRemoveWatermark.checked,
           generateCaption: bulkGenerateCaptions.checked,
-          format: formatSelect.value,
-          quality: parseInt(qualityRange.value, 10),
-          lossless: losslessCheckbox.checked,
-          compressLevel: parseInt(compressSelect.value, 10),
-          metadataMode: metadataSelect.value,
-          flattenColor: flattenColor.value,
+          format: bulkFormatSelect.value,
+          quality: parseInt(bulkQualityRange.value, 10),
+          lossless: bulkLosslessCheckbox.checked,
+          compressLevel: parseInt(bulkCompressSelect.value, 10),
+          metadataMode: bulkMetadataSelect.value,
+          flattenColor: bulkFlattenColor.value,
           systemPrompt: bulkSystemPrompt.value,
         });
+
 
         processedCount++;
         const pct = Math.round((processedCount / files.length) * 100);

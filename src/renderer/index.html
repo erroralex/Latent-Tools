@@ -583,6 +583,59 @@
             <textarea id="bulk-system-prompt" rows="3" style="background-color: #121418; border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 10px; border-radius: 6px; font-size: 0.82rem; width: 100%; font-family: inherit; resize: vertical; outline: none;" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually...">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
           </div>
 
+          <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 4px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="font-weight: 600; font-size: 0.88rem; color: var(--text-color);">Output Format & Image Compression</div>
+            
+            <div class="form-group">
+              <label for="bulk-format-select">Format</label>
+              <select id="bulk-format-select">
+                <option value="png" selected>PNG (Lossless)</option>
+                <option value="jpeg">JPEG</option>
+                <option value="webp">WEBP</option>
+              </select>
+            </div>
+
+            <div id="bulk-quality-container" class="form-group" style="display: none;">
+              <label for="bulk-quality-range">Quality: <span id="bulk-quality-val">90</span></label>
+              <div class="range-row">
+                <input type="range" id="bulk-quality-range" min="1" max="100" value="90" />
+              </div>
+            </div>
+
+            <div id="bulk-lossless-container" class="form-group" style="display: none;">
+              <label class="checkbox-row">
+                <input type="checkbox" id="bulk-lossless-checkbox" />
+                Lossless WEBP
+              </label>
+            </div>
+
+            <div id="bulk-compress-container" class="form-group">
+              <label for="bulk-compress-select">PNG Compression</label>
+              <select id="bulk-compress-select">
+                <option value="1">1 (Fastest, largest file)</option>
+                <option value="6" selected>6 (Default balance)</option>
+                <option value="9">9 (Slowest, smallest file)</option>
+              </select>
+            </div>
+
+            <div id="bulk-flatten-container" class="form-group" style="display: none;">
+              <label for="bulk-flatten-color">Flatten Background (Transparency)</label>
+              <div class="color-row">
+                <input type="color" id="bulk-flatten-color" value="#ffffff" />
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Default: White</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="bulk-metadata-select">Metadata (EXIF & ICC)</label>
+              <select id="bulk-metadata-select">
+                <option value="strip" selected>Strip all metadata (Default)</option>
+                <option value="keep">Keep EXIF & ICC profile</option>
+                <option value="strip_except_orientation">Strip except orientation</option>
+              </select>
+            </div>
+          </div>
+
           <div style="display: flex; gap: 12px; margin-top: 8px;">
             <button id="bulk-start-btn" class="btn" style="flex: 1;" disabled>Start Bulk Processing</button>
             <button id="bulk-cancel-btn" class="btn btn-secondary" style="display: none; background-color: #7f1d1d; color: white;">Cancel</button>
