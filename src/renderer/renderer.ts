@@ -4,6 +4,7 @@ let currentMaskBase64: string | undefined;
 const fileInput = document.getElementById("file-input") as HTMLInputElement;
 const detectBtn = document.getElementById("detect-btn") as HTMLButtonElement;
 const inpaintBtn = document.getElementById("inpaint-btn") as HTMLButtonElement;
+const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
 const preview = document.getElementById("preview") as HTMLImageElement;
 
 fileInput.addEventListener("change", async () => {
@@ -27,4 +28,10 @@ inpaintBtn.addEventListener("click", async () => {
   if (currentImageId === undefined || currentMaskBase64 === undefined) return;
   const { resultBase64 } = await window.api.inpaint(currentImageId, currentMaskBase64);
   preview.src = `data:image/png;base64,${resultBase64}`;
+  saveBtn.disabled = false;
+});
+
+saveBtn.addEventListener("click", async () => {
+  if (currentImageId === undefined) return;
+  await window.api.save(currentImageId);
 });

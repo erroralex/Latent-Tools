@@ -1,7 +1,8 @@
 import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import * as fs from "node:fs";
+import * as fsPromises from "node:fs/promises";
 import * as path from "node:path";
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { SidecarClient } from "./sidecar-client";
 import { SidecarProcess } from "./sidecar-process";
 import { registerIpcHandlers } from "./ipc-handlers";
@@ -50,7 +51,15 @@ async function createWindow(): Promise<void> {
     }
   });
 
-  registerIpcHandlers(ipcMain, client);
+  registerIpcHandlers(
+    ipcMain,
+    client,
+    async (defaultPath) => {
+      const result = await dialog.showSaveDialog({ defaultPath });
+      return result.canceled ? undefined : result.filePath;
+    },
+    (filePath, data) => fsPromises.writeFile(filePath, data),
+  );
 
   const window = new BrowserWindow({
     width: 1024,
