@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const srcFile = path.join(__dirname, "..", "src", "renderer", "index.html");
+const srcDir = path.join(__dirname, "..", "src", "renderer");
 const destDir = path.join(__dirname, "..", "dist", "renderer");
-const destFile = path.join(destDir, "index.html");
 
 fs.mkdirSync(destDir, { recursive: true });
-fs.copyFileSync(srcFile, destFile);
+fs.copyFileSync(path.join(srcDir, "index.html"), path.join(destDir, "index.html"));
+fs.cpSync(path.join(srcDir, "styles"), path.join(destDir, "styles"), { recursive: true });

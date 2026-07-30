@@ -1,0 +1,46 @@
+/* Nocturne design tokens — dark-only for v1 (see docs/ui-rework-implementation-plan.md §6).
+   Fonts use a local system stack, not Google Fonts' Inter, to keep the app
+   100% offline as required by AGENTS.md / README. */
+:root {
+  /* Ground & surfaces */
+  --color-bg: #161826;
+  --color-surface: #1c1f2e;
+  --color-surface-raised: #20222e;
+  --color-divider: #2a2d40;
+  --color-neutral-800: #20222e;
+  --color-neutral-400: #8a8fa3;
+
+  /* Text */
+  --color-text: #e6e7f0;
+
+  /* Accent */
+  --color-accent: #9184d9;
+  --color-accent-300: #b3a8e8;
+  --color-accent-2: #5ec9c7;
+
+  /* Status */
+  --color-success: #5fd98a;
+  --color-warning: #f5b942;
+  --color-danger: #e5484d;
+
+  /* Typography */
+  --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Spacing scale (space-N = N * 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28), 0 1px 1px rgba(0, 0, 0, 0.16);
+}

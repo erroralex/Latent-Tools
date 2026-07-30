@@ -18,22 +18,27 @@ if (window.api && window.api.onSidecarStateChange) {
   });
 }
 
-// GPU Telemetry Poller
+// GPU Telemetry Poller — mirrored into the sidebar mini-card and the bulk
+// progress panel's duplicate widget (distinct ids, same data).
 const gpuNameText = document.getElementById("gpu-name-text") as HTMLSpanElement;
 const gpuVramText = document.getElementById("gpu-vram-text") as HTMLSpanElement;
+const gpuVramBarFill = document.getElementById("gpu-vram-bar-fill") as HTMLDivElement;
 const gpuTempText = document.getElementById("gpu-temp-text") as HTMLSpanElement;
+const gpuNameText2 = document.getElementById("gpu-name-text-2") as HTMLSpanElement;
+const gpuVramText2 = document.getElementById("gpu-vram-text-2") as HTMLElement;
+const gpuTempText2 = document.getElementById("gpu-temp-text-2") as HTMLElement;
 
 function getVramColor(pct: number): string {
-  if (pct >= 89) return "#ef4444"; // Red (≥ 89%)
-  if (pct >= 70) return "#f59e0b"; // Orange (70% - 88%)
-  return "#10b981"; // Green (< 70%)
+  if (pct >= 89) return "#e5484d"; // Red (>= 89%)
+  if (pct >= 70) return "#f5b942"; // Orange (70% - 88%)
+  return "#5fd98a"; // Green (< 70%)
 }
 
 function getTempColor(temp: number | null): string {
-  if (temp === null) return "var(--text-muted)";
-  if (temp >= 80) return "#ef4444"; // Red (≥ 80°C)
-  if (temp >= 65) return "#f59e0b"; // Orange (65°C - 79°C)
-  return "#10b981"; // Green (< 65°C)
+  if (temp === null) return "var(--color-neutral-400)";
+  if (temp >= 80) return "#e5484d"; // Red (>= 80°C)
+  if (temp >= 65) return "#f5b942"; // Orange (65°C - 79°C)
+  return "#5fd98a"; // Green (< 65°C)
 }
 
 async function updateGpuStatus() {
@@ -42,40 +47,57 @@ async function updateGpuStatus() {
     const gpu = await window.api.getGpuStatus();
     if (gpu.status === "ok") {
       gpuNameText.textContent = gpu.name;
+      gpuNameText2.textContent = gpu.name;
 
       const pct = Math.round(gpu.vram_pct);
-      gpuVramText.textContent = `${gpu.vram_used_gb} / ${gpu.vram_total_gb} GB (${pct}%)`;
-      gpuVramText.style.color = getVramColor(pct);
+      const vramLabel = `${gpu.vram_used_gb} / ${gpu.vram_total_gb} GB (${pct}%)`;
+      const vramColor = getVramColor(pct);
+      gpuVramText.textContent = vramLabel;
+      gpuVramText.style.color = vramColor;
+      gpuVramText2.textContent = vramLabel;
+      gpuVramText2.style.color = vramColor;
+      gpuVramBarFill.style.width = `${Math.min(100, pct)}%`;
+      gpuVramBarFill.style.background = vramColor;
 
-      if (gpu.temperature_c !== null) {
-        gpuTempText.textContent = `${gpu.temperature_c}°C`;
-        gpuTempText.style.color = getTempColor(gpu.temperature_c);
-      } else {
-        gpuTempText.textContent = "N/A";
-        gpuTempText.style.color = "var(--text-muted)";
-      }
+      const tempColor = getTempColor(gpu.temperature_c);
+      const tempLabel = gpu.temperature_c !== null ? `${gpu.temperature_c}°C` : "N/A";
+      gpuTempText.textContent = tempLabel;
+      gpuTempText.style.color = tempColor;
+      gpuTempText2.textContent = tempLabel;
+      gpuTempText2.style.color = tempColor;
     } else {
-      gpuNameText.textContent = gpu.name || "No CUDA GPU Detected";
+      const name = gpu.name || "No CUDA GPU Detected";
+      gpuNameText.textContent = name;
+      gpuNameText2.textContent = name;
       gpuVramText.textContent = "0.0 / 0.0 GB (0%)";
-      gpuVramText.style.color = "var(--text-muted)";
+      gpuVramText.style.color = "var(--color-neutral-400)";
+      gpuVramText2.textContent = "0.0 / 0.0 GB (0%)";
+      gpuVramText2.style.color = "var(--color-neutral-400)";
+      gpuVramBarFill.style.width = "0%";
       gpuTempText.textContent = "--°C";
-      gpuTempText.style.color = "var(--text-muted)";
+      gpuTempText.style.color = "var(--color-neutral-400)";
+      gpuTempText2.textContent = "--°C";
+      gpuTempText2.style.color = "var(--color-neutral-400)";
     }
   } catch {
     gpuNameText.textContent = "GPU Telemetry Offline";
+    gpuNameText2.textContent = "GPU Telemetry Offline";
     gpuVramText.textContent = "0.0 / 0.0 GB (0%)";
-    gpuVramText.style.color = "var(--text-muted)";
+    gpuVramText.style.color = "var(--color-neutral-400)";
+    gpuVramText2.textContent = "0.0 / 0.0 GB (0%)";
+    gpuVramText2.style.color = "var(--color-neutral-400)";
+    gpuVramBarFill.style.width = "0%";
     gpuTempText.textContent = "--°C";
-    gpuTempText.style.color = "var(--text-muted)";
+    gpuTempText.style.color = "var(--color-neutral-400)";
+    gpuTempText2.textContent = "--°C";
+    gpuTempText2.style.color = "var(--color-neutral-400)";
   }
 }
 
 updateGpuStatus();
 setInterval(updateGpuStatus, 3000);
 
-
 // Titlebar controls
-
 const winMin = document.getElementById("win-min") as HTMLButtonElement;
 const winMax = document.getElementById("win-max") as HTMLButtonElement;
 const winClose = document.getElementById("win-close") as HTMLButtonElement;
@@ -84,26 +106,72 @@ winMin.addEventListener("click", () => window.api.minimizeWindow());
 winMax.addEventListener("click", () => window.api.maximizeWindow());
 winClose.addEventListener("click", () => window.api.closeWindow());
 
+// Sidebar nav (single / bulk)
+const navSingle = document.getElementById("nav-single") as HTMLButtonElement;
+const navBulk = document.getElementById("nav-bulk") as HTMLButtonElement;
+const singleView = document.getElementById("single-view") as HTMLElement;
+const bulkView = document.getElementById("bulk-view") as HTMLElement;
 
-// Mode Switcher Tabs
-const tabSingle = document.getElementById("tab-single") as HTMLButtonElement;
-const tabBulk = document.getElementById("tab-bulk") as HTMLButtonElement;
-const singleView = document.getElementById("single-view") as HTMLDivElement;
-const bulkView = document.getElementById("bulk-view") as HTMLDivElement;
-
-tabSingle.addEventListener("click", () => {
-  tabSingle.classList.add("active");
-  tabBulk.classList.remove("active");
+navSingle.addEventListener("click", () => {
+  navSingle.classList.add("is-active");
+  navBulk.classList.remove("is-active");
   singleView.style.display = "flex";
   bulkView.style.display = "none";
 });
 
-tabBulk.addEventListener("click", () => {
-  tabBulk.classList.add("active");
-  tabSingle.classList.remove("active");
+navBulk.addEventListener("click", () => {
+  navBulk.classList.add("is-active");
+  navSingle.classList.remove("is-active");
   bulkView.style.display = "flex";
   singleView.style.display = "none";
 });
+
+// Generic segmented-control helper: drives .is-active on each option's
+// label and shows/hides the associated panel based on which radio is checked.
+function wireSegTabs(entries: Array<{ radioId: string; panelId: string }>) {
+  const radios = entries.map((e) => document.getElementById(e.radioId) as HTMLInputElement);
+  const panels = entries.map((e) => document.getElementById(e.panelId) as HTMLElement);
+
+  function sync() {
+    radios.forEach((radio, i) => {
+      const label = radio.closest(".seg-opt");
+      const panel = panels[i];
+      if (radio.checked) {
+        label?.classList.add("is-active");
+        if (panel) panel.style.display = "flex";
+      } else {
+        label?.classList.remove("is-active");
+        if (panel) panel.style.display = "none";
+      }
+    });
+  }
+
+  radios.forEach((radio) => radio.addEventListener("change", sync));
+  sync();
+}
+
+wireSegTabs([
+  { radioId: "panel-tab-caption", panelId: "caption-panel" },
+  { radioId: "panel-tab-export", panelId: "export-panel" },
+]);
+
+wireSegTabs([
+  { radioId: "bulk-tab-setup", panelId: "bulk-setup-panel" },
+  { radioId: "bulk-tab-export", panelId: "bulk-export-panel" },
+  { radioId: "bulk-tab-progress", panelId: "bulk-progress-panel" },
+]);
+
+// Toggle switches: a real checkbox drives an adjacent visual pill+knob span.
+function wireToggle(checkboxId: string, toggleId: string, onChange?: (checked: boolean) => void) {
+  const checkbox = document.getElementById(checkboxId) as HTMLInputElement;
+  const toggle = document.getElementById(toggleId) as HTMLSpanElement;
+  const sync = () => toggle.classList.toggle("is-on", checkbox.checked);
+  checkbox.addEventListener("change", () => {
+    sync();
+    onChange?.(checkbox.checked);
+  });
+  sync();
+}
 
 // Captioning Model Selector
 const modelSelect = document.getElementById("model-select") as HTMLSelectElement;
@@ -137,21 +205,23 @@ modelBrowseBtn.addEventListener("click", async () => {
 // Bulk Processing State & Elements
 const bulkInputBtn = document.getElementById("bulk-input-btn") as HTMLButtonElement;
 const bulkInputPath = document.getElementById("bulk-input-path") as HTMLSpanElement;
+const bulkInputDropzone = document.getElementById("bulk-input-dropzone") as HTMLDivElement;
 const bulkOutputBtn = document.getElementById("bulk-output-btn") as HTMLButtonElement;
 const bulkOutputPath = document.getElementById("bulk-output-path") as HTMLSpanElement;
+const bulkOutputDropzone = document.getElementById("bulk-output-dropzone") as HTMLDivElement;
 
 const bulkRemoveWatermark = document.getElementById("bulk-remove-watermark") as HTMLInputElement;
 const bulkGenerateCaptions = document.getElementById("bulk-generate-captions") as HTMLInputElement;
 const bulkPromptContainer = document.getElementById("bulk-prompt-container") as HTMLDivElement;
 const bulkSystemPrompt = document.getElementById("bulk-system-prompt") as HTMLTextAreaElement;
 
-bulkGenerateCaptions.addEventListener("change", () => {
-  bulkPromptContainer.style.display = bulkGenerateCaptions.checked ? "block" : "none";
+wireToggle("bulk-remove-watermark", "bulk-remove-watermark-toggle");
+wireToggle("bulk-generate-captions", "bulk-generate-captions-toggle", (checked) => {
+  bulkPromptContainer.style.display = checked ? "flex" : "none";
 });
 
 const bulkStartBtn = document.getElementById("bulk-start-btn") as HTMLButtonElement;
 const bulkCancelBtn = document.getElementById("bulk-cancel-btn") as HTMLButtonElement;
-
 
 const bulkFormatSelect = document.getElementById("bulk-format-select") as HTMLSelectElement;
 const bulkQualityContainer = document.getElementById("bulk-quality-container") as HTMLDivElement;
@@ -165,22 +235,62 @@ const bulkFlattenContainer = document.getElementById("bulk-flatten-container") a
 const bulkFlattenColor = document.getElementById("bulk-flatten-color") as HTMLInputElement;
 const bulkMetadataSelect = document.getElementById("bulk-metadata-select") as HTMLSelectElement;
 
+wireToggle("bulk-lossless-checkbox", "bulk-lossless-toggle");
+
 bulkQualityRange.addEventListener("input", () => {
   bulkQualityVal.textContent = bulkQualityRange.value;
 });
 
-bulkFormatSelect.addEventListener("change", () => {
+function updateBulkExportUi() {
   const fmt = bulkFormatSelect.value;
-  bulkQualityContainer.style.display = fmt === "jpeg" || fmt === "webp" ? "block" : "none";
-  bulkLosslessContainer.style.display = fmt === "webp" ? "block" : "none";
-  bulkCompressContainer.style.display = fmt === "png" ? "block" : "none";
-  bulkFlattenContainer.style.display = fmt === "jpeg" ? "block" : "none";
-});
+  bulkQualityContainer.style.display = fmt === "jpeg" || fmt === "webp" ? "flex" : "none";
+  bulkLosslessContainer.style.display = fmt === "webp" ? "flex" : "none";
+  bulkCompressContainer.style.display = fmt === "png" ? "flex" : "none";
+  bulkFlattenContainer.style.display = fmt === "jpeg" ? "flex" : "none";
+}
+
+bulkFormatSelect.addEventListener("change", updateBulkExportUi);
+updateBulkExportUi();
 
 const progressBarFill = document.getElementById("progress-bar-fill") as HTMLDivElement;
 const bulkProgressText = document.getElementById("bulk-progress-text") as HTMLSpanElement;
 const bulkLogBox = document.getElementById("bulk-log-box") as HTMLDivElement;
+const bulkThumbGrid = document.getElementById("bulk-thumb-grid") as HTMLDivElement;
+const bulkThumbCount = document.getElementById("bulk-thumb-count") as HTMLSpanElement;
 
+const MAX_THUMBS = 11;
+
+async function populateThumbGrid(folderPath: string) {
+  bulkThumbGrid.textContent = "";
+  bulkThumbCount.textContent = "Scanning…";
+  try {
+    const { files } = await window.api.listImagesInFolder(folderPath);
+    bulkThumbCount.textContent = `${files.length} image${files.length === 1 ? "" : "s"} found`;
+    const shown = files.slice(0, MAX_THUMBS);
+    for (const file of shown) {
+      const tile = document.createElement("div");
+      tile.className = "thumb-tile";
+      const img = document.createElement("img");
+      img.src = `file://${folderPath}/${file}`;
+      img.alt = file;
+      img.loading = "lazy";
+      tile.appendChild(img);
+      bulkThumbGrid.appendChild(tile);
+    }
+    const remaining = files.length - shown.length;
+    if (remaining > 0) {
+      const tile = document.createElement("div");
+      tile.className = "thumb-tile";
+      const more = document.createElement("div");
+      more.className = "thumb-more";
+      more.textContent = `+${remaining} more`;
+      tile.appendChild(more);
+      bulkThumbGrid.appendChild(tile);
+    }
+  } catch {
+    bulkThumbCount.textContent = "Could not read folder";
+  }
+}
 
 let selectedInputFolder: string | undefined;
 let selectedOutputFolder: string | undefined;
@@ -198,25 +308,49 @@ function appendBulkLog(msg: string) {
   bulkLogBox.scrollTop = bulkLogBox.scrollHeight;
 }
 
+async function setInputFolder(folderPath: string) {
+  selectedInputFolder = folderPath;
+  bulkInputPath.textContent = folderPath;
+  appendBulkLog(`Input folder set to: ${folderPath}`);
+  updateBulkStartButton();
+  await populateThumbGrid(folderPath);
+}
+
+function setOutputFolder(folderPath: string) {
+  selectedOutputFolder = folderPath;
+  bulkOutputPath.textContent = folderPath;
+  appendBulkLog(`Output folder set to: ${folderPath}`);
+  updateBulkStartButton();
+}
+
 bulkInputBtn.addEventListener("click", async () => {
   const { folderPath } = await window.api.selectFolder();
-  if (folderPath) {
-    selectedInputFolder = folderPath;
-    bulkInputPath.textContent = folderPath;
-    appendBulkLog(`Input folder set to: ${folderPath}`);
-    updateBulkStartButton();
-  }
+  if (folderPath) await setInputFolder(folderPath);
 });
 
 bulkOutputBtn.addEventListener("click", async () => {
   const { folderPath } = await window.api.selectFolder();
-  if (folderPath) {
-    selectedOutputFolder = folderPath;
-    bulkOutputPath.textContent = folderPath;
-    appendBulkLog(`Output folder set to: ${folderPath}`);
-    updateBulkStartButton();
-  }
+  if (folderPath) setOutputFolder(folderPath);
 });
+
+// Dropzone drag-over affordance. Resolving a dropped folder to an absolute
+// path requires Electron's webUtils bridged through the preload script,
+// which is out of scope for this renderer-only rework — dropping still
+// falls back to the existing click-to-browse flow (see plan §5.5/§6).
+function wireDropzoneHighlight(zone: HTMLDivElement) {
+  zone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    zone.classList.add("is-dragover");
+  });
+  zone.addEventListener("dragleave", () => zone.classList.remove("is-dragover"));
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    zone.classList.remove("is-dragover");
+  });
+}
+
+wireDropzoneHighlight(bulkInputDropzone);
+wireDropzoneHighlight(bulkOutputDropzone);
 
 bulkStartBtn.addEventListener("click", async () => {
   if (!selectedInputFolder || !selectedOutputFolder || isBulkRunning) return;
@@ -224,7 +358,7 @@ bulkStartBtn.addEventListener("click", async () => {
   isBulkRunning = true;
   isBulkCancelled = false;
   bulkStartBtn.disabled = true;
-  bulkCancelBtn.style.display = "inline-block";
+  bulkCancelBtn.style.display = "inline-flex";
   bulkLogBox.innerHTML = "";
   progressBarFill.style.width = "0%";
 
@@ -267,7 +401,6 @@ bulkStartBtn.addEventListener("click", async () => {
           systemPrompt: bulkSystemPrompt.value,
           modelId: selectedModelId || undefined,
         });
-
 
         processedCount++;
         const pct = Math.round((processedCount / files.length) * 100);
@@ -341,7 +474,7 @@ previewContainer.addEventListener(
 
     updatePreviewTransform();
   },
-  { passive: false }
+  { passive: false },
 );
 
 // Pan Drag Controls
@@ -412,8 +545,8 @@ const captionText = document.getElementById("caption-text") as HTMLTextAreaEleme
 const captionStatus = document.getElementById("caption-status") as HTMLSpanElement;
 
 const maskCanvas = document.getElementById("mask-canvas") as HTMLCanvasElement;
-const brushAddBtn = document.getElementById("brush-add-btn") as HTMLButtonElement;
-const brushEraseBtn = document.getElementById("brush-erase-btn") as HTMLButtonElement;
+const brushAddBtn = document.getElementById("brush-add-btn") as HTMLInputElement;
+const brushEraseBtn = document.getElementById("brush-erase-btn") as HTMLInputElement;
 const brushSize = document.getElementById("brush-size") as HTMLInputElement;
 const brushSizeVal = document.getElementById("brush-size-val") as HTMLSpanElement;
 const undoBtn = document.getElementById("undo-btn") as HTMLButtonElement;
@@ -434,6 +567,8 @@ const flattenContainer = document.getElementById("flatten-container") as HTMLDiv
 const flattenColor = document.getElementById("flatten-color") as HTMLInputElement;
 const metadataSelect = document.getElementById("metadata-select") as HTMLSelectElement;
 
+wireToggle("lossless-checkbox", "lossless-toggle");
+
 let brushMode: "add" | "erase" = "add";
 let isDrawing = false;
 let lastX = 0;
@@ -442,7 +577,6 @@ let lastY = 0;
 const offscreenCanvas = document.createElement("canvas");
 const offscreenCtx = offscreenCanvas.getContext("2d")!;
 const visibleCtx = maskCanvas.getContext("2d")!;
-
 
 const undoStack: ImageData[] = [];
 const redoStack: ImageData[] = [];
@@ -539,6 +673,108 @@ losslessCheckbox.addEventListener("change", () => {
   qualityRange.disabled = losslessCheckbox.checked;
 });
 
+// Export presets
+type ExportPreset = {
+  format: string;
+  quality: number;
+  lossless: boolean;
+  compressLevel: number;
+  metadataMode: string;
+};
+
+const BUILT_IN_PRESETS: Record<string, ExportPreset> = {
+  lora: { format: "jpeg", quality: 92, lossless: false, compressLevel: 6, metadataMode: "strip" },
+  archive: { format: "png", quality: 100, lossless: false, compressLevel: 6, metadataMode: "keep" },
+  web: { format: "webp", quality: 82, lossless: false, compressLevel: 6, metadataMode: "strip" },
+};
+
+const CUSTOM_PRESETS_KEY = "lt-export-presets";
+
+function loadCustomPresets(): Record<string, ExportPreset> {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PRESETS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, ExportPreset>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomPreset(name: string, preset: ExportPreset) {
+  const presets = loadCustomPresets();
+  presets[name] = preset;
+  localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+}
+
+function wireExportPresets(
+  selectEl: HTMLSelectElement,
+  saveBtnEl: HTMLButtonElement,
+  fields: {
+    format: HTMLSelectElement;
+    quality: HTMLInputElement;
+    lossless: HTMLInputElement;
+    compress: HTMLSelectElement;
+    metadata: HTMLSelectElement;
+  },
+) {
+  for (const [name, preset] of Object.entries(loadCustomPresets())) {
+    const opt = document.createElement("option");
+    opt.value = `custom:${name}`;
+    opt.textContent = `${name} (custom)`;
+    selectEl.appendChild(opt);
+    BUILT_IN_PRESETS[`custom:${name}`] = preset;
+  }
+
+  selectEl.addEventListener("change", () => {
+    const preset = BUILT_IN_PRESETS[selectEl.value];
+    if (!preset) return;
+    fields.format.value = preset.format;
+    fields.format.dispatchEvent(new Event("change"));
+    fields.quality.value = String(preset.quality);
+    fields.quality.dispatchEvent(new Event("input"));
+    fields.lossless.checked = preset.lossless;
+    fields.lossless.dispatchEvent(new Event("change"));
+    fields.compress.value = String(preset.compressLevel);
+    fields.metadata.value = preset.metadataMode;
+  });
+
+  saveBtnEl.addEventListener("click", () => {
+    const name = prompt("Preset name?");
+    if (!name) return;
+    const preset: ExportPreset = {
+      format: fields.format.value,
+      quality: parseInt(fields.quality.value, 10),
+      lossless: fields.lossless.checked,
+      compressLevel: parseInt(fields.compress.value, 10),
+      metadataMode: fields.metadata.value,
+    };
+    saveCustomPreset(name, preset);
+    BUILT_IN_PRESETS[`custom:${name}`] = preset;
+    const opt = document.createElement("option");
+    opt.value = `custom:${name}`;
+    opt.textContent = `${name} (custom)`;
+    selectEl.appendChild(opt);
+    selectEl.value = `custom:${name}`;
+  });
+}
+
+wireExportPresets(
+  document.getElementById("export-preset-select") as HTMLSelectElement,
+  document.getElementById("export-preset-save-btn") as HTMLButtonElement,
+  { format: formatSelect, quality: qualityRange, lossless: losslessCheckbox, compress: compressSelect, metadata: metadataSelect },
+);
+
+wireExportPresets(
+  document.getElementById("bulk-export-preset-select") as HTMLSelectElement,
+  document.getElementById("bulk-export-preset-save-btn") as HTMLButtonElement,
+  {
+    format: bulkFormatSelect,
+    quality: bulkQualityRange,
+    lossless: bulkLosslessCheckbox,
+    compress: bulkCompressSelect,
+    metadata: bulkMetadataSelect,
+  },
+);
+
 const brushCursor = document.getElementById("brush-cursor") as HTMLDivElement;
 
 function updateBrushCursorSize() {
@@ -575,16 +811,19 @@ brushSize.addEventListener("input", () => {
   updateBrushCursorSize();
 });
 
-brushAddBtn.addEventListener("click", () => {
-  brushMode = "add";
-  brushAddBtn.style.borderColor = "var(--accent-color)";
-  brushEraseBtn.style.borderColor = "transparent";
+function syncBrushModeUi() {
+  brushAddBtn.closest(".seg-opt")?.classList.toggle("is-active", brushAddBtn.checked);
+  brushEraseBtn.closest(".seg-opt")?.classList.toggle("is-active", brushEraseBtn.checked);
+}
+
+brushAddBtn.addEventListener("change", () => {
+  if (brushAddBtn.checked) brushMode = "add";
+  syncBrushModeUi();
 });
 
-brushEraseBtn.addEventListener("click", () => {
-  brushMode = "erase";
-  brushEraseBtn.style.borderColor = "var(--accent-color)";
-  brushAddBtn.style.borderColor = "transparent";
+brushEraseBtn.addEventListener("change", () => {
+  if (brushEraseBtn.checked) brushMode = "erase";
+  syncBrushModeUi();
 });
 
 function syncVisibleCanvas() {
@@ -606,7 +845,7 @@ function loadMaskToOffscreen(base64Png: string): Promise<void> {
     img.onload = () => {
       offscreenCanvas.width = img.naturalWidth;
       offscreenCanvas.height = img.naturalHeight;
-      
+
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = img.naturalWidth;
       tempCanvas.height = img.naturalHeight;
@@ -641,7 +880,6 @@ function loadMaskToOffscreen(base64Png: string): Promise<void> {
     img.src = `data:image/png;base64,${base64Png}`;
   });
 }
-
 
 function getOffscreenCoords(e: PointerEvent): { x: number; y: number } {
   const rect = maskCanvas.getBoundingClientRect();
@@ -717,7 +955,6 @@ async function exportOffscreenMask(): Promise<string> {
   return base64;
 }
 
-
 maskCanvas.addEventListener("pointerdown", (e) => {
   if (offscreenCanvas.width === 0) return;
   isDrawing = true;
@@ -770,7 +1007,6 @@ resetMaskBtn.addEventListener("click", async () => {
     saveHistoryState();
   }
 });
-
 
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0];
@@ -870,14 +1106,12 @@ captionBtn.addEventListener("click", async () => {
       captionText.value = "";
       captionStatus.textContent = "Captioning failed or refused";
     }
-  } catch (err) {
+  } catch {
     captionStatus.textContent = "Captioning error";
   } finally {
     captionBtn.disabled = false;
   }
 });
-
-
 
 exportBtn.addEventListener("click", async () => {
   if (currentImageId === undefined) return;
@@ -893,6 +1127,3 @@ exportBtn.addEventListener("click", async () => {
 });
 
 updateExportUi();
-
-
-

@@ -1,0 +1,531 @@
+/* App-shell layout: titlebar, sidebar, main region, and the custom controls
+   (toggle switch, dropzone, thumbnail grid, log box, progress bar) that
+   aren't part of the Nocturne component layer. */
+
+html,
+body {
+  height: 100%;
+}
+
+#app-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Titlebar */
+#titlebar {
+  flex: none;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-3) 0 var(--space-4);
+  border-bottom: 1px solid var(--color-divider);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+#titlebar .titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#titlebar .titlebar-wordmark {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+#titlebar .titlebar-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+  border: 1px solid transparent;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-online {
+  color: var(--color-accent-300);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+.status-online .status-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 6px var(--color-success);
+}
+
+.status-starting {
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+.status-starting .status-dot {
+  background: var(--color-warning);
+  animation: lt-blink 1.2s infinite ease-in-out;
+}
+
+.status-offline {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+.status-offline .status-dot {
+  background: var(--color-danger);
+}
+
+@keyframes lt-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.titlebar-icon-btn {
+  width: 30px;
+  height: 30px;
+  color: var(--color-neutral-400);
+}
+
+#win-close:hover:not(:disabled) {
+  background: #e02424;
+  color: #fff;
+}
+
+/* Shell: sidebar + main */
+#shell {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#sidebar {
+  width: 232px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-3);
+  border-right: 1px solid var(--color-divider);
+  overflow-y: auto;
+}
+
+#sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.nav-btn svg {
+  flex: none;
+}
+
+.nav-btn.is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+}
+
+#sidebar .sidebar-spacer {
+  flex: 1;
+}
+
+#sidebar .gpu-mini-card {
+  gap: 8px;
+  padding: var(--space-3);
+}
+
+#main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.view-header h2 {
+  margin: 0 0 2px;
+  font-family: var(--font-heading);
+}
+
+.view-header p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-neutral-400);
+}
+
+/* Pipeline stepper */
+.pipeline-bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  padding: var(--space-2);
+}
+
+.pipeline-bar .btn {
+  flex: 1;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.pipeline-divider {
+  flex: none;
+  width: 24px;
+  height: 1px;
+  background: var(--color-divider);
+}
+
+/* Single editor: preview + inspector grid */
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview-card {
+  padding: var(--space-2);
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mask-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 4px 4px 8px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--color-divider);
+}
+
+#preview-container {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: repeating-conic-gradient(#1c1e29 0% 25%, #22242f 0% 50%) 50% / 18px 18px;
+  min-height: 460px;
+  max-height: 650px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+#preview-wrapper {
+  position: relative;
+  display: inline-block;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+#preview {
+  display: block;
+  max-width: 100%;
+  max-height: 650px;
+  pointer-events: none;
+}
+
+#mask-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: none;
+  display: none;
+}
+
+#brush-cursor {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  background: rgba(255, 0, 0, 0.15);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  display: none;
+}
+
+.preview-meta {
+  justify-content: space-between;
+  padding: 2px 4px;
+}
+
+/* Inspector tabs (Caption / Export) */
+.inspector-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  width: 38px;
+  height: 22px;
+  flex: none;
+  border-radius: var(--radius-full);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: var(--color-neutral-800);
+  transition: background-color 0.15s ease;
+}
+
+.toggle.is-on {
+  background: var(--color-accent);
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-neutral-400);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: left 0.15s ease, background-color 0.15s ease;
+}
+
+.toggle.is-on .toggle-knob {
+  left: 18px;
+  background: var(--color-bg);
+}
+
+.toggle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Bulk setup: dropzone tiles */
+.dropzone {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--space-6) var(--space-4);
+  border: 1.5px dashed var(--color-divider);
+  border-radius: var(--radius-md);
+  text-align: center;
+  background: transparent;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.dropzone.is-dragover {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+.dropzone-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dropzone-path {
+  font-size: 12px;
+  color: var(--color-neutral-400);
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.dropzone-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 700px) {
+  .dropzone-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 700px) {
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dataset thumbnail grid */
+.thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+}
+
+.thumb-tile {
+  position: relative;
+  width: 100%;
+  height: 84px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-neutral-800);
+}
+
+.thumb-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb-tile .thumb-more {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+/* Progress bar */
+.progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-neutral-800);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-accent);
+  transition: width 0.2s ease;
+}
+
+/* GPU telemetry */
+.gpu-telemetry-card {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.gpu-telemetry-row {
+  display: flex;
+  gap: 22px;
+  font-size: 13px;
+}
+
+.gpu-vram-bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-neutral-800);
+  overflow: hidden;
+}
+
+.gpu-vram-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-accent);
+}
+
+/* Log box */
+.log-box {
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--color-neutral-400);
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.7;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  animation: lt-spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes lt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
