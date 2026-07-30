@@ -63,11 +63,22 @@ class Qwen2VLCaptioner:
 
             self._process_vision_info = _fallback_process_vision_info
 
+        import os
+        user_home = os.path.expanduser("~")
+        local_path = os.path.join(
+            user_home, ".cache", "huggingface", "hub", "models--Qwen--Qwen2-VL-7B-Instruct"
+        )
+        if os.path.exists(os.path.join(local_path, "model.safetensors.index.json")):
+            target_model_id = local_path
+        else:
+            target_model_id = model_id
+
         self._device = device
         self._model = Qwen2VLForConditionalGeneration.from_pretrained(
-            model_id, torch_dtype=torch.float16, device_map="auto"
+            target_model_id, torch_dtype=torch.float16, device_map="auto"
         )
-        self._processor = AutoProcessor.from_pretrained(model_id)
+        self._processor = AutoProcessor.from_pretrained(target_model_id)
+
 
 
     def caption(self, image: Image.Image, system_prompt: str | None = None) -> str | None:
