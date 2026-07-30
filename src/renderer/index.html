@@ -1,17 +1,283 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>Latent Tools</title>
+    <style>
+      :root {
+        --bg-color: #121418;
+        --card-bg: #1e2229;
+        --border-color: #2e3440;
+        --text-color: #e5e9f0;
+        --text-muted: #8892b0;
+        --accent-color: #6366f1;
+        --accent-hover: #4f46e5;
+        --disabled-bg: #2d3139;
+        --disabled-text: #5c6370;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        padding: 24px;
+        line-height: 1.5;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 4px;
+      }
+
+      header p {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+      }
+
+      .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: var(--text-color);
+      }
+
+      .action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      input[type="file"] {
+        display: none;
+      }
+
+      .btn {
+        background-color: var(--accent-color);
+        color: white;
+        border: none;
+        padding: 9px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+      }
+
+      .btn:hover:not(:disabled) {
+        background-color: var(--accent-hover);
+      }
+
+      .btn:disabled {
+        background-color: var(--disabled-bg);
+        color: var(--disabled-text);
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background-color: #2e3440;
+        color: var(--text-color);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background-color: #3b4252;
+      }
+
+      .grid-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 24px;
+      }
+
+      @media (max-width: 768px) {
+        .grid-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .preview-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 300px;
+        background: repeating-conic-gradient(#181a1f 0% 25%, #21252b 0% 50%) 50% / 16px 16px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+      }
+
+      .preview-container img {
+        max-width: 100%;
+        max-height: 480px;
+        object-fit: contain;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .form-group label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      select, input[type="number"], input[type="text"] {
+        background-color: #121418;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        outline: none;
+      }
+
+      select:focus, input:focus {
+        border-color: var(--accent-color);
+      }
+
+      .range-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent-color);
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+
+      .color-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      input[type="color"] {
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        cursor: pointer;
+        background: none;
+      }
+    </style>
   </head>
   <body>
-    <input type="file" id="file-input" accept="image/png" />
-    <button id="detect-btn" disabled>Detect watermark</button>
-    <button id="inpaint-btn" disabled>Remove watermark</button>
-    <button id="save-btn" disabled>Save image</button>
-    <div>
-      <img id="preview" style="max-width: 480px" />
+    <div class="container">
+      <header>
+        <h1>Latent Tools</h1>
+        <p>Local-first image dataset prep & watermark removal</p>
+      </header>
+
+      <div class="card">
+        <div class="action-bar">
+          <label for="file-input" class="btn btn-secondary">Select Image</label>
+          <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp" />
+          <button id="detect-btn" class="btn" disabled>Detect Watermark</button>
+          <button id="inpaint-btn" class="btn" disabled>Remove Watermark</button>
+        </div>
+      </div>
+
+      <div class="grid-layout">
+        <div class="preview-container">
+          <img id="preview" alt="Preview will appear here" />
+        </div>
+
+        <div class="card">
+          <div class="card-title">Export Settings</div>
+          
+          <div class="form-group">
+            <label for="format-select">Format</label>
+            <select id="format-select">
+              <option value="png" selected>PNG (Lossless)</option>
+              <option value="jpeg">JPEG</option>
+              <option value="webp">WEBP</option>
+            </select>
+          </div>
+
+          <div id="quality-container" class="form-group" style="display: none;">
+            <label for="quality-range">Quality: <span id="quality-val">90</span></label>
+            <div class="range-row">
+              <input type="range" id="quality-range" min="1" max="100" value="90" />
+            </div>
+          </div>
+
+          <div id="lossless-container" class="form-group" style="display: none;">
+            <label class="checkbox-row">
+              <input type="checkbox" id="lossless-checkbox" />
+              Lossless WEBP
+            </label>
+          </div>
+
+          <div id="compress-container" class="form-group">
+            <label for="compress-select">Compression Level</label>
+            <select id="compress-select">
+              <option value="0">0 (Fastest, largest file)</option>
+              <option value="3">3</option>
+              <option value="6" selected>6 (Default balance)</option>
+              <option value="9">9 (Slowest, smallest file)</option>
+            </select>
+          </div>
+
+          <div id="flatten-container" class="form-group" style="display: none;">
+            <label for="flatten-color">Flatten Background (Transparency)</label>
+            <div class="color-row">
+              <input type="color" id="flatten-color" value="#ffffff" />
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Default: White</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="metadata-select">Metadata (EXIF & ICC)</label>
+            <select id="metadata-select">
+              <option value="strip" selected>Strip all metadata (Default)</option>
+              <option value="keep">Keep EXIF & ICC profile</option>
+              <option value="strip_except_orientation">Strip except orientation</option>
+            </select>
+          </div>
+
+          <button id="export-btn" class="btn" style="width: 100%; margin-top: 12px;" disabled>
+            Export Image
+          </button>
+        </div>
+      </div>
     </div>
     <script src="renderer.js"></script>
   </body>
 </html>
+

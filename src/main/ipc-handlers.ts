@@ -14,48 +14,91 @@ export function registerIpcHandlers(
   showSaveDialog: ShowSaveDialogFn,
   writeFile: WriteFileFn,
 ): void {
-  const images = new Map<string, Buffer>();
+  const images = new Map<string, { normalized: Buffer; original: Buffer }>();
 
-  ipcMain.handle("image:import", (_event, args) => {
+  ipcMain.handle("image:import", async (_event, args) => {
     const { buffer } = args as { buffer: Uint8Array };
+    const original = Buffer.from(buffer);
+    const normalized = await client.normalize(original);
     const imageId = randomUUID();
-    images.set(imageId, Buffer.from(buffer));
-    return { imageId };
+    images.set(imageId, { normalized, original });
+    return { imageId, previewBase64: normalized.toString("base64") };
   });
 
   ipcMain.handle("image:detect", async (_event, args) => {
     const { imageId } = args as { imageId: string };
-    const image = images.get(imageId);
-    if (image === undefined) {
+    const entry = images.get(imageId);
+    if (entry === undefined) {
       throw new Error(`Unknown imageId: ${imageId}`);
     }
-    const mask = await client.detect(image);
+    const mask = await client.detect(entry.normalized);
     return { maskBase64: mask.toString("base64") };
   });
 
   ipcMain.handle("image:inpaint", async (_event, args) => {
     const { imageId, maskBase64 } = args as { imageId: string; maskBase64: string };
-    const image = images.get(imageId);
-    if (image === undefined) {
+    const entry = images.get(imageId);
+    if (entry === undefined) {
       throw new Error(`Unknown imageId: ${imageId}`);
     }
     const mask = Buffer.from(maskBase64, "base64");
-    const result = await client.inpaint(image, mask);
-    images.set(imageId, result);
+    const result = await client.inpaint(entry.normalized, mask);
+    images.set(imageId, { ...entry, normalized: result });
     return { resultBase64: result.toString("base64") };
+  });
+
+  ipcMain.handle("image:export", async (_event, args) => {
+    const {
+      imageId,
+      format = "png",
+      quality = 90,
+      lossless = false,
+      compressLevel = 6,
+      metadataMode = "strip",
+      flattenColor = "#FFFFFF",
+    } = args as {
+      imageId: string;
+      format?: string;
+      quality?: number;
+      lossless?: boolean;
+      compressLevel?: number;
+      metadataMode?: string;
+      flattenColor?: string;
+    };
+    const entry = images.get(imageId);
+    if (entry === undefined) {
+      throw new Error(`Unknown imageId: ${imageId}`);
+    }
+    const ext = format.toLowerCase() === "jpeg" ? "jpg" : format.toLowerCase();
+    const filePath = await showSaveDialog(`output.${ext}`);
+    if (filePath === undefined) {
+      return { saved: false };
+    }
+    const { result } = await client.convert(entry.normalized, {
+      format,
+      quality,
+      lossless,
+      compressLevel,
+      metadataMode,
+      originalBase64: entry.original.toString("base64"),
+      flattenColor,
+    });
+    await writeFile(filePath, result);
+    return { saved: true, filePath };
   });
 
   ipcMain.handle("image:save", async (_event, args) => {
     const { imageId } = args as { imageId: string };
-    const image = images.get(imageId);
-    if (image === undefined) {
+    const entry = images.get(imageId);
+    if (entry === undefined) {
       throw new Error(`Unknown imageId: ${imageId}`);
     }
     const filePath = await showSaveDialog("output.png");
     if (filePath === undefined) {
       return { saved: false };
     }
-    await writeFile(filePath, image);
+    await writeFile(filePath, entry.normalized);
     return { saved: true, filePath };
   });
 }
+

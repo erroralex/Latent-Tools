@@ -11,8 +11,13 @@ describe("registerIpcHandlers", () => {
       }),
     };
     const client = {
+      normalize: vi.fn().mockImplementation((buf: Buffer) => Promise.resolve(Buffer.from(`normalized-${buf.toString()}`))),
       detect: vi.fn().mockResolvedValue(Buffer.from("mask-bytes")),
       inpaint: vi.fn().mockResolvedValue(Buffer.from("result-bytes")),
+      convert: vi.fn().mockResolvedValue({
+        result: Buffer.from("converted-bytes"),
+        contentType: "image/webp",
+      }),
     } as unknown as SidecarClient;
     const showSaveDialog = vi.fn().mockResolvedValue(showSaveDialogResult);
     const writeFile = vi.fn().mockResolvedValue(undefined);
@@ -21,27 +26,30 @@ describe("registerIpcHandlers", () => {
     return { handlers, client, showSaveDialog, writeFile };
   }
 
-  it("registers image:import, image:detect, image:inpaint, and image:save", () => {
+  it("registers image:import, image:detect, image:inpaint, image:save, and image:export", () => {
     const { handlers } = setup("C:\\chosen\\output.png");
     expect(handlers.has("image:import")).toBe(true);
     expect(handlers.has("image:detect")).toBe(true);
     expect(handlers.has("image:inpaint")).toBe(true);
     expect(handlers.has("image:save")).toBe(true);
+    expect(handlers.has("image:export")).toBe(true);
   });
 
-  it("image:import assigns and returns an imageId", async () => {
-    const { handlers } = setup("C:\\chosen\\output.png");
+  it("image:import calls client.normalize and returns imageId and previewBase64", async () => {
+    const { handlers, client } = setup("C:\\chosen\\output.png");
     const importHandler = handlers.get("image:import");
     if (importHandler === undefined) throw new Error("handler not registered");
 
     const result = (await importHandler({}, { buffer: Buffer.from("png-bytes") })) as {
       imageId: string;
+      previewBase64?: string;
     };
     expect(typeof result.imageId).toBe("string");
-    expect(result.imageId.length).toBeGreaterThan(0);
+    expect(client.normalize).toHaveBeenCalledWith(Buffer.from("png-bytes"));
+    expect(result.previewBase64).toBe(Buffer.from("normalized-png-bytes").toString("base64"));
   });
 
-  it("image:detect calls client.detect with the imported image's bytes", async () => {
+  it("image:detect calls client.detect with the normalized image's bytes", async () => {
     const { handlers, client } = setup("C:\\chosen\\output.png");
     const importHandler = handlers.get("image:import");
     const detectHandler = handlers.get("image:detect");
@@ -54,7 +62,7 @@ describe("registerIpcHandlers", () => {
     };
     const result = (await detectHandler({}, { imageId })) as { maskBase64: string };
 
-    expect(client.detect).toHaveBeenCalledWith(Buffer.from("png-bytes"));
+    expect(client.detect).toHaveBeenCalledWith(Buffer.from("normalized-png-bytes"));
     expect(Buffer.from(result.maskBase64, "base64").toString()).toBe("mask-bytes");
   });
 
@@ -66,6 +74,36 @@ describe("registerIpcHandlers", () => {
     await expect(detectHandler({}, { imageId: "does-not-exist" })).rejects.toThrow(
       /unknown imageId/i,
     );
+  });
+
+  it("image:export calls client.convert with format options and writes converted bytes", async () => {
+    const { handlers, client, showSaveDialog, writeFile } = setup("C:\\chosen\\output.webp");
+    const importHandler = handlers.get("image:import");
+    const exportHandler = handlers.get("image:export");
+    if (importHandler === undefined || exportHandler === undefined) {
+      throw new Error("handlers not registered");
+    }
+
+    const { imageId } = (await importHandler({}, { buffer: Buffer.from("raw-bytes") })) as {
+      imageId: string;
+    };
+    const result = (await exportHandler(
+      {},
+      { imageId, format: "webp", quality: 85, metadataMode: "strip" },
+    )) as { saved: boolean; filePath?: string };
+
+    expect(showSaveDialog).toHaveBeenCalledWith("output.webp");
+    expect(client.convert).toHaveBeenCalledWith(Buffer.from("normalized-raw-bytes"), {
+      format: "webp",
+      quality: 85,
+      lossless: false,
+      compressLevel: 6,
+      metadataMode: "strip",
+      originalBase64: Buffer.from("raw-bytes").toString("base64"),
+      flattenColor: "#FFFFFF",
+    });
+    expect(writeFile).toHaveBeenCalledWith("C:\\chosen\\output.webp", Buffer.from("converted-bytes"));
+    expect(result).toEqual({ saved: true, filePath: "C:\\chosen\\output.webp" });
   });
 
   it("image:save writes the current image's bytes to the chosen path", async () => {
@@ -82,7 +120,7 @@ describe("registerIpcHandlers", () => {
     const result = (await saveHandler({}, { imageId })) as { saved: boolean; filePath?: string };
 
     expect(showSaveDialog).toHaveBeenCalled();
-    expect(writeFile).toHaveBeenCalledWith("C:\\chosen\\output.png", Buffer.from("png-bytes"));
+    expect(writeFile).toHaveBeenCalledWith("C:\\chosen\\output.png", Buffer.from("normalized-png-bytes"));
     expect(result).toEqual({ saved: true, filePath: "C:\\chosen\\output.png" });
   });
 
@@ -131,3 +169,4 @@ describe("registerIpcHandlers", () => {
     );
   });
 });
+

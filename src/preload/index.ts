@@ -6,4 +6,16 @@ contextBridge.exposeInMainWorld("api", {
   inpaint: (imageId: string, maskBase64: string) =>
     ipcRenderer.invoke("image:inpaint", { imageId, maskBase64 }),
   save: (imageId: string) => ipcRenderer.invoke("image:save", { imageId }),
+  exportImage: (
+    imageId: string,
+    options?: {
+      format?: string;
+      quality?: number;
+      lossless?: boolean;
+      compressLevel?: number;
+      metadataMode?: string;
+      flattenColor?: string;
+    },
+  ) => ipcRenderer.invoke("image:export", { imageId, ...options }),
 });
+

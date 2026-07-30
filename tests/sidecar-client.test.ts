@@ -16,6 +16,26 @@ describe("SidecarClient", () => {
           res.end(JSON.stringify({ status: "ok" }));
           return;
         }
+        if (req.url === "/normalize" && req.method === "POST") {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              normalized_base64: Buffer.from("normalized-image").toString("base64"),
+            }),
+          );
+          return;
+        }
+        if (req.url === "/convert" && req.method === "POST") {
+          const parsed = JSON.parse(body) as { format: string };
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              result_base64: Buffer.from("converted-image").toString("base64"),
+              content_type: `image/${parsed.format}`,
+            }),
+          );
+          return;
+        }
         if (req.url === "/detect" && req.method === "POST") {
           const parsed = JSON.parse(body) as { image_base64: string };
           expect(parsed.image_base64).toBe(Buffer.from("fake-image").toString("base64"));
@@ -50,6 +70,12 @@ describe("SidecarClient", () => {
     expect(result).toEqual({ status: "ok" });
   });
 
+  it("normalize() posts raw bytes and returns normalized buffer", async () => {
+    const client = new SidecarClient(baseUrl);
+    const normalized = await client.normalize(Buffer.from("raw-image"));
+    expect(normalized.toString()).toBe("normalized-image");
+  });
+
   it("detect() posts the image and returns the decoded mask", async () => {
     const client = new SidecarClient(baseUrl);
     const mask = await client.detect(Buffer.from("fake-image"));
@@ -61,4 +87,16 @@ describe("SidecarClient", () => {
     const result = await client.inpaint(Buffer.from("fake-image"), Buffer.from("fake-mask"));
     expect(result.toString()).toBe("fake-result");
   });
+
+  it("convert() posts working image with options and returns result and content type", async () => {
+    const client = new SidecarClient(baseUrl);
+    const { result, contentType } = await client.convert(Buffer.from("working-image"), {
+      format: "webp",
+      quality: 80,
+      metadataMode: "strip",
+    });
+    expect(result.toString()).toBe("converted-image");
+    expect(contentType).toBe("image/webp");
+  });
 });
+
