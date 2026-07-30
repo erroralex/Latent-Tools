@@ -9,9 +9,9 @@ export function registerIpcHandlers(ipcMain: IpcMainLike, client: SidecarClient)
   const images = new Map<string, Buffer>();
 
   ipcMain.handle("image:import", (_event, args) => {
-    const { buffer } = args as { buffer: Buffer };
+    const { buffer } = args as { buffer: Uint8Array };
     const imageId = randomUUID();
-    images.set(imageId, buffer);
+    images.set(imageId, Buffer.from(buffer));
     return { imageId };
   });
 

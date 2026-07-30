@@ -45,7 +45,7 @@ async function createWindow(): Promise<void> {
       preload: path.join(__dirname, "../preload/index.js"),
     },
   });
-  void window.loadFile("src/renderer/index.html");
+  void window.loadFile(path.join(__dirname, "../renderer/index.html"));
 
   await sidecarProcess.start();
 
