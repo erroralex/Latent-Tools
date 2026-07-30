@@ -1141,8 +1141,10 @@ git commit -m "Add SidecarProcess spawn/health-poll/shutdown lifecycle"
 
 **Interfaces:**
 - Consumes: `SidecarClient` (Task 5, exact methods `detect`/`inpaint`).
-- Produces: `registerIpcHandlers(ipcMain: IpcMainLike, client: SidecarClient, imageStore: ImageStore): void` —
-  Task 8 calls this from `src/main/index.ts` with the real `ipcMain`.
+- Produces: `registerIpcHandlers(ipcMain: IpcMainLike, client: SidecarClient): void` —
+  the image-ID-keyed store is internal to this function (a `Map`), not an
+  injected parameter. Task 8 calls this from `src/main/index.ts` with the
+  real `ipcMain`.
 
 - [ ] **Step 1: Write the failing test — `tests/ipc-handlers.test.ts`**
 
