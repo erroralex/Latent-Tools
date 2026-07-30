@@ -566,44 +566,42 @@
           </div>
         </div>
 
-        <div class="grid-layout">
-          <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
-            <div class="card-title">Batch Processing Options</div>
-            
-            <label class="checkbox-row">
-              <input type="checkbox" id="bulk-remove-watermark" checked />
-              Auto-detect and remove watermarks (Florence-2 + LaMa)
+        <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="card-title">Batch Processing Options</div>
+          
+          <label class="checkbox-row">
+            <input type="checkbox" id="bulk-remove-watermark" checked />
+            Auto-detect and remove watermarks (Florence-2 + LaMa)
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="bulk-generate-captions" checked />
+            Generate dataset image captions (.txt sidecars via Qwen2-VL)
+          </label>
+
+          <div id="bulk-prompt-container" class="form-group" style="margin-top: 4px; margin-bottom: 0;">
+            <label for="bulk-system-prompt" style="font-weight: 500; font-size: 0.82rem; color: var(--text-muted);">
+              Batch Caption System Prompt & Trigger Words
             </label>
-
-            <label class="checkbox-row">
-              <input type="checkbox" id="bulk-generate-captions" checked />
-              Generate dataset image captions (.txt sidecars via Qwen2-VL)
-            </label>
-
-            <div id="bulk-prompt-container" class="form-group" style="margin-top: 4px; margin-bottom: 0;">
-              <label for="bulk-system-prompt" style="font-weight: 500; font-size: 0.82rem; color: var(--text-muted);">
-                Batch Caption System Prompt & Trigger Words
-              </label>
-              <textarea id="bulk-system-prompt" rows="2" style="background-color: #121418; border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 10px; border-radius: 6px; font-size: 0.82rem; width: 100%; font-family: inherit; resize: vertical; outline: none;" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually...">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
-            </div>
-
-            <div style="display: flex; gap: 12px; margin-top: 8px;">
-
-              <button id="bulk-start-btn" class="btn" style="flex: 1;" disabled>Start Bulk Processing</button>
-              <button id="bulk-cancel-btn" class="btn btn-secondary" style="display: none; background-color: #7f1d1d; color: white;">Cancel</button>
-            </div>
+            <textarea id="bulk-system-prompt" rows="3" style="background-color: #121418; border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 10px; border-radius: 6px; font-size: 0.82rem; width: 100%; font-family: inherit; resize: vertical; outline: none;" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually...">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
           </div>
 
-          <div class="card">
-            <div class="card-title">Progress & Logs</div>
-            <span id="bulk-progress-text" style="font-size: 0.85rem; color: var(--text-muted);">Ready to process dataset</span>
-            <div class="progress-bar-container">
-              <div id="progress-bar-fill"></div>
-            </div>
-            <div id="bulk-log-box" class="log-box">Waiting for job to start...</div>
+          <div style="display: flex; gap: 12px; margin-top: 8px;">
+            <button id="bulk-start-btn" class="btn" style="flex: 1;" disabled>Start Bulk Processing</button>
+            <button id="bulk-cancel-btn" class="btn btn-secondary" style="display: none; background-color: #7f1d1d; color: white;">Cancel</button>
           </div>
         </div>
+
+        <div class="card">
+          <div class="card-title">Progress & Logs</div>
+          <span id="bulk-progress-text" style="font-size: 0.85rem; color: var(--text-muted);">Ready to process dataset</span>
+          <div class="progress-bar-container">
+            <div id="progress-bar-fill"></div>
+          </div>
+          <div id="bulk-log-box" class="log-box">Waiting for job to start...</div>
+        </div>
       </div>
+
 
     </div>
     <script src="renderer.js"></script>
