@@ -431,6 +431,8 @@
               <input type="range" id="brush-size" min="5" max="100" value="20" style="width: 100px;" />
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="zoom-val" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; min-width: 40px; text-align: right;">100%</span>
+              <button id="reset-zoom-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;" title="Reset Zoom & Pan (Double Click preview)">Reset Zoom</button>
               <button id="undo-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;" disabled>Undo</button>
               <button id="redo-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;" disabled>Redo</button>
               <button id="clear-mask-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;">Clear</button>
@@ -439,12 +441,13 @@
           </div>
 
 
-          <div class="preview-container" style="position: relative;">
-            <div id="preview-wrapper" style="position: relative; display: inline-block;">
-              <img id="preview" alt="Preview will appear here" style="display: block;" />
+          <div id="preview-container" class="preview-container" style="position: relative; width: 100%; min-height: 480px; max-height: 650px; overflow: hidden; border-radius: 8px; border: 1px solid var(--border-color); background-color: #0c0e12; display: flex; align-items: center; justify-content: center; user-select: none;">
+            <div id="preview-wrapper" style="position: relative; display: inline-block; transform-origin: 0 0; will-change: transform;">
+              <img id="preview" alt="Preview will appear here" style="display: block; max-width: 100%; max-height: 650px; pointer-events: none;" />
               <canvas id="mask-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto; cursor: crosshair; display: none;"></canvas>
             </div>
           </div>
+
 
 
           <div class="card">

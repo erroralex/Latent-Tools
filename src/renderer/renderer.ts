@@ -171,6 +171,109 @@ bulkCancelBtn.addEventListener("click", () => {
   appendBulkLog("Cancelling after current item...");
 });
 
+// Pan & Zoom Controls
+const previewContainer = document.getElementById("preview-container") as HTMLDivElement;
+const previewWrapper = document.getElementById("preview-wrapper") as HTMLDivElement;
+const resetZoomBtn = document.getElementById("reset-zoom-btn") as HTMLButtonElement;
+const zoomVal = document.getElementById("zoom-val") as HTMLSpanElement;
+
+let zoomScale = 1.0;
+let panX = 0;
+let panY = 0;
+let isPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+let spacePressed = false;
+
+function updatePreviewTransform() {
+  previewWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+  zoomVal.textContent = `${Math.round(zoomScale * 100)}%`;
+}
+
+function resetZoomAndPan() {
+  zoomScale = 1.0;
+  panX = 0;
+  panY = 0;
+  updatePreviewTransform();
+}
+
+resetZoomBtn.addEventListener("click", resetZoomAndPan);
+previewContainer.addEventListener("dblclick", resetZoomAndPan);
+
+// Mousewheel Zooming
+previewContainer.addEventListener(
+  "wheel",
+  (e: WheelEvent) => {
+    e.preventDefault();
+    const rect = previewContainer.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const delta = e.deltaY < 0 ? 1.15 : 0.87;
+    const newScale = Math.min(Math.max(0.5, zoomScale * delta), 5.0);
+
+    panX = mouseX - (mouseX - panX) * (newScale / zoomScale);
+    panY = mouseY - (mouseY - panY) * (newScale / zoomScale);
+    zoomScale = newScale;
+
+    updatePreviewTransform();
+  },
+  { passive: false }
+);
+
+// Pan Drag Controls
+window.addEventListener("keydown", (e) => {
+  if (
+    e.code === "Space" &&
+    !spacePressed &&
+    document.activeElement?.tagName !== "TEXTAREA" &&
+    document.activeElement?.tagName !== "INPUT"
+  ) {
+    spacePressed = true;
+    previewContainer.style.cursor = "grab";
+  }
+});
+
+window.addEventListener("keyup", (e) => {
+  if (e.code === "Space") {
+    spacePressed = false;
+    previewContainer.style.cursor = "default";
+  }
+});
+
+previewContainer.addEventListener("pointerdown", (e: PointerEvent) => {
+  if (e.button === 1 || e.button === 2 || spacePressed) {
+    e.preventDefault();
+    isPanning = true;
+    panStartX = e.clientX - panX;
+    panStartY = e.clientY - panY;
+    previewContainer.style.cursor = "grabbing";
+    previewContainer.setPointerCapture(e.pointerId);
+  }
+});
+
+previewContainer.addEventListener("pointermove", (e: PointerEvent) => {
+  if (isPanning) {
+    panX = e.clientX - panStartX;
+    panY = e.clientY - panStartY;
+    updatePreviewTransform();
+  }
+});
+
+const stopPan = (e: PointerEvent) => {
+  if (isPanning) {
+    isPanning = false;
+    previewContainer.style.cursor = spacePressed ? "grab" : "default";
+    try {
+      previewContainer.releasePointerCapture(e.pointerId);
+    } catch {}
+  }
+};
+
+previewContainer.addEventListener("pointerup", stopPan);
+previewContainer.addEventListener("pointercancel", stopPan);
+previewContainer.addEventListener("contextmenu", (e) => e.preventDefault());
+
 // Single Image Editor State
 let currentImageId: string | undefined;
 let currentMaskBase64: string | undefined;
@@ -198,6 +301,7 @@ const resetMaskBtn = document.getElementById("reset-mask-btn") as HTMLButtonElem
 const formatSelect = document.getElementById("format-select") as HTMLSelectElement;
 const qualityContainer = document.getElementById("quality-container") as HTMLDivElement;
 const qualityRange = document.getElementById("quality-range") as HTMLInputElement;
+
 const qualityVal = document.getElementById("quality-val") as HTMLSpanElement;
 const losslessContainer = document.getElementById("lossless-container") as HTMLDivElement;
 const losslessCheckbox = document.getElementById("lossless-checkbox") as HTMLInputElement;
@@ -515,9 +619,11 @@ fileInput.addEventListener("change", async () => {
   currentImageId = imageId;
   currentMaskBase64 = undefined;
   originalDetectedMaskBase64 = undefined;
+  resetZoomAndPan();
   maskCanvas.style.display = "none";
   offscreenCanvas.width = 0;
   offscreenCanvas.height = 0;
+
 
   if (previewBase64) {
     preview.src = `data:image/png;base64,${previewBase64}`;
