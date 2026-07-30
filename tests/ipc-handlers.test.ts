@@ -14,6 +14,7 @@ describe("registerIpcHandlers", () => {
       normalize: vi.fn().mockImplementation((buf: Buffer) => Promise.resolve(Buffer.from(`normalized-${buf.toString()}`))),
       detect: vi.fn().mockResolvedValue(Buffer.from("mask-bytes")),
       inpaint: vi.fn().mockResolvedValue(Buffer.from("result-bytes")),
+      caption: vi.fn().mockResolvedValue("A detailed caption of the image."),
       convert: vi.fn().mockResolvedValue({
         result: Buffer.from("converted-bytes"),
         contentType: "image/webp",
@@ -26,14 +27,56 @@ describe("registerIpcHandlers", () => {
     return { handlers, client, showSaveDialog, writeFile };
   }
 
-  it("registers image:import, image:detect, image:inpaint, image:save, and image:export", () => {
+  it("registers image:import, image:detect, image:inpaint, image:caption, image:save, and image:export", () => {
     const { handlers } = setup("C:\\chosen\\output.png");
     expect(handlers.has("image:import")).toBe(true);
     expect(handlers.has("image:detect")).toBe(true);
     expect(handlers.has("image:inpaint")).toBe(true);
+    expect(handlers.has("image:caption")).toBe(true);
     expect(handlers.has("image:save")).toBe(true);
     expect(handlers.has("image:export")).toBe(true);
   });
+
+  it("image:caption calls client.caption with normalized image", async () => {
+    const { handlers, client } = setup("C:\\chosen\\output.png");
+    const importHandler = handlers.get("image:import");
+    const captionHandler = handlers.get("image:caption");
+    if (importHandler === undefined || captionHandler === undefined) {
+      throw new Error("handlers not registered");
+    }
+
+    const { imageId } = (await importHandler({}, { buffer: Buffer.from("png-bytes") })) as {
+      imageId: string;
+    };
+    const result = (await captionHandler({}, { imageId })) as { caption: string | null };
+
+    expect(client.caption).toHaveBeenCalledWith(Buffer.from("normalized-png-bytes"));
+    expect(result.caption).toBe("A detailed caption of the image.");
+  });
+
+  it("image:export writes sidecar .txt file when caption option is passed", async () => {
+    const { handlers, writeFile } = setup("C:\\chosen\\output.jpg");
+    const importHandler = handlers.get("image:import");
+    const exportHandler = handlers.get("image:export");
+    if (importHandler === undefined || exportHandler === undefined) {
+      throw new Error("handlers not registered");
+    }
+
+    const { imageId } = (await importHandler({}, { buffer: Buffer.from("raw-bytes") })) as {
+      imageId: string;
+    };
+    await exportHandler(
+      {},
+      { imageId, format: "jpeg", caption: "Photo of a scenic mountain sunset" },
+    );
+
+    expect(writeFile).toHaveBeenCalledWith("C:\\chosen\\output.jpg", Buffer.from("converted-bytes"));
+    expect(writeFile).toHaveBeenCalledWith(
+      "C:\\chosen\\output.txt",
+      Buffer.from("Photo of a scenic mountain sunset", "utf-8"),
+    );
+  });
+
 
   it("image:import calls client.normalize and returns imageId and previewBase64", async () => {
     const { handlers, client } = setup("C:\\chosen\\output.png");

@@ -4,8 +4,11 @@ let currentMaskBase64: string | undefined;
 const fileInput = document.getElementById("file-input") as HTMLInputElement;
 const detectBtn = document.getElementById("detect-btn") as HTMLButtonElement;
 const inpaintBtn = document.getElementById("inpaint-btn") as HTMLButtonElement;
+const captionBtn = document.getElementById("caption-btn") as HTMLButtonElement;
 const exportBtn = document.getElementById("export-btn") as HTMLButtonElement;
 const preview = document.getElementById("preview") as HTMLImageElement;
+const captionText = document.getElementById("caption-text") as HTMLTextAreaElement;
+const captionStatus = document.getElementById("caption-status") as HTMLSpanElement;
 
 const formatSelect = document.getElementById("format-select") as HTMLSelectElement;
 const qualityContainer = document.getElementById("quality-container") as HTMLDivElement;
@@ -59,7 +62,10 @@ fileInput.addEventListener("change", async () => {
     preview.src = URL.createObjectURL(file);
   }
   detectBtn.disabled = false;
+  captionBtn.disabled = false;
   exportBtn.disabled = false;
+  captionText.value = "";
+  captionStatus.textContent = "";
 });
 
 detectBtn.addEventListener("click", async () => {
@@ -75,6 +81,26 @@ inpaintBtn.addEventListener("click", async () => {
   preview.src = `data:image/png;base64,${resultBase64}`;
 });
 
+captionBtn.addEventListener("click", async () => {
+  if (currentImageId === undefined) return;
+  captionBtn.disabled = true;
+  captionStatus.textContent = "Generating caption...";
+  try {
+    const { caption } = await window.api.captionImage(currentImageId);
+    if (caption) {
+      captionText.value = caption;
+      captionStatus.textContent = "Generated";
+    } else {
+      captionText.value = "";
+      captionStatus.textContent = "Captioning failed or refused";
+    }
+  } catch (err) {
+    captionStatus.textContent = "Captioning error";
+  } finally {
+    captionBtn.disabled = false;
+  }
+});
+
 exportBtn.addEventListener("click", async () => {
   if (currentImageId === undefined) return;
   await window.api.exportImage(currentImageId, {
@@ -84,8 +110,10 @@ exportBtn.addEventListener("click", async () => {
     compressLevel: parseInt(compressSelect.value, 10),
     metadataMode: metadataSelect.value,
     flattenColor: flattenColor.value,
+    caption: captionText.value,
   });
 });
 
 updateExportUi();
+
 

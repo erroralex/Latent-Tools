@@ -210,12 +210,25 @@
           <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp" />
           <button id="detect-btn" class="btn" disabled>Detect Watermark</button>
           <button id="inpaint-btn" class="btn" disabled>Remove Watermark</button>
+          <button id="caption-btn" class="btn" disabled>Generate Caption</button>
         </div>
       </div>
 
       <div class="grid-layout">
-        <div class="preview-container">
-          <img id="preview" alt="Preview will appear here" />
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="preview-container">
+            <img id="preview" alt="Preview will appear here" />
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Dataset Caption (.txt sidecar)</span>
+              <span id="caption-status" style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);"></span>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <textarea id="caption-text" rows="4" placeholder="Generated dataset caption will appear here..." style="background-color: #121418; border: 1px solid var(--border-color); color: var(--text-color); padding: 10px; border-radius: 6px; font-size: 0.9rem; font-family: inherit; resize: vertical; outline: none;"></textarea>
+            </div>
+          </div>
         </div>
 
         <div class="card">
@@ -276,6 +289,7 @@
           </button>
         </div>
       </div>
+
     </div>
     <script src="renderer.js"></script>
   </body>

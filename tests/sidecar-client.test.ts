@@ -48,6 +48,11 @@ describe("SidecarClient", () => {
           res.end(JSON.stringify({ result_base64: Buffer.from("fake-result").toString("base64") }));
           return;
         }
+        if (req.url === "/caption" && req.method === "POST") {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ caption: "A cat on a sofa" }));
+          return;
+        }
         res.writeHead(404);
         res.end();
       });
@@ -88,6 +93,12 @@ describe("SidecarClient", () => {
     expect(result.toString()).toBe("fake-result");
   });
 
+  it("caption() posts image and returns caption text", async () => {
+    const client = new SidecarClient(baseUrl);
+    const caption = await client.caption(Buffer.from("fake-image"));
+    expect(caption).toBe("A cat on a sofa");
+  });
+
   it("convert() posts working image with options and returns result and content type", async () => {
     const client = new SidecarClient(baseUrl);
     const { result, contentType } = await client.convert(Buffer.from("working-image"), {
@@ -99,4 +110,5 @@ describe("SidecarClient", () => {
     expect(contentType).toBe("image/webp");
   });
 });
+
 

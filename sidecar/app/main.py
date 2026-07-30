@@ -4,9 +4,12 @@ import io
 from fastapi import Depends, FastAPI, HTTPException
 from PIL import Image, ImageColor, ImageOps
 
+from app.captioning import Captioner, get_captioner
 from app.detection import WatermarkDetector, get_detector
 from app.inpainting import Inpainter, get_inpainter
 from app.schemas import (
+    CaptionRequestBody,
+    CaptionResponseBody,
     ConvertRequestBody,
     ConvertResponseBody,
     DetectRequestBody,
@@ -23,6 +26,16 @@ app = FastAPI(title="Latent Tools Sidecar")
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/caption", response_model=CaptionResponseBody)
+def caption(
+    body: CaptionRequestBody, captioner: Captioner = Depends(get_captioner)
+) -> CaptionResponseBody:
+    image = _decode_png(body.image_base64)
+    result_caption = captioner.caption(image)
+    return CaptionResponseBody(caption=result_caption)
+
 
 
 @app.post("/normalize", response_model=NormalizeResponseBody)

@@ -94,5 +94,20 @@ export class SidecarClient {
       contentType: body.content_type,
     };
   }
+
+  async caption(imagePng: Buffer): Promise<string | null> {
+
+    const response = await fetch(`${this.baseUrl}/caption`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_base64: imagePng.toString("base64") }),
+    });
+    if (!response.ok) {
+      throw new Error(`Sidecar /caption failed: ${response.status}`);
+    }
+    const body = (await response.json()) as { caption: string | null };
+    return body.caption;
+  }
 }
+
 

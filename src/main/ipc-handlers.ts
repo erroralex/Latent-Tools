@@ -47,6 +47,16 @@ export function registerIpcHandlers(
     return { resultBase64: result.toString("base64") };
   });
 
+  ipcMain.handle("image:caption", async (_event, args) => {
+    const { imageId } = args as { imageId: string };
+    const entry = images.get(imageId);
+    if (entry === undefined) {
+      throw new Error(`Unknown imageId: ${imageId}`);
+    }
+    const caption = await client.caption(entry.normalized);
+    return { caption };
+  });
+
   ipcMain.handle("image:export", async (_event, args) => {
     const {
       imageId,
@@ -56,6 +66,7 @@ export function registerIpcHandlers(
       compressLevel = 6,
       metadataMode = "strip",
       flattenColor = "#FFFFFF",
+      caption,
     } = args as {
       imageId: string;
       format?: string;
@@ -64,6 +75,7 @@ export function registerIpcHandlers(
       compressLevel?: number;
       metadataMode?: string;
       flattenColor?: string;
+      caption?: string;
     };
     const entry = images.get(imageId);
     if (entry === undefined) {
@@ -84,6 +96,10 @@ export function registerIpcHandlers(
       flattenColor,
     });
     await writeFile(filePath, result);
+    if (caption && caption.trim().length > 0) {
+      const txtPath = filePath.replace(/\.[^/.]+$/, ".txt");
+      await writeFile(txtPath, Buffer.from(caption.trim(), "utf-8"));
+    }
     return { saved: true, filePath };
   });
 
@@ -101,4 +117,5 @@ export function registerIpcHandlers(
     return { saved: true, filePath };
   });
 }
+
 

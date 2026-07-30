@@ -41,3 +41,12 @@ class ConvertResponseBody(BaseModel):
     result_base64: str
     content_type: str
 
+
+class CaptionRequestBody(BaseModel):
+    image_base64: str
+
+
+class CaptionResponseBody(BaseModel):
+    caption: str | None
+
+
