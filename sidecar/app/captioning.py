@@ -42,7 +42,7 @@ class Captioner(Protocol):
 
 
 class Qwen2VLCaptioner:
-    def __init__(self, device: str = "cuda", model_id: str = "Qwen/Qwen2-VL-7B-Instruct") -> None:
+    def __init__(self, device: str = "cuda", model_id: str = "Qwen/Qwen2-VL-2B-Instruct") -> None:
         from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
 
         try:
@@ -65,11 +65,17 @@ class Qwen2VLCaptioner:
 
         import os
         user_home = os.path.expanduser("~")
-        local_path = os.path.join(
+        local_2b_path = os.path.join(
+            user_home, ".cache", "huggingface", "hub", "models--Qwen--Qwen2-VL-2B-Instruct"
+        )
+        local_7b_path = os.path.join(
             user_home, ".cache", "huggingface", "hub", "models--Qwen--Qwen2-VL-7B-Instruct"
         )
-        if os.path.exists(os.path.join(local_path, "model.safetensors.index.json")):
-            target_model_id = local_path
+
+        if os.path.exists(os.path.join(local_2b_path, "model.safetensors.index.json")) or os.path.exists(os.path.join(local_2b_path, "model.safetensors")):
+            target_model_id = local_2b_path
+        elif os.path.exists(os.path.join(local_7b_path, "model.safetensors.index.json")):
+            target_model_id = local_7b_path
         else:
             target_model_id = model_id
 
@@ -84,11 +90,6 @@ class Qwen2VLCaptioner:
     def caption(self, image: Image.Image, system_prompt: str | None = None) -> str | None:
         try:
             rgb_image = image.convert("RGB")
-            # Downscale high-resolution images to max 1280px for fast, low-VRAM captioning
-            max_dim = 1280
-            if max(rgb_image.width, rgb_image.height) > max_dim:
-                rgb_image = rgb_image.copy()
-                rgb_image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
             prompt_text = system_prompt.strip() if system_prompt and system_prompt.strip() else _SYSTEM_PROMPT
             messages = [
@@ -113,7 +114,9 @@ class Qwen2VLCaptioner:
                     return_tensors="pt",
                 ).to(self._device)
 
-                generated_ids = self._model.generate(**inputs, max_new_tokens=512)
+                generated_ids = self._model.generate(**inputs, max_new_tokens=160)
+
+
                 generated_ids_trimmed = [
                     out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
                 ]
