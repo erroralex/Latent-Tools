@@ -4,8 +4,14 @@ import io
 from fastapi import Depends, FastAPI
 from PIL import Image
 
+from app.detection import WatermarkDetector, get_detector
 from app.inpainting import Inpainter, get_inpainter
-from app.schemas import InpaintRequestBody, InpaintResponseBody
+from app.schemas import (
+    DetectRequestBody,
+    DetectResponseBody,
+    InpaintRequestBody,
+    InpaintResponseBody,
+)
 
 app = FastAPI(title="Latent Tools Sidecar")
 
@@ -13,6 +19,15 @@ app = FastAPI(title="Latent Tools Sidecar")
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/detect", response_model=DetectResponseBody)
+def detect(
+    body: DetectRequestBody, detector: WatermarkDetector = Depends(get_detector)
+) -> DetectResponseBody:
+    image = _decode_png(body.image_base64)
+    mask = detector.detect(image)
+    return DetectResponseBody(mask_base64=_encode_png(mask))
 
 
 def _decode_png(data_base64: str) -> Image.Image:

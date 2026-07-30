@@ -3,6 +3,7 @@ import pytest
 import torch
 from PIL import Image
 
+from app.detection import Florence2Detector
 from app.inpainting import LamaInpainter
 
 
@@ -24,3 +25,19 @@ def test_lama_inpainter_changes_masked_region_on_real_gpu():
     assert not np.array_equal(
         original[64:192, 64:192], changed[64:192, 64:192]
     ), "Masked region should have been repainted, not copied through"
+
+
+@pytest.mark.gpu
+def test_florence2_detector_finds_a_region_on_real_gpu():
+    assert torch.cuda.is_available(), "This test requires a CUDA GPU"
+
+    image = Image.new("RGB", (256, 256), color=(200, 200, 200))
+    detector = Florence2Detector(device="cuda")
+    mask = detector.detect(image)
+
+    assert mask.mode == "L"
+    assert mask.size == (256, 256)
+    # Florence-2's open-vocabulary detection returns at least one box for any
+    # image (confidence isn't exposed by this task's prompt), so the mask
+    # should have some non-zero region rather than being entirely black.
+    assert np.array(mask).max() == 255
