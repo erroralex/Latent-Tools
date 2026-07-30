@@ -114,6 +114,27 @@ export class SidecarClient {
     return body.caption;
   }
 
+  async gpuStatus(): Promise<GpuStatusResponse> {
+    const response = await fetch(`${this.baseUrl}/gpu`);
+    if (!response.ok) {
+      throw new Error(`Sidecar /gpu failed: ${response.status}`);
+    }
+    return (await response.json()) as GpuStatusResponse;
+  }
 }
+
+export type GpuStatusResponse = {
+  name: string;
+  vram_used_mb: number;
+  vram_total_mb: number;
+  vram_used_gb: number;
+  vram_total_gb: number;
+  vram_pct: number;
+  temperature_c: number | null;
+  status: string;
+};
+
+
+
 
 

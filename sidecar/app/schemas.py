@@ -52,3 +52,15 @@ class CaptionResponseBody(BaseModel):
     caption: str | None
 
 
+class GpuStatusResponseBody(BaseModel):
+    name: str
+    vram_used_mb: float
+    vram_total_mb: float
+    vram_used_gb: float
+    vram_total_gb: float
+    vram_pct: float
+    temperature_c: int | None = None
+    status: str
+
+
+

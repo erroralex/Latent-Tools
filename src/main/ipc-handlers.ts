@@ -212,6 +212,12 @@ export function registerIpcHandlers(
     return { caption };
   });
 
+  ipcMain.handle("gpu:status", async () => {
+    return await client.gpuStatus();
+  });
+
+
+
 
 
   ipcMain.handle("image:export", async (_event, args) => {

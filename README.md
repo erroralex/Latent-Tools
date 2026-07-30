@@ -49,7 +49,8 @@ Engineered for AI trainers and dataset creators preparing image libraries for Lo
 ## 💻 System Requirements
 
 * **OS:** Windows 10/11 (64-bit), Linux, or macOS.
-* **GPU:** NVIDIA RTX Series (RTX 5080 / 4090 / 3090 recommended for optimal inference speed).
+* **GPU:** NVIDIA discrete GPU (8GB+ VRAM recommended for optimal inference speed).
+
 * **RAM:** 16GB minimum (32GB recommended for large 7B VLM models).
 * **Storage:** ~10GB for Python environment and local AI weights.
 * **Runtime:** Node.js v18+ & Python 3.11+.

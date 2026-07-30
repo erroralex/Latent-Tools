@@ -3,8 +3,21 @@ interface Window {
     // Sidecar Listener
     onSidecarStateChange: (callback: (state: string) => void) => void;
 
+    // GPU Status
+    getGpuStatus: () => Promise<{
+      name: string;
+      vram_used_mb: number;
+      vram_total_mb: number;
+      vram_used_gb: number;
+      vram_total_gb: number;
+      vram_pct: number;
+      temperature_c: number | null;
+      status: string;
+    }>;
+
     // Window Controls
     minimizeWindow: () => Promise<{ success: boolean }>;
+
 
     maximizeWindow: () => Promise<{ isMaximized: boolean }>;
     closeWindow: () => Promise<{ success: boolean }>;

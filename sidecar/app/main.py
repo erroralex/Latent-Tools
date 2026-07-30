@@ -1,5 +1,7 @@
 import base64
 import io
+import subprocess
+import torch
 
 from fastapi import Depends, FastAPI, HTTPException
 from PIL import Image, ImageColor, ImageOps
@@ -14,6 +16,7 @@ from app.schemas import (
     ConvertResponseBody,
     DetectRequestBody,
     DetectResponseBody,
+    GpuStatusResponseBody,
     InpaintRequestBody,
     InpaintResponseBody,
     NormalizeRequestBody,
@@ -26,6 +29,80 @@ app = FastAPI(title="Latent Tools Sidecar")
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/gpu", response_model=GpuStatusResponseBody)
+def gpu_status() -> GpuStatusResponseBody:
+    try:
+        res = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,memory.total,memory.used,temperature.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=1,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            parts = [p.strip() for p in res.stdout.strip().split(",")]
+            if len(parts) >= 4:
+                name = parts[0].replace("NVIDIA GeForce ", "").replace("NVIDIA ", "")
+                total_mb = float(parts[1])
+                used_mb = float(parts[2])
+                temp_c = int(parts[3])
+                total_gb = round(total_mb / 1024.0, 1)
+                used_gb = round(used_mb / 1024.0, 1)
+                pct = round((used_mb / total_mb) * 100, 1) if total_mb > 0 else 0.0
+                return GpuStatusResponseBody(
+                    name=name,
+                    vram_used_mb=used_mb,
+                    vram_total_mb=total_mb,
+                    vram_used_gb=used_gb,
+                    vram_total_gb=total_gb,
+                    vram_pct=pct,
+                    temperature_c=temp_c,
+                    status="ok",
+                )
+    except Exception:
+        pass
+
+    if torch.cuda.is_available():
+        try:
+            name = (
+                torch.cuda.get_device_name(0)
+                .replace("NVIDIA GeForce ", "")
+                .replace("NVIDIA ", "")
+            )
+            free_b, total_b = torch.cuda.mem_get_info(0)
+            used_b = total_b - free_b
+            total_gb = round(total_b / (1024**3), 1)
+            used_gb = round(used_b / (1024**3), 1)
+            pct = round((used_b / total_b) * 100, 1) if total_b > 0 else 0.0
+            return GpuStatusResponseBody(
+                name=name,
+                vram_used_mb=round(used_b / (1024**2), 1),
+                vram_total_mb=round(total_b / (1024**2), 1),
+                vram_used_gb=used_gb,
+                vram_total_gb=total_gb,
+                vram_pct=pct,
+                temperature_c=None,
+                status="ok",
+            )
+        except Exception:
+            pass
+
+    return GpuStatusResponseBody(
+        name="No CUDA GPU",
+        vram_used_mb=0,
+        vram_total_mb=0,
+        vram_used_gb=0,
+        vram_total_gb=0,
+        vram_pct=0,
+        temperature_c=None,
+        status="none",
+    )
+
 
 
 @app.post("/caption", response_model=CaptionResponseBody)

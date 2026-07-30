@@ -7,8 +7,12 @@ contextBridge.exposeInMainWorld("api", {
   },
 
 
+  // GPU Status
+  getGpuStatus: () => ipcRenderer.invoke("gpu:status"),
+
   // Window Controls
   minimizeWindow: () => ipcRenderer.invoke("window:minimize"),
+
 
   maximizeWindow: () => ipcRenderer.invoke("window:maximize"),
   closeWindow: () => ipcRenderer.invoke("window:close"),

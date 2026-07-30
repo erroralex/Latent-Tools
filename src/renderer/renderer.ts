@@ -18,7 +18,32 @@ if (window.api && window.api.onSidecarStateChange) {
   });
 }
 
+// GPU Telemetry Poller
+const gpuStatusPill = document.getElementById("gpu-status-pill") as HTMLDivElement;
+const gpuStatusText = document.getElementById("gpu-status-text") as HTMLSpanElement;
+
+async function updateGpuStatus() {
+  if (!window.api || !window.api.getGpuStatus) return;
+  try {
+    const gpu = await window.api.getGpuStatus();
+    if (gpu.status === "ok") {
+      const vramStr = `${gpu.vram_used_gb}/${gpu.vram_total_gb} GB (${Math.round(gpu.vram_pct)}%)`;
+      const tempStr = gpu.temperature_c !== null ? ` | ${gpu.temperature_c}°C` : "";
+      gpuStatusText.textContent = `${gpu.name} | ${vramStr}${tempStr}`;
+      gpuStatusPill.style.display = "flex";
+    } else {
+      gpuStatusText.textContent = gpu.name || "No CUDA GPU";
+    }
+  } catch {
+    gpuStatusText.textContent = "GPU: Off";
+  }
+}
+
+updateGpuStatus();
+setInterval(updateGpuStatus, 3000);
+
 // Titlebar controls
+
 const winMin = document.getElementById("win-min") as HTMLButtonElement;
 const winMax = document.getElementById("win-max") as HTMLButtonElement;
 const winClose = document.getElementById("win-close") as HTMLButtonElement;

@@ -34,7 +34,8 @@ flow, testing strategy, and 6 phased milestones.
 
 (These cost real GPU/network time to verify during Phase 1 planning — see the plan doc's "Verified facts" section for full detail.)
 
-- Plain `pip install torch` gives a **CPU-only** wheel on this machine even with the RTX 5080 driver present. Use `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128`.
+- Plain `pip install torch` gives a **CPU-only** wheel on this machine even with a discrete GPU driver present. Use `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128`.
+
 - IOPaint's `ModelManager.__call__` docstring says the mask should be `[H, W, 1]` — **this is wrong**; it must be `[H, W]` (2D), or the call silently returns a corrupted 4D array instead of erroring.
 - `iopaint` transitively pins `fastapi==0.108.0` and `pillow==9.5.0` exactly (via `gradio==4.21.0`), and needs `numpy<2.0`. `fastapi==0.108.0`'s `TestClient` further needs `httpx<0.28`. These are already correctly pinned in `sidecar/pyproject.toml` — don't loosen them without re-checking resolution.
 - Florence-2's open-vocabulary detection (`task="<OPEN_VOCABULARY_DETECTION>"`, prompt = task + text like `"watermark"`) returns `parsed[task] == {"bboxes": [[x1,y1,x2,y2],...], "bboxes_labels": [...], "polygons": [], "polygons_labels": []}` with bboxes in absolute pixel coordinates.

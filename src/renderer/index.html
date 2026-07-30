@@ -374,6 +374,16 @@
         background-color: #ef4444;
       }
 
+      .status-gpu {
+        background-color: rgba(99, 102, 241, 0.15);
+        color: #818cf8;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+      }
+      .status-gpu .status-dot {
+        background-color: #818cf8;
+      }
+
+
       @keyframes blink {
         0%, 100% { opacity: 0.3; }
         50% { opacity: 1; }
@@ -391,7 +401,12 @@
           <span class="status-dot"></span>
           <span id="sidecar-status-text">Sidecar: Starting...</span>
         </div>
+        <div id="gpu-status-pill" class="status-pill status-gpu">
+          <span class="status-dot"></span>
+          <span id="gpu-status-text">GPU: Querying...</span>
+        </div>
       </div>
+
       <div class="titlebar-controls">
         <button id="win-min" class="titlebar-btn" title="Minimize">—</button>
         <button id="win-max" class="titlebar-btn" title="Maximize">🗖</button>
