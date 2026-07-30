@@ -82,39 +82,55 @@ class Qwen2VLCaptioner:
 
 
     def caption(self, image: Image.Image, system_prompt: str | None = None) -> str | None:
-        rgb_image = image.convert("RGB")
-        prompt_text = system_prompt.strip() if system_prompt and system_prompt.strip() else _SYSTEM_PROMPT
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": rgb_image},
-                    {"type": "text", "text": prompt_text},
-                ],
-            }
-        ]
+        try:
+            rgb_image = image.convert("RGB")
+            # Downscale high-resolution images to max 1280px for fast, low-VRAM captioning
+            max_dim = 1280
+            if max(rgb_image.width, rgb_image.height) > max_dim:
+                rgb_image = rgb_image.copy()
+                rgb_image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
-        text = self._processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        image_inputs, video_inputs = self._process_vision_info(messages)
-        inputs = self._processor(
-            text=[text],
-            images=image_inputs,
-            videos=video_inputs,
-            padding=True,
-            return_tensors="pt",
-        ).to(self._device)
+            prompt_text = system_prompt.strip() if system_prompt and system_prompt.strip() else _SYSTEM_PROMPT
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "image": rgb_image},
+                        {"type": "text", "text": prompt_text},
+                    ],
+                }
+            ]
 
-        generated_ids = self._model.generate(**inputs, max_new_tokens=512)
-        generated_ids_trimmed = [
-            out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
-        ]
-        output_text = self._processor.batch_decode(
-            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
-        )[0]
+            text = self._processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            image_inputs, video_inputs = self._process_vision_info(messages)
 
-        if is_refusal_or_empty(output_text):
+            with torch.inference_mode():
+                inputs = self._processor(
+                    text=[text],
+                    images=image_inputs,
+                    videos=video_inputs,
+                    padding=True,
+                    return_tensors="pt",
+                ).to(self._device)
+
+                generated_ids = self._model.generate(**inputs, max_new_tokens=512)
+                generated_ids_trimmed = [
+                    out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+                ]
+                output_text = self._processor.batch_decode(
+                    generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+                )[0]
+
+            if is_refusal_or_empty(output_text):
+                return None
+            return output_text.strip()
+        except Exception as e:
+            print(f"[Captioner Exception] {e}")
             return None
-        return output_text.strip()
+        finally:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
 
 
 @lru_cache(maxsize=1)

@@ -109,9 +109,14 @@ def gpu_status() -> GpuStatusResponseBody:
 def caption(
     body: CaptionRequestBody, captioner: Captioner = Depends(get_captioner)
 ) -> CaptionResponseBody:
-    image = _decode_png(body.image_base64)
-    result_caption = captioner.caption(image, system_prompt=body.system_prompt)
-    return CaptionResponseBody(caption=result_caption)
+    try:
+        image = _decode_png(body.image_base64)
+        result_caption = captioner.caption(image, system_prompt=body.system_prompt)
+        return CaptionResponseBody(caption=result_caption)
+    except Exception as e:
+        print(f"[/caption endpoint error]: {e}")
+        return CaptionResponseBody(caption=None)
+
 
 
 
