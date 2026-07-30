@@ -14,28 +14,33 @@ Full spec: [`docs/implementation-plan.md`](docs/implementation-plan.md) —
 architecture, component breakdown, IPC/HTTP contract, error handling, UI/UX
 flow, testing strategy, and 6 phased milestones.
 
-## Where we are: All 6 Phases Complete
+## Where we are: All 6 Phases Complete & Fully Polish-Verified
 
 **Phase 1** ("sidecar + single-image round trip, one format") is complete.
 **Phase 2** ("multi-format conversion") is complete.
 **Phase 3** ("captioning") is complete.
 **Phase 4** ("manual mask adjustment UI") is complete.
 **Phase 5** ("bulk / batch dataset processing") is complete.
-**Phase 6** ("polish, packaging, edge-case robustness, install docs") is complete — added sidecar health status pill in titlebar, IPC error boundaries, comprehensive `README.md`, and test suite verification.
+**Phase 6** ("polish, telemetry, user experience & edge-case robustness") is complete — added live GPU telemetry, mousewheel zoom & pan controls, custom system prompt & trigger word fields, adaptive text-stroke masking, full-width bulk dataset control cards, and 1:1 image resolution preservation.
 
 ## What's built right now
 
-- **Sidecar** (`sidecar/`, FastAPI): `/health`, `/normalize`, `/detect` (Florence-2), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-7B-Instruct).
-- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), custom frameless window starting maximized by default.
-- **Renderer**: modern HTML/TS UI with custom drag titlebar, live GPU sidecar health status pill, Single Image Editor view, Bulk Dataset Processor view, interactive canvas mask overlay with brush editing & undo/redo, watermark detection/inpainting, caption generation & editing, and Export Settings panel.
+- **Sidecar** (`sidecar/`, FastAPI): `/health`, `/gpu` (real-time GPU Name, VRAM usage & Temp telemetry), `/normalize`, `/detect` (Florence-2 open-vocabulary detection + adaptive Canny stroke contouring), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-2B-Instruct / Qwen2-VL-7B-Instruct with custom system prompts & trigger words).
+- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`gpu:status`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), custom frameless window starting maximized by default.
+- **Renderer UI**:
+  - **Frameless Custom Titlebar**: Windows window controls, brand logo, and live GPU Sidecar status pill.
+  - **Single Image Editor**: Full-featured canvas mask overlay with adaptive brush editing, undo/redo history, **mousewheel zoom (`0.5x`–`5.0x`)**, **click & drag panning**, system prompt & trigger word editor, generated dataset caption viewer, and export options.
+  - **Bulk Dataset Processor**: Full-width stacked layout for Folder Configuration, Batch Processing Options (watermark removal, caption generation with custom trigger words, target format selection for PNG/JPEG/WEBP with quality/compression/flattening/metadata options), **live GPU Telemetry Box (with green/orange/red color-coded VRAM % and Temp °C)**, progress bar, and real-time terminal log viewer.
 - **IntelliJ tooling**: `.idea/runConfigurations/` has a `Sidecar` (Python) config, an `Electron App` (npm) config, and a `Latent Tools (Full Stack)` compound combining both.
 
 ## Verified technical facts worth not re-discovering
 
-(These cost real GPU/network time to verify during Phase 1 planning — see the plan doc's "Verified facts" section for full detail.)
+(These cost real GPU/network time to verify during Phase 1–6 development — see the plan doc's "Verified facts" section for full detail.)
 
-- Plain `pip install torch` gives a **CPU-only** wheel on this machine even with a discrete GPU driver present. Use `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128`.
-
+- Plain `pip install torch` gives a **CPU-only** wheel on Windows even with a discrete GPU driver present. Use `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128`.
+- Qwen2-VL model execution MUST be wrapped in `with torch.inference_mode():` and followed by `torch.cuda.empty_cache()` after inference to prevent VRAM memory accumulation across bulk dataset runs.
+- Hugging Face `from_pretrained` automatically checks local `.cache/huggingface/hub/` model directories (`models--Qwen--Qwen2-VL-2B-Instruct` / `7B`) before connecting online, bypassing remote download hangs.
+- Image resolution is 100% preserved 1:1 across normalization, Florence-2 detection, LaMa inpainting, format conversion, and Qwen2-VL dataset captioning.
 - IOPaint's `ModelManager.__call__` docstring says the mask should be `[H, W, 1]` — **this is wrong**; it must be `[H, W]` (2D), or the call silently returns a corrupted 4D array instead of erroring.
 - `iopaint` transitively pins `fastapi==0.108.0` and `pillow==9.5.0` exactly (via `gradio==4.21.0`), and needs `numpy<2.0`. `fastapi==0.108.0`'s `TestClient` further needs `httpx<0.28`. These are already correctly pinned in `sidecar/pyproject.toml` — don't loosen them without re-checking resolution.
 - Florence-2's open-vocabulary detection (`task="<OPEN_VOCABULARY_DETECTION>"`, prompt = task + text like `"watermark"`) returns `parsed[task] == {"bboxes": [[x1,y1,x2,y2],...], "bboxes_labels": [...], "polygons": [], "polygons_labels": []}` with bboxes in absolute pixel coordinates.
@@ -56,6 +61,7 @@ npm start
 ```
 
 Tests: `npm test` (TS) and, from `sidecar/`, `.venv/Scripts/python -m pytest tests/ -v` (Python).
+
 
 
 
