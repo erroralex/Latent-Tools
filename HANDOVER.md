@@ -38,19 +38,37 @@ flow, testing strategy, and 6 phased milestones.
 - **Speed and optimizations** Currently, it takes minutes per image to remove watermark and caption. We need to improve this while still keeping original image resolution intact
 - **Logs** Logs should be better utilized in dev/intellij instead of using the just /health checks. Write out starting detetection/removing watermark etc.
 
-## Planned: UI rework (not started)
+## UI rework: implemented (on `ui-rework` branch, not yet merged)
 
-A full visual rework of the renderer is planned but not yet implemented —
-see [`docs/ui-rework-implementation-plan.md`](docs/ui-rework-implementation-plan.md)
-for the full spec. Source-of-truth mockup: `docs/Latent Tools.dc.html`
-(Nocturne design system). Summary: replaces the top tab bar with a left
-sidebar app shell, turns the Single editor's inspector into a Caption/Export
-tabbed panel and the Bulk view into a 3-tab flow (Setup/Export
-Settings/Progress & Logs), adds a dataset thumbnail grid, drag-and-drop
-folder tiles, and export presets. Scoped to `src/renderer/` only — no IPC
-contract, main-process, or sidecar changes; every existing element `id`
-used by `renderer.ts` is preserved. Both files are currently untracked in
-git — pending a decision to start the work.
+The renderer visual rework described in
+[`docs/ui-rework-implementation-plan.md`](docs/ui-rework-implementation-plan.md)
+(Nocturne design system, source mockup `docs/Latent Tools.dc.html`) is
+implemented: `src/renderer/styles/{tokens,components,app}.css` (new),
+`src/renderer/index.html` and `renderer.ts` rewritten in place, and
+`scripts/copy-renderer-html.js` updated to also copy `styles/` into
+`dist/renderer`. Left sidebar app shell replaces the top tab bar; Single
+editor inspector is now a Caption/Export tab pair; Bulk view is a
+Setup/Export Settings/Progress & Logs 3-tab flow with a dataset thumbnail
+grid and export presets (`localStorage`-backed custom presets). Scoped to
+`src/renderer/` only, per plan — no IPC/main/sidecar changes; every id
+`renderer.ts` used is preserved (cross-checked against the markup).
+
+Two deliberate deviations from the plan text:
+- **Fonts**: system font stack instead of vendoring Inter — avoids adding
+  binary font assets and keeps the offline guarantee trivially true.
+- **Dropzones** (`bulk-input-dropzone`/`bulk-output-dropzone`): drag-over
+  visual highlight only. Resolving a dropped folder to an absolute path
+  needs `webUtils.getPathForFile` bridged through the preload script,
+  which conflicts with the plan's own "renderer-only, no preload changes"
+  scope constraint — click-to-browse (existing `folder:select` IPC) is
+  the only working path-selection method for now.
+
+Verified: `npm run build` and `npm test` both pass; launched the app and
+confirmed no renderer console errors (temporary `console-message`
+forwarding, reverted after checking). Full manual visual QA (§7 point 6
+of the plan) was not performed in this session — no way to screenshot the
+Electron window without capturing the rest of the desktop, so do a visual
+pass before merging.
 
 ## Verified technical facts worth not re-discovering
 
