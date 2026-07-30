@@ -20,6 +20,17 @@ export type GetWindowFn = () => {
   close: () => void;
 } | null;
 
+function callCaption(
+  client: SidecarClient,
+  image: Buffer,
+  systemPrompt?: string,
+  modelId?: string,
+): Promise<string | null> {
+  if (modelId) return client.caption(image, systemPrompt, modelId);
+  if (systemPrompt) return client.caption(image, systemPrompt);
+  return client.caption(image);
+}
+
 export function registerIpcHandlers(
   ipcMain: IpcMainLike,
   client: SidecarClient,
@@ -94,6 +105,7 @@ export function registerIpcHandlers(
       metadataMode = "strip",
       flattenColor = "#FFFFFF",
       systemPrompt,
+      modelId,
     } = args as {
       inputPath: string;
       outputFolder: string;
@@ -106,6 +118,7 @@ export function registerIpcHandlers(
       metadataMode?: string;
       flattenColor?: string;
       systemPrompt?: string;
+      modelId?: string;
     };
 
     if (!readFile) throw new Error("readFile handler not configured");
@@ -120,9 +133,7 @@ export function registerIpcHandlers(
 
     let captionText: string | null = null;
     if (generateCaption) {
-      captionText = systemPrompt
-        ? await client.caption(workingNormalized, systemPrompt)
-        : await client.caption(workingNormalized);
+      captionText = await callCaption(client, workingNormalized, systemPrompt, modelId);
     }
 
 
@@ -201,14 +212,16 @@ export function registerIpcHandlers(
   });
 
   ipcMain.handle("image:caption", async (_event, args) => {
-    const { imageId, systemPrompt } = args as { imageId: string; systemPrompt?: string };
+    const { imageId, systemPrompt, modelId } = args as {
+      imageId: string;
+      systemPrompt?: string;
+      modelId?: string;
+    };
     const entry = images.get(imageId);
     if (entry === undefined) {
       throw new Error(`Unknown imageId: ${imageId}`);
     }
-    const caption = systemPrompt
-      ? await client.caption(entry.normalized, systemPrompt)
-      : await client.caption(entry.normalized);
+    const caption = await callCaption(client, entry.normalized, systemPrompt, modelId);
     return { caption };
   });
 

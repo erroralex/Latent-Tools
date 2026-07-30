@@ -83,8 +83,12 @@ async function createWindow(): Promise<void> {
 
   await sidecarProcess.start();
 
-  app.on("before-quit", () => {
-    void sidecarProcess.stop();
+  let isQuitting = false;
+  app.on("before-quit", (event) => {
+    if (isQuitting) return;
+    isQuitting = true;
+    event.preventDefault();
+    void sidecarProcess.stop().finally(() => app.quit());
   });
 }
 

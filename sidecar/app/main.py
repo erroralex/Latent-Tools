@@ -1,12 +1,16 @@
 import base64
 import io
+import os
+import signal
 import subprocess
+import threading
+import time
 import torch
 
 from fastapi import Depends, FastAPI, HTTPException
 from PIL import Image, ImageColor, ImageOps
 
-from app.captioning import Captioner, get_captioner
+from app.captioning import get_captioner, get_captioner_for_model
 from app.detection import WatermarkDetector, get_detector
 from app.inpainting import Inpainter, get_inpainter
 from app.schemas import (
@@ -29,6 +33,24 @@ app = FastAPI(title="Latent Tools Sidecar")
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+def _terminate_process() -> None:
+    os.kill(os.getpid(), signal.SIGTERM)
+
+
+@app.post("/shutdown")
+def shutdown() -> dict:
+    # Terminate from a background thread, after the response has had a
+    # moment to flush — this lets the caller (Electron, on app quit) know
+    # the sidecar accepted the shutdown request, whether it was spawned by
+    # Electron itself or started independently (e.g. an IntelliJ run config).
+    def _delayed_terminate() -> None:
+        time.sleep(0.1)
+        _terminate_process()
+
+    threading.Thread(target=_delayed_terminate, daemon=True).start()
+    return {"status": "shutting down"}
 
 
 @app.get("/gpu", response_model=GpuStatusResponseBody)
@@ -106,12 +128,17 @@ def gpu_status() -> GpuStatusResponseBody:
 
 
 @app.post("/caption", response_model=CaptionResponseBody)
-def caption(
-    body: CaptionRequestBody, captioner: Captioner = Depends(get_captioner)
-) -> CaptionResponseBody:
+def caption(body: CaptionRequestBody) -> CaptionResponseBody:
     try:
         image = _decode_png(body.image_base64)
-        result_caption = captioner.caption(image, system_prompt=body.system_prompt)
+        if body.model_id:
+            active_captioner = get_captioner_for_model(body.model_id)
+        else:
+            # Resolved lazily (rather than via Depends()) so a request that
+            # specifies model_id never pays for loading the default model too.
+            captioner_fn = app.dependency_overrides.get(get_captioner, get_captioner)
+            active_captioner = captioner_fn()
+        result_caption = active_captioner.caption(image, system_prompt=body.system_prompt)
         return CaptionResponseBody(caption=result_caption)
     except Exception as e:
         print(f"[/caption endpoint error]: {e}")

@@ -25,13 +25,18 @@ flow, testing strategy, and 6 phased milestones.
 
 ## What's built right now
 
-- **Sidecar** (`sidecar/`, FastAPI): `/health`, `/gpu` (real-time GPU Name, VRAM usage & Temp telemetry), `/normalize`, `/detect` (Florence-2 open-vocabulary detection + adaptive Canny stroke contouring), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-2B-Instruct / Qwen2-VL-7B-Instruct with custom system prompts & trigger words).
-- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`gpu:status`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), custom frameless window starting maximized by default.
+- **Sidecar** (`sidecar/`, FastAPI): `/health`, `/gpu` (real-time GPU Name, VRAM usage & Temp telemetry), `/normalize`, `/detect` (Florence-2 open-vocabulary detection + adaptive Canny stroke contouring), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-2B-Instruct / Qwen2-VL-7B-Instruct or a custom local model folder, selectable per-request via `model_id`, with custom system prompts & trigger words), `/shutdown` (graceful termination, reachable regardless of who started the process).
+- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`gpu:status`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), custom frameless window starting maximized by default. `SidecarProcess` skips spawning a duplicate sidecar if one is already reachable (e.g. started via the IntelliJ "Sidecar" run config), and on app quit calls the sidecar's `/shutdown` endpoint before exiting so no orphaned process (or stuck IntelliJ run config) is left behind.
 - **Renderer UI**:
   - **Frameless Custom Titlebar**: Windows window controls, brand logo, and live GPU Sidecar status pill.
-  - **Single Image Editor**: Full-featured canvas mask overlay with adaptive brush editing, undo/redo history, **mousewheel zoom (`0.5x`–`5.0x`)**, **click & drag panning**, system prompt & trigger word editor, generated dataset caption viewer, and export options.
-  - **Bulk Dataset Processor**: Full-width stacked layout for Folder Configuration, Batch Processing Options (watermark removal, caption generation with custom trigger words, target format selection for PNG/JPEG/WEBP with quality/compression/flattening/metadata options), **live GPU Telemetry Box (with green/orange/red color-coded VRAM % and Temp °C)**, progress bar, and real-time terminal log viewer.
+  - **Captioning Model Selector**: shared dropdown (visible in both views) for Qwen2-VL-2B-Instruct (recommended), Qwen2-VL-7B-Instruct, or a custom local model folder via file explorer.
+  - **Single Image Editor**: Full-featured canvas mask overlay with adaptive brush editing (live brush-size cursor circle that scales with zoom) — the brush is paintable immediately after import, no AI detection required first, for fully manual/custom masking — plus undo/redo history, **mousewheel zoom (`0.5x`–`5.0x`)**, **click & drag panning**, system prompt & trigger word editor, generated dataset caption viewer, and export options.
+  - **Bulk Dataset Processor**: Disclaimer banner noting batch watermark removal may miss some watermarks and recommending manual cleanup in Single Image Editor. Full-width stacked layout for Folder Configuration, Batch Processing Options (watermark removal, caption generation with custom trigger words, target format selection for PNG/JPEG/WEBP with quality/compression/flattening/metadata options), **live GPU Telemetry Box (with green/orange/red color-coded VRAM % and Temp °C)**, progress bar, and a scrollable real-time terminal log viewer.
 - **IntelliJ tooling**: `.idea/runConfigurations/` has a `Sidecar` (Python) config, an `Electron App` (npm) config, and a `Latent Tools (Full Stack)` compound combining both.
+
+## TODO
+- **Speed and optimizations** Currently, it takes minutes per image to remove watermark and caption. We need to improve this while still keeping original image resolution intact
+- **Logs** Logs should be better utilized in dev/intellij instead of using the just /health checks. Write out starting detetection/removing watermark etc.
 
 ## Verified technical facts worth not re-discovering
 

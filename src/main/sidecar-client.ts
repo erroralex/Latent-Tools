@@ -95,12 +95,15 @@ export class SidecarClient {
     };
   }
 
-  async caption(imagePng: Buffer, systemPrompt?: string): Promise<string | null> {
-    const payload: { image_base64: string; system_prompt?: string } = {
+  async caption(imagePng: Buffer, systemPrompt?: string, modelId?: string): Promise<string | null> {
+    const payload: { image_base64: string; system_prompt?: string; model_id?: string } = {
       image_base64: imagePng.toString("base64"),
     };
     if (systemPrompt && systemPrompt.trim()) {
       payload.system_prompt = systemPrompt.trim();
+    }
+    if (modelId && modelId.trim()) {
+      payload.model_id = modelId.trim();
     }
     const response = await fetch(`${this.baseUrl}/caption`, {
       method: "POST",
@@ -112,6 +115,14 @@ export class SidecarClient {
     }
     const body = (await response.json()) as { caption: string | null };
     return body.caption;
+  }
+
+  async shutdown(): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/shutdown`, { method: "POST" });
+    } catch {
+      // Sidecar may already be unreachable (e.g. already stopped) — nothing more to do.
+    }
   }
 
   async gpuStatus(): Promise<GpuStatusResponse> {

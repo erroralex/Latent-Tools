@@ -13,3 +13,16 @@ def test_gpu_endpoint_returns_status(client):
     assert "vram_total_gb" in data
     assert "status" in data
 
+
+def test_shutdown_endpoint_schedules_process_termination(client, monkeypatch):
+    import threading
+
+    terminated = threading.Event()
+    monkeypatch.setattr("app.main._terminate_process", terminated.set)
+
+    response = client.post("/shutdown")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "shutting down"}
+    assert terminated.wait(timeout=1.0)
+

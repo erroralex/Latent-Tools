@@ -150,6 +150,13 @@ describe("registerIpcHandlers", () => {
       Buffer.from("normalized-png-bytes"),
       "Include trigger word 'ohwx man'.",
     );
+
+    await captionHandler({}, { imageId, modelId: "Qwen/Qwen2-VL-7B-Instruct" });
+    expect(client.caption).toHaveBeenCalledWith(
+      Buffer.from("normalized-png-bytes"),
+      undefined,
+      "Qwen/Qwen2-VL-7B-Instruct",
+    );
   });
 
 

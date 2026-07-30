@@ -105,6 +105,35 @@ tabBulk.addEventListener("click", () => {
   singleView.style.display = "none";
 });
 
+// Captioning Model Selector
+const modelSelect = document.getElementById("model-select") as HTMLSelectElement;
+const modelBrowseBtn = document.getElementById("model-browse-btn") as HTMLButtonElement;
+const modelPathText = document.getElementById("model-path-text") as HTMLSpanElement;
+
+let selectedModelId: string = modelSelect.value;
+let customModelPath: string | undefined;
+
+modelSelect.addEventListener("change", () => {
+  if (modelSelect.value === "__custom__") {
+    modelBrowseBtn.style.display = "inline-block";
+    selectedModelId = customModelPath ?? "";
+    modelPathText.textContent = customModelPath ?? "No folder selected";
+  } else {
+    modelBrowseBtn.style.display = "none";
+    selectedModelId = modelSelect.value;
+    modelPathText.textContent = "";
+  }
+});
+
+modelBrowseBtn.addEventListener("click", async () => {
+  const { folderPath } = await window.api.selectFolder();
+  if (folderPath) {
+    customModelPath = folderPath;
+    selectedModelId = folderPath;
+    modelPathText.textContent = folderPath;
+  }
+});
+
 // Bulk Processing State & Elements
 const bulkInputBtn = document.getElementById("bulk-input-btn") as HTMLButtonElement;
 const bulkInputPath = document.getElementById("bulk-input-path") as HTMLSpanElement;
@@ -236,6 +265,7 @@ bulkStartBtn.addEventListener("click", async () => {
           metadataMode: bulkMetadataSelect.value,
           flattenColor: bulkFlattenColor.value,
           systemPrompt: bulkSystemPrompt.value,
+          modelId: selectedModelId || undefined,
         });
 
 
@@ -509,8 +539,40 @@ losslessCheckbox.addEventListener("change", () => {
   qualityRange.disabled = losslessCheckbox.checked;
 });
 
+const brushCursor = document.getElementById("brush-cursor") as HTMLDivElement;
+
+function updateBrushCursorSize() {
+  // Brush size is defined in CSS px at zoom 1.0 (see drawStroke's radius
+  // conversion), so its on-screen footprint scales with the current zoom.
+  const diameter = parseInt(brushSize.value, 10) * zoomScale;
+  brushCursor.style.width = `${diameter}px`;
+  brushCursor.style.height = `${diameter}px`;
+}
+
+function updateBrushCursorPosition(e: PointerEvent) {
+  const rect = previewContainer.getBoundingClientRect();
+  brushCursor.style.left = `${e.clientX - rect.left}px`;
+  brushCursor.style.top = `${e.clientY - rect.top}px`;
+}
+
+maskCanvas.addEventListener("pointerenter", () => {
+  if (maskCanvas.style.display === "none") return;
+  updateBrushCursorSize();
+  brushCursor.style.display = "block";
+});
+
+maskCanvas.addEventListener("pointermove", (e) => {
+  updateBrushCursorPosition(e);
+  updateBrushCursorSize();
+});
+
+maskCanvas.addEventListener("pointerleave", () => {
+  brushCursor.style.display = "none";
+});
+
 brushSize.addEventListener("input", () => {
   brushSizeVal.textContent = brushSize.value;
+  updateBrushCursorSize();
 });
 
 brushAddBtn.addEventListener("click", () => {
@@ -700,6 +762,12 @@ resetMaskBtn.addEventListener("click", async () => {
   if (originalDetectedMaskBase64) {
     await loadMaskToOffscreen(originalDetectedMaskBase64);
     await exportOffscreenMask();
+  } else {
+    // No AI detection has run yet — reset means "back to a blank mask".
+    offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    syncVisibleCanvas();
+    await exportOffscreenMask();
+    saveHistoryState();
   }
 });
 
@@ -717,6 +785,21 @@ fileInput.addEventListener("change", async () => {
   offscreenCanvas.width = 0;
   offscreenCanvas.height = 0;
 
+  // Give the user a blank, paintable mask as soon as the image loads, so
+  // manual masking doesn't require running AI detection first.
+  preview.addEventListener(
+    "load",
+    () => {
+      offscreenCanvas.width = preview.naturalWidth;
+      offscreenCanvas.height = preview.naturalHeight;
+      offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+      maskCanvas.style.display = "block";
+      syncVisibleCanvas();
+      clearHistory();
+      saveHistoryState();
+    },
+    { once: true },
+  );
 
   if (previewBase64) {
     preview.src = `data:image/png;base64,${previewBase64}`;
@@ -726,7 +809,7 @@ fileInput.addEventListener("change", async () => {
   detectBtn.disabled = false;
   captionBtn.disabled = false;
   exportBtn.disabled = false;
-  inpaintBtn.disabled = true;
+  inpaintBtn.disabled = false;
   captionText.value = "";
   captionStatus.textContent = "";
 });
@@ -775,7 +858,11 @@ captionBtn.addEventListener("click", async () => {
   captionBtn.disabled = true;
   captionStatus.innerHTML = '<span class="spinner"></span> Generating caption...';
   try {
-    const { caption } = await window.api.captionImage(currentImageId, systemPromptInput.value);
+    const { caption } = await window.api.captionImage(
+      currentImageId,
+      systemPromptInput.value,
+      selectedModelId || undefined,
+    );
     if (caption) {
       captionText.value = caption;
       captionStatus.textContent = "Generated";

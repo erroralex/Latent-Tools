@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld("api", {
     metadataMode?: string;
     flattenColor?: string;
     systemPrompt?: string;
+    modelId?: string;
   }) => ipcRenderer.invoke("bulk:process-item", options),
 
   // Single Image Operations
@@ -45,8 +46,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("mask:update", { imageId, maskBase64 }),
   save: (imageId: string) => ipcRenderer.invoke("image:save", { imageId }),
 
-  captionImage: (imageId: string, systemPrompt?: string) =>
-    ipcRenderer.invoke("image:caption", { imageId, systemPrompt }),
+  captionImage: (imageId: string, systemPrompt?: string, modelId?: string) =>
+    ipcRenderer.invoke("image:caption", { imageId, systemPrompt, modelId }),
 
   exportImage: (
     imageId: string,

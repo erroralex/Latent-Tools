@@ -45,6 +45,7 @@ class ConvertResponseBody(BaseModel):
 class CaptionRequestBody(BaseModel):
     image_base64: str
     system_prompt: str | None = None
+    model_id: str | None = None
 
 
 

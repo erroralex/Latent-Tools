@@ -38,6 +38,7 @@ interface Window {
       metadataMode?: string;
       flattenColor?: string;
       systemPrompt?: string;
+      modelId?: string;
     }) => Promise<{ success: boolean; outputPath: string }>;
 
     // Single Image Operations
@@ -45,7 +46,11 @@ interface Window {
     detect: (imageId: string) => Promise<{ maskBase64: string }>;
     inpaint: (imageId: string, maskBase64?: string) => Promise<{ resultBase64: string }>;
     updateMask: (imageId: string, maskBase64: string) => Promise<{ success: boolean }>;
-    captionImage: (imageId: string, systemPrompt?: string) => Promise<{ caption: string | null }>;
+    captionImage: (
+      imageId: string,
+      systemPrompt?: string,
+      modelId?: string,
+    ) => Promise<{ caption: string | null }>;
 
 
     exportImage: (

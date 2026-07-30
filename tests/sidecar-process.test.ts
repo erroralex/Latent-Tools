@@ -10,9 +10,8 @@ function fakeChildProcess() {
 }
 
 describe("SidecarProcess", () => {
-  it("reaches 'ready' once the client's health check succeeds", async () => {
-    const child = fakeChildProcess();
-    const spawnFn = vi.fn().mockReturnValue(child);
+  it("does not spawn a child if the sidecar is already reachable (started externally)", async () => {
+    const spawnFn = vi.fn();
     const client = {
       health: vi.fn().mockResolvedValue({ status: "ok" }),
     } as unknown as SidecarClient;
@@ -31,6 +30,34 @@ describe("SidecarProcess", () => {
 
     expect(process.getState()).toBe("ready");
     expect(states).toEqual(["starting", "ready"]);
+    expect(spawnFn).not.toHaveBeenCalled();
+  });
+
+  it("spawns a child and polls health until ready when no sidecar is already running", async () => {
+    const child = fakeChildProcess();
+    const spawnFn = vi.fn().mockReturnValue(child);
+    let healthCallCount = 0;
+    const client = {
+      health: vi.fn().mockImplementation(() => {
+        healthCallCount++;
+        return healthCallCount < 2
+          ? Promise.reject(new Error("not up yet"))
+          : Promise.resolve({ status: "ok" });
+      }),
+    } as unknown as SidecarClient;
+
+    const process = new SidecarProcess({
+      spawnFn,
+      client,
+      pythonExecutable: "python",
+      scriptArgs: ["-m", "uvicorn", "app.main:app"],
+      healthPollIntervalMs: 1,
+    });
+
+    await process.start();
+
+    expect(process.getState()).toBe("ready");
+    expect(spawnFn).toHaveBeenCalledTimes(1);
     expect(spawnFn).toHaveBeenCalledWith(
       "python",
       ["-m", "uvicorn", "app.main:app"],
@@ -60,10 +87,13 @@ describe("SidecarProcess", () => {
     expect(client.health).toHaveBeenCalledTimes(3);
   });
 
-  it("stop() kills the child process", async () => {
+  it("stop() shuts down via HTTP and kills the child process it spawned", async () => {
     const child = fakeChildProcess();
     const spawnFn = vi.fn().mockReturnValue(child);
-    const client = { health: vi.fn().mockResolvedValue({ status: "ok" }) } as unknown as SidecarClient;
+    const client = {
+      health: vi.fn().mockRejectedValueOnce(new Error("not up yet")).mockResolvedValue({ status: "ok" }),
+      shutdown: vi.fn().mockResolvedValue(undefined),
+    } as unknown as SidecarClient;
 
     const process = new SidecarProcess({
       spawnFn,
@@ -75,6 +105,29 @@ describe("SidecarProcess", () => {
     await process.start();
     await process.stop();
 
+    expect(client.shutdown).toHaveBeenCalled();
     expect(child.kill).toHaveBeenCalled();
+  });
+
+  it("stop() shuts down an externally running sidecar via HTTP even though Electron never spawned it", async () => {
+    const spawnFn = vi.fn();
+    const client = {
+      health: vi.fn().mockResolvedValue({ status: "ok" }),
+      shutdown: vi.fn().mockResolvedValue(undefined),
+    } as unknown as SidecarClient;
+
+    const process = new SidecarProcess({
+      spawnFn,
+      client,
+      pythonExecutable: "python",
+      scriptArgs: [],
+      healthPollIntervalMs: 1,
+    });
+    await process.start();
+    expect(spawnFn).not.toHaveBeenCalled();
+
+    await process.stop();
+
+    expect(client.shutdown).toHaveBeenCalled();
   });
 });

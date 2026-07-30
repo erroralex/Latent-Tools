@@ -64,20 +64,26 @@ class Qwen2VLCaptioner:
             self._process_vision_info = _fallback_process_vision_info
 
         import os
-        user_home = os.path.expanduser("~")
-        local_2b_path = os.path.join(
-            user_home, ".cache", "huggingface", "hub", "models--Qwen--Qwen2-VL-2B-Instruct"
-        )
-        local_7b_path = os.path.join(
-            user_home, ".cache", "huggingface", "hub", "models--Qwen--Qwen2-VL-7B-Instruct"
-        )
 
-        if os.path.exists(os.path.join(local_2b_path, "model.safetensors.index.json")) or os.path.exists(os.path.join(local_2b_path, "model.safetensors")):
-            target_model_id = local_2b_path
-        elif os.path.exists(os.path.join(local_7b_path, "model.safetensors.index.json")):
-            target_model_id = local_7b_path
-        else:
+        if os.path.isdir(model_id):
+            # A user-selected local model folder (e.g. via the file explorer
+            # model picker) — load directly, skipping the HF-hub cache lookup.
             target_model_id = model_id
+        else:
+            # from_pretrained already checks the local HF hub cache before
+            # hitting the network, but resolving straight to the cached
+            # snapshot folder for the *requested* model avoids a redundant
+            # network round-trip on every captioner start.
+            user_home = os.path.expanduser("~")
+            hub_dir_name = "models--" + model_id.replace("/", "--")
+            local_path = os.path.join(user_home, ".cache", "huggingface", "hub", hub_dir_name)
+
+            if os.path.exists(os.path.join(local_path, "model.safetensors.index.json")) or os.path.exists(
+                os.path.join(local_path, "model.safetensors")
+            ):
+                target_model_id = local_path
+            else:
+                target_model_id = model_id
 
         self._device = device
         self._model = Qwen2VLForConditionalGeneration.from_pretrained(
@@ -147,10 +153,19 @@ class Qwen2VLCaptioner:
 
 
 
+DEFAULT_MODEL_ID = "Qwen/Qwen2-VL-2B-Instruct"
+
+
 @lru_cache(maxsize=1)
-def _real_captioner() -> Qwen2VLCaptioner:
-    return Qwen2VLCaptioner()
+def _captioner_for_model(model_id: str) -> Qwen2VLCaptioner:
+    # maxsize=1: switching models evicts the previous captioner so its CUDA
+    # memory can be reclaimed, rather than accumulating multiple loaded models.
+    return Qwen2VLCaptioner(model_id=model_id)
 
 
 def get_captioner() -> Captioner:
-    return _real_captioner()
+    return _captioner_for_model(DEFAULT_MODEL_ID)
+
+
+def get_captioner_for_model(model_id: str) -> Captioner:
+    return _captioner_for_model(model_id)

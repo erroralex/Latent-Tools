@@ -55,7 +55,7 @@ export class SidecarProcess {
 
   async start(): Promise<void> {
     this.setState("starting");
-    this.child = this.spawnFn(this.pythonExecutable, this.scriptArgs, {});
+    let spawned = false;
 
     for (let attempt = 0; attempt < this.maxHealthPollAttempts; attempt++) {
       try {
@@ -63,6 +63,13 @@ export class SidecarProcess {
         this.setState("ready");
         return;
       } catch {
+        // Only spawn once: a healthy first check means a sidecar is already
+        // running (e.g. started independently via an IntelliJ run config) —
+        // reuse it instead of racing it for the same port.
+        if (!spawned) {
+          this.child = this.spawnFn(this.pythonExecutable, this.scriptArgs, {});
+          spawned = true;
+        }
         await new Promise((resolve) => setTimeout(resolve, this.healthPollIntervalMs));
       }
     }
@@ -70,6 +77,10 @@ export class SidecarProcess {
   }
 
   async stop(): Promise<void> {
+    // Always request shutdown via HTTP — this reaches the sidecar whether
+    // Electron spawned it itself or it was already running externally, so
+    // e.g. an IntelliJ "Sidecar" run config actually stops when the app closes.
+    await this.client.shutdown();
     this.child?.kill();
   }
 }

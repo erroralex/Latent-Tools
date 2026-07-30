@@ -57,6 +57,37 @@ def test_caption_endpoint_maps_refusal_to_null(client):
         app.dependency_overrides.clear()
 
 
+def test_caption_endpoint_with_model_id_uses_model_specific_captioner(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.main.get_captioner_for_model",
+        lambda model_id: FakeCaptioner(f"Caption via {model_id}"),
+    )
+    image = Image.new("RGB", (64, 64), color=(10, 20, 30))
+    response = client.post(
+        "/caption",
+        json={"image_base64": _png_base64(image), "model_id": "Qwen/Qwen2-VL-7B-Instruct"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["caption"] == "Caption via Qwen/Qwen2-VL-7B-Instruct"
+
+
+def test_caption_endpoint_without_model_id_does_not_touch_model_specific_captioner(client, monkeypatch):
+    def _fail_if_called(model_id: str) -> None:
+        raise AssertionError("get_captioner_for_model should not be called when model_id is absent")
+
+    monkeypatch.setattr("app.main.get_captioner_for_model", _fail_if_called)
+    app.dependency_overrides[get_captioner] = lambda: FakeCaptioner("A photo of a cat on a couch.")
+    try:
+        image = Image.new("RGB", (64, 64), color=(10, 20, 30))
+        response = client.post("/caption", json={"image_base64": _png_base64(image)})
+
+        assert response.status_code == 200
+        assert response.json()["caption"] == "A photo of a cat on a couch."
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_is_refusal_or_empty_patterns():
     assert is_refusal_or_empty(None) is True
     assert is_refusal_or_empty("") is True
