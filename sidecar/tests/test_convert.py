@@ -97,3 +97,31 @@ def test_convert_unsupported_format(client):
         },
     )
     assert res.status_code == 400
+
+
+def test_image_preserves_original_resolution_4k(client):
+    # Verify 4K resolution (3840x2160) is preserved exactly 1:1 through normalization and conversion
+    img_4k = Image.new("RGB", (3840, 2160), color=(120, 150, 180))
+    b64_in = _img_to_b64(img_4k, format="PNG")
+
+    # 1. Test /normalize
+    norm_res = client.post("/normalize", json={"image_base64": b64_in})
+    assert norm_res.status_code == 200
+    norm_bytes = base64.b64decode(norm_res.json()["normalized_base64"])
+    norm_img = Image.open(io.BytesIO(norm_bytes))
+    assert norm_img.size == (3840, 2160)
+
+    # 2. Test /convert
+    conv_res = client.post(
+        "/convert",
+        json={
+            "image_base64": norm_res.json()["normalized_base64"],
+            "format": "jpeg",
+            "quality": 95,
+        },
+    )
+    assert conv_res.status_code == 200
+    out_bytes = base64.b64decode(conv_res.json()["result_base64"])
+    out_img = Image.open(io.BytesIO(out_bytes))
+    assert out_img.size == (3840, 2160)
+
