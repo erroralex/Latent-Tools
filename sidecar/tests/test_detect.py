@@ -44,7 +44,8 @@ def test_mask_from_bboxes_combines_multiple_watermarks_and_quads():
         [50, 50, 60, 60],                      # Bottom-right box
         [20, 20, 30, 20, 30, 30, 20, 30],      # Quad box [x1,y1, x2,y2, x3,y3, x4,y4]
     ]
-    mask = _mask_from_bboxes(bboxes, (100, 100))
+    img = Image.new("RGB", (100, 100), color=(128, 128, 128))
+    mask = _mask_from_bboxes(bboxes, img)
 
     # All three regions should be masked (value 255)
     assert mask.getpixel((5, 5)) == 255
@@ -52,4 +53,5 @@ def test_mask_from_bboxes_combines_multiple_watermarks_and_quads():
     assert mask.getpixel((25, 25)) == 255
     # Unmasked region remains 0
     assert mask.getpixel((80, 10)) == 0
+
 

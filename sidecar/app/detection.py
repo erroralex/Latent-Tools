@@ -53,10 +53,12 @@ class Florence2Detector:
             except Exception:
                 pass
 
-        return _mask_from_bboxes(all_bboxes, rgb_image.size)
+        return _mask_from_bboxes(all_bboxes, rgb_image)
 
 
-def _mask_from_bboxes(bboxes: list[list[float]], size: tuple[int, int]) -> Image.Image:
+def _mask_from_bboxes(bboxes: list[list[float]], image: Image.Image) -> Image.Image:
+    size = image.size
+    gray = np.array(image.convert("L"))
     mask = np.zeros((size[1], size[0]), dtype=np.uint8)
     max_box_area = 0.25 * (size[0] * size[1])  # Ignore boxes covering > 25% of total image area
 
@@ -71,19 +73,43 @@ def _mask_from_bboxes(bboxes: list[list[float]], size: tuple[int, int]) -> Image
         else:
             continue
 
-        w = abs(x2 - x1)
-        h = abs(y2 - y1)
-        # Filter out giant false-positive boxes (e.g. whole doors, walls, or curtains)
-        if w * h > max_box_area or h > 0.65 * size[1]:
+        ix1, iy1 = max(0, int(x1)), max(0, int(y1))
+        ix2, iy2 = min(size[0], int(x2)), min(size[1], int(y2))
+        w, h = ix2 - ix1, iy2 - iy1
+
+        if w <= 0 or h <= 0 or (w * h) > max_box_area or h > 0.65 * size[1]:
             continue
 
-        cv2.rectangle(mask, (int(x1), int(y1)), (int(x2), int(y2)), color=255, thickness=-1)
+        crop = gray[iy1:iy2, ix1:ix2]
+        if crop.size == 0:
+            continue
+
+        # Extract text edge gradient and Otsu binarization inside the bounding box
+        grad = cv2.morphologyEx(crop, cv2.MORPH_GRADIENT, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+        _, otsu = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        canny = cv2.Canny(crop, 50, 150)
+        stroke_mask = cv2.bitwise_or(otsu, canny)
+
+        # Dilate stroke mask to cover antialiased text edges cleanly
+        kernel = np.ones((_MASK_DILATE_PX, _MASK_DILATE_PX), dtype=np.uint8)
+        dilated_stroke = cv2.dilate(stroke_mask, kernel)
+
+        # If strokes cover a valid text portion of the box (0.5% - 75%), use tight contour mask
+        coverage = np.mean(dilated_stroke > 0)
+        if 0.005 <= coverage <= 0.75:
+            mask[iy1:iy2, ix1:ix2] = cv2.bitwise_or(mask[iy1:iy2, ix1:ix2], dilated_stroke)
+        else:
+            # Fallback to box if background contrast is low
+            cv2.rectangle(mask, (ix1, iy1), (ix2, iy2), color=255, thickness=-1)
+
         drawn_any = True
 
-    if drawn_any:
+    if drawn_any and np.mean(mask > 0) == 0:
         kernel = np.ones((_MASK_DILATE_PX, _MASK_DILATE_PX), dtype=np.uint8)
         mask = cv2.dilate(mask, kernel)
+
     return Image.fromarray(mask, mode="L")
+
 
 
 
