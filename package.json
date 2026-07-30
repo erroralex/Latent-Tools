@@ -1,0 +1,17 @@
+{
+  "name": "latent-tools",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "npm run build && electron .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^33.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
