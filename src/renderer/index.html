@@ -401,11 +401,8 @@
           <span class="status-dot"></span>
           <span id="sidecar-status-text">Sidecar: Starting...</span>
         </div>
-        <div id="gpu-status-pill" class="status-pill status-gpu">
-          <span class="status-dot"></span>
-          <span id="gpu-status-text">GPU: Querying...</span>
-        </div>
       </div>
+
 
       <div class="titlebar-controls">
         <button id="win-min" class="titlebar-btn" title="Minimize">—</button>
@@ -598,7 +595,38 @@
           <div class="progress-bar-container">
             <div id="progress-bar-fill"></div>
           </div>
+          <!-- GPU Telemetry Box -->
+          <div id="gpu-telemetry-box" style="display: flex; gap: 16px; align-items: center; justify-content: space-between; background-color: #121418; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text-color);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #818cf8;">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="15" x2="23" y2="15"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="15" x2="4" y2="15"></line>
+              </svg>
+              <span id="gpu-name-text">GPU: Querying...</span>
+            </div>
+            
+            <div style="display: flex; gap: 20px; align-items: center;">
+              <div>
+                <span style="color: var(--text-muted); font-size: 0.78rem;">VRAM: </span>
+                <span id="gpu-vram-text" style="font-weight: 600; font-family: monospace; color: #10b981;">0.0 / 0.0 GB (0%)</span>
+              </div>
+              <div>
+                <span style="color: var(--text-muted); font-size: 0.78rem;">Temp: </span>
+                <span id="gpu-temp-text" style="font-weight: 600; font-family: monospace; color: #10b981;">--°C</span>
+              </div>
+            </div>
+          </div>
+
           <div id="bulk-log-box" class="log-box">Waiting for job to start...</div>
+
         </div>
       </div>
 

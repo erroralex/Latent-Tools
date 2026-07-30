@@ -19,28 +19,60 @@ if (window.api && window.api.onSidecarStateChange) {
 }
 
 // GPU Telemetry Poller
-const gpuStatusPill = document.getElementById("gpu-status-pill") as HTMLDivElement;
-const gpuStatusText = document.getElementById("gpu-status-text") as HTMLSpanElement;
+const gpuNameText = document.getElementById("gpu-name-text") as HTMLSpanElement;
+const gpuVramText = document.getElementById("gpu-vram-text") as HTMLSpanElement;
+const gpuTempText = document.getElementById("gpu-temp-text") as HTMLSpanElement;
+
+function getVramColor(pct: number): string {
+  if (pct >= 89) return "#ef4444"; // Red (≥ 89%)
+  if (pct >= 70) return "#f59e0b"; // Orange (70% - 88%)
+  return "#10b981"; // Green (< 70%)
+}
+
+function getTempColor(temp: number | null): string {
+  if (temp === null) return "var(--text-muted)";
+  if (temp >= 80) return "#ef4444"; // Red (≥ 80°C)
+  if (temp >= 65) return "#f59e0b"; // Orange (65°C - 79°C)
+  return "#10b981"; // Green (< 65°C)
+}
 
 async function updateGpuStatus() {
   if (!window.api || !window.api.getGpuStatus) return;
   try {
     const gpu = await window.api.getGpuStatus();
     if (gpu.status === "ok") {
-      const vramStr = `${gpu.vram_used_gb}/${gpu.vram_total_gb} GB (${Math.round(gpu.vram_pct)}%)`;
-      const tempStr = gpu.temperature_c !== null ? ` | ${gpu.temperature_c}°C` : "";
-      gpuStatusText.textContent = `${gpu.name} | ${vramStr}${tempStr}`;
-      gpuStatusPill.style.display = "flex";
+      gpuNameText.textContent = gpu.name;
+
+      const pct = Math.round(gpu.vram_pct);
+      gpuVramText.textContent = `${gpu.vram_used_gb} / ${gpu.vram_total_gb} GB (${pct}%)`;
+      gpuVramText.style.color = getVramColor(pct);
+
+      if (gpu.temperature_c !== null) {
+        gpuTempText.textContent = `${gpu.temperature_c}°C`;
+        gpuTempText.style.color = getTempColor(gpu.temperature_c);
+      } else {
+        gpuTempText.textContent = "N/A";
+        gpuTempText.style.color = "var(--text-muted)";
+      }
     } else {
-      gpuStatusText.textContent = gpu.name || "No CUDA GPU";
+      gpuNameText.textContent = gpu.name || "No CUDA GPU Detected";
+      gpuVramText.textContent = "0.0 / 0.0 GB (0%)";
+      gpuVramText.style.color = "var(--text-muted)";
+      gpuTempText.textContent = "--°C";
+      gpuTempText.style.color = "var(--text-muted)";
     }
   } catch {
-    gpuStatusText.textContent = "GPU: Off";
+    gpuNameText.textContent = "GPU Telemetry Offline";
+    gpuVramText.textContent = "0.0 / 0.0 GB (0%)";
+    gpuVramText.style.color = "var(--text-muted)";
+    gpuTempText.textContent = "--°C";
+    gpuTempText.style.color = "var(--text-muted)";
   }
 }
 
 updateGpuStatus();
 setInterval(updateGpuStatus, 3000);
+
 
 // Titlebar controls
 
