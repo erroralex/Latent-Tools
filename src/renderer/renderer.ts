@@ -238,6 +238,7 @@ window.addEventListener("resize", () => {
 detectBtn.addEventListener("click", async () => {
   if (currentImageId === undefined) return;
   detectBtn.disabled = true;
+  detectBtn.innerHTML = '<span class="spinner"></span> Detecting...';
   try {
     const { maskBase64 } = await window.api.detect(currentImageId);
     currentMaskBase64 = maskBase64;
@@ -246,25 +247,28 @@ detectBtn.addEventListener("click", async () => {
     inpaintBtn.disabled = false;
   } finally {
     detectBtn.disabled = false;
+    detectBtn.textContent = "Detect Watermark";
   }
 });
 
 inpaintBtn.addEventListener("click", async () => {
   if (currentImageId === undefined) return;
   inpaintBtn.disabled = true;
+  inpaintBtn.innerHTML = '<span class="spinner"></span> Removing...';
   try {
     const { resultBase64 } = await window.api.inpaint(currentImageId, currentMaskBase64);
     preview.src = `data:image/png;base64,${resultBase64}`;
     maskCanvas.style.display = "none";
   } finally {
     inpaintBtn.disabled = false;
+    inpaintBtn.textContent = "Remove Watermark";
   }
 });
 
 captionBtn.addEventListener("click", async () => {
   if (currentImageId === undefined) return;
   captionBtn.disabled = true;
-  captionStatus.textContent = "Generating caption...";
+  captionStatus.innerHTML = '<span class="spinner"></span> Generating caption...';
   try {
     const { caption } = await window.api.captionImage(currentImageId);
     if (caption) {
@@ -280,6 +284,7 @@ captionBtn.addEventListener("click", async () => {
     captionBtn.disabled = false;
   }
 });
+
 
 exportBtn.addEventListener("click", async () => {
   if (currentImageId === undefined) return;
