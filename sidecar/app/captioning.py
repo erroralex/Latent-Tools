@@ -83,7 +83,12 @@ class Qwen2VLCaptioner:
         self._model = Qwen2VLForConditionalGeneration.from_pretrained(
             target_model_id, torch_dtype=torch.float16, device_map="auto"
         )
-        self._processor = AutoProcessor.from_pretrained(target_model_id)
+        # Set max_pixels vision grid ceiling (1024*28*28) to prevent attention matrix VRAM OOM on high-res images
+        self._processor = AutoProcessor.from_pretrained(
+            target_model_id,
+            min_pixels=256 * 28 * 28,
+            max_pixels=1024 * 28 * 28,
+        )
 
 
 
@@ -96,11 +101,17 @@ class Qwen2VLCaptioner:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "image", "image": rgb_image},
+                        {
+                            "type": "image",
+                            "image": rgb_image,
+                            "min_pixels": 256 * 28 * 28,
+                            "max_pixels": 1024 * 28 * 28,
+                        },
                         {"type": "text", "text": prompt_text},
                     ],
                 }
             ]
+
 
             text = self._processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             image_inputs, video_inputs = self._process_vision_info(messages)
