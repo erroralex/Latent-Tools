@@ -16,6 +16,8 @@ const brushAddBtn = document.getElementById("brush-add-btn") as HTMLButtonElemen
 const brushEraseBtn = document.getElementById("brush-erase-btn") as HTMLButtonElement;
 const brushSize = document.getElementById("brush-size") as HTMLInputElement;
 const brushSizeVal = document.getElementById("brush-size-val") as HTMLSpanElement;
+const undoBtn = document.getElementById("undo-btn") as HTMLButtonElement;
+const redoBtn = document.getElementById("redo-btn") as HTMLButtonElement;
 const clearMaskBtn = document.getElementById("clear-mask-btn") as HTMLButtonElement;
 const resetMaskBtn = document.getElementById("reset-mask-btn") as HTMLButtonElement;
 
@@ -39,6 +41,73 @@ let lastY = 0;
 const offscreenCanvas = document.createElement("canvas");
 const offscreenCtx = offscreenCanvas.getContext("2d")!;
 const visibleCtx = maskCanvas.getContext("2d")!;
+
+const undoStack: ImageData[] = [];
+const redoStack: ImageData[] = [];
+const MAX_HISTORY = 30;
+
+function updateHistoryButtons() {
+  undoBtn.disabled = undoStack.length <= 1;
+  redoBtn.disabled = redoStack.length === 0;
+}
+
+function saveHistoryState() {
+  if (offscreenCanvas.width === 0 || offscreenCanvas.height === 0) return;
+  const state = offscreenCtx.getImageData(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+  undoStack.push(state);
+  if (undoStack.length > MAX_HISTORY) {
+    undoStack.shift();
+  }
+  redoStack.length = 0;
+  updateHistoryButtons();
+}
+
+function clearHistory() {
+  undoStack.length = 0;
+  redoStack.length = 0;
+  updateHistoryButtons();
+}
+
+async function performUndo() {
+  if (undoStack.length <= 1) return;
+  const currentState = undoStack.pop()!;
+  redoStack.push(currentState);
+  const previousState = undoStack[undoStack.length - 1]!;
+  offscreenCtx.putImageData(previousState, 0, 0);
+  syncVisibleCanvas();
+  await exportOffscreenMask();
+  updateHistoryButtons();
+}
+
+async function performRedo() {
+  if (redoStack.length === 0) return;
+  const nextState = redoStack.pop()!;
+  undoStack.push(nextState);
+  offscreenCtx.putImageData(nextState, 0, 0);
+  syncVisibleCanvas();
+  await exportOffscreenMask();
+  updateHistoryButtons();
+}
+
+undoBtn.addEventListener("click", performUndo);
+redoBtn.addEventListener("click", performRedo);
+
+window.addEventListener("keydown", async (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === "z" || e.key === "Z") {
+      if (e.shiftKey) {
+        e.preventDefault();
+        await performRedo();
+      } else {
+        e.preventDefault();
+        await performUndo();
+      }
+    } else if (e.key === "y" || e.key === "Y") {
+      e.preventDefault();
+      await performRedo();
+    }
+  }
+});
 
 function updateExportUi() {
   const format = formatSelect.value;
@@ -131,11 +200,14 @@ function loadMaskToOffscreen(base64Png: string): Promise<void> {
       offscreenCtx.putImageData(offscreenData, 0, 0);
       syncVisibleCanvas();
       maskCanvas.style.display = "block";
+      clearHistory();
+      saveHistoryState();
       resolve();
     };
     img.src = `data:image/png;base64,${base64Png}`;
   });
 }
+
 
 function getOffscreenCoords(e: PointerEvent): { x: number; y: number } {
   const rect = maskCanvas.getBoundingClientRect();
@@ -239,6 +311,7 @@ const endDrawing = async (e: PointerEvent) => {
     maskCanvas.releasePointerCapture(e.pointerId);
   } catch {}
   await exportOffscreenMask();
+  saveHistoryState();
 };
 
 maskCanvas.addEventListener("pointerup", endDrawing);
@@ -248,6 +321,7 @@ clearMaskBtn.addEventListener("click", async () => {
   offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
   syncVisibleCanvas();
   await exportOffscreenMask();
+  saveHistoryState();
 });
 
 resetMaskBtn.addEventListener("click", async () => {
@@ -256,6 +330,7 @@ resetMaskBtn.addEventListener("click", async () => {
     await exportOffscreenMask();
   }
 });
+
 
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0];

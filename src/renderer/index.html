@@ -245,10 +245,13 @@
               <input type="range" id="brush-size" min="5" max="100" value="20" style="width: 100px;" />
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
+              <button id="undo-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;" disabled>Undo</button>
+              <button id="redo-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;" disabled>Redo</button>
               <button id="clear-mask-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;">Clear</button>
               <button id="reset-mask-btn" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 10px;">Reset</button>
             </div>
           </div>
+
 
           <div class="preview-container" style="position: relative;">
             <div id="preview-wrapper" style="position: relative; display: inline-block;">
