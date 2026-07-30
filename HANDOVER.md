@@ -14,23 +14,24 @@ Full spec: [`docs/implementation-plan.md`](docs/implementation-plan.md) —
 architecture, component breakdown, IPC/HTTP contract, error handling, UI/UX
 flow, testing strategy, and 6 phased milestones.
 
-## Where we are: Phase 1 & Phase 2 complete
+## Where we are: Phase 1, Phase 2, & Phase 3 complete
 
 **Phase 1** ("sidecar + single-image round trip, one format") is complete.
-**Phase 2** ("multi-format conversion") is complete — added `/normalize` and `/convert` endpoints to the sidecar, IPC `image:export` channel in Electron main, format conversion for JPEG/PNG/WEBP, quality & compression settings, transparency background flattening, metadata handling (`strip`, `keep`, `strip_except_orientation`), and renderer Export UI controls.
+**Phase 2** ("multi-format conversion") is complete.
+**Phase 3** ("captioning") is complete — added `/caption` endpoint using `Qwen2-VL-7B-Instruct`, permissive system prompt for NSFW/mature content dataset preparation, refusal detection (mapping refusal output to `null`), `image:caption` IPC channel, dataset `.txt` sidecar export alongside image files, and renderer UI.
 
 ## What's built right now
 
-- **Sidecar** (`sidecar/`, FastAPI): `/health`, `/normalize` (ingest format normalization & EXIF orientation transposition), `/detect` (Florence-2 open-vocabulary detection), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export with quality, lossless WEBP, PNG compression level, transparency flattening, EXIF/ICC metadata handling).
-- **Electron main** (`src/main/`): `SidecarClient` (HTTP wrapper), `SidecarProcess` (spawn/health-poll/shutdown state machine), `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`save`/`export`), wired in `index.ts`.
-- **Renderer**: modern HTML/TS UI with image preview, watermark detection/inpainting buttons, and Export Settings panel (format, quality, compression, metadata mode, flatten color).
+- **Sidecar** (`sidecar/`, FastAPI): `/health`, `/normalize`, `/detect` (Florence-2), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-7B-Instruct with refusal detection).
+- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`), writing matching `.txt` sidecar files on export.
+- **Renderer**: modern HTML/TS UI with image preview, watermark detection/inpainting, caption generation & editing, and Export Settings panel.
 - **IntelliJ tooling**: `.idea/runConfigurations/` has a `Sidecar` (Python) config, an `Electron App` (npm) config, and a `Latent Tools (Full Stack)` compound combining both.
 
-## Known gaps (not bugs — deliberately out of Phase 1 & 2 scope)
+## Known gaps (not bugs — deliberately out of Phase 1–3 scope)
 
 - **Only one watermark detected/removed per image** — untested against an image with multiple watermarks.
 - **No visual mask overlay** — the renderer computes a mask but never shows it to the user. That's Phase 4 ("Manual mask adjustment UI").
-- **No captioning yet** (Phase 3) and **no bulk/batch mode yet** (Phase 5).
+- **No bulk/batch mode yet** (Phase 5).
 
 ## Verified technical facts worth not re-discovering
 
@@ -60,5 +61,6 @@ Tests: `npm test` (TS) and, from `sidecar/`, `.venv/Scripts/python -m pytest tes
 
 ## Suggested next step
 
-Per the plan's phase order: **Phase 3 (captioning)** is next.
+Per the plan's phase order: **Phase 4 (manual mask adjustment UI)** is next.
+
 
