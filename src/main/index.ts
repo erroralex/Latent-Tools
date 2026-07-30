@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { SidecarClient } from "./sidecar-client";
@@ -7,6 +8,19 @@ import { registerIpcHandlers } from "./ipc-handlers";
 
 const SIDECAR_URL = "http://127.0.0.1:8756";
 const SIDECAR_CWD = path.join(__dirname, "../../sidecar");
+
+// The sidecar's dependencies (iopaint, transformers, cv2, ...) are installed
+// into sidecar/.venv, not into whatever "python" resolves to on PATH — a
+// system Python has none of them and the spawned process crashes on import
+// before it ever binds the health-check port. Prefer the venv interpreter;
+// only fall back to bare "python" if the venv hasn't been created yet.
+function resolvePythonExecutable(): string {
+  const venvPython =
+    process.platform === "win32"
+      ? path.join(SIDECAR_CWD, ".venv", "Scripts", "python.exe")
+      : path.join(SIDECAR_CWD, ".venv", "bin", "python");
+  return fs.existsSync(venvPython) ? venvPython : "python";
+}
 
 // SidecarProcess always invokes spawnFn with `{}` as the options argument
 // (see sidecar-process.ts), so the only way to control the spawned
@@ -27,7 +41,7 @@ async function createWindow(): Promise<void> {
   const sidecarProcess = new SidecarProcess({
     spawnFn: spawnSidecarProcess,
     client,
-    pythonExecutable: "python",
+    pythonExecutable: resolvePythonExecutable(),
     scriptArgs: ["run.py"],
   });
   sidecarProcess.onStateChange((state) => {
