@@ -1,6 +1,8 @@
 /* Deep Neon Design Tokens — Black ground, Cyan/Purple accents, Glassmorphism */
 :root {
+  color-scheme: dark;
   /* Ground & surfaces */
+
   --color-bg: #000000;
   --color-surface: rgba(15, 15, 15, 0.6);
   --color-surface-raised: rgba(0, 0, 0, 0.85);

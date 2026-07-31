@@ -313,9 +313,16 @@ input[type="color"] {
   padding: 0;
 }
 
+select,
 select.input,
 select.lt-input {
-  appearance: none;
+  color-scheme: dark !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-color: #080c10 !important;
+  color: #ffffff !important;
+  border: 1px solid var(--color-divider) !important;
+  border-radius: var(--radius-md);
   background-image:
     linear-gradient(45deg, transparent 50%, #a0a0a0 50%),
     linear-gradient(135deg, #a0a0a0 50%, transparent 50%);
@@ -324,9 +331,43 @@ select.lt-input {
     calc(100% - 11px) calc(50% - 2px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  padding-right: 30px;
+  padding: 9px 30px 9px 12px;
   cursor: pointer;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+
+select:focus,
+select.input:focus,
+select.lt-input:focus {
+  border-color: rgba(102, 252, 241, 0.4) !important;
+  box-shadow: 0 0 0 1px rgba(102, 252, 241, 0.2);
+}
+
+select option,
+select.input option,
+select.lt-input option,
+option {
+  color-scheme: dark !important;
+  background-color: #0c1017 !important;
+  color: #ffffff !important;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+}
+
+select option:checked,
+select option:hover,
+select.input option:checked,
+select.lt-input option:checked {
+  background-color: #16222f !important;
+  color: var(--accent-primary) !important;
+  font-weight: 600;
+}
+
+
 
 /* Sliders */
 input[type="range"].lt-slider,
