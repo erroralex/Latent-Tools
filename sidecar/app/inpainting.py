@@ -1,3 +1,4 @@
+import os
 import time
 from functools import lru_cache
 from typing import Protocol
@@ -11,6 +12,16 @@ from iopaint.model_manager import ModelManager
 from iopaint.schema import InpaintRequest
 
 from app.logger import logger
+
+# Importing iopaint sets TORCH_CUDNN_V8_API_LRU_CACHE_LIMIT=1 process-wide (see its
+# __init__.py) to avoid a CPU memory leak in its own long-running jobs. That caps
+# cuDNN's execution-plan cache at a single entry, which makes Florence-2 detection
+# ~10x slower: its vision encoder issues 156 convolutions across many shapes, so
+# nearly every call re-runs cuDNN plan selection. Measured 2.74s -> 0.28s per image.
+# PyTorch reads this lazily on first cuDNN use, so restoring it here still takes
+# effect. iopaint's other two mitigations (LRU_CACHE_CAPACITY,
+# ONEDNN_PRIMITIVE_CACHE_CAPACITY) are left alone -- they don't affect convolutions.
+os.environ["TORCH_CUDNN_V8_API_LRU_CACHE_LIMIT"] = "10000"
 
 
 class Inpainter(Protocol):
