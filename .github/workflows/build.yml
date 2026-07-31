@@ -2,8 +2,6 @@ name: Build and Release Standalone Executable (.exe)
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
   release:
