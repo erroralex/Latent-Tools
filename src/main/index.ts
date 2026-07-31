@@ -61,14 +61,17 @@ async function createWindow(): Promise<void> {
   });
 
   const window = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1440,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 700,
+    center: true,
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
     },
   });
-  window.maximize();
+
 
   registerIpcHandlers(
     ipcMain,
