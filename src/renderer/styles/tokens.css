@@ -1,31 +1,32 @@
-/* Nocturne design tokens — dark-only for v1 (see docs/ui-rework-implementation-plan.md §6).
-   Fonts use a local system stack, not Google Fonts' Inter, to keep the app
-   100% offline as required by AGENTS.md / README. */
+/* Deep Neon Design Tokens — Black ground, Cyan/Purple accents, Glassmorphism */
 :root {
   /* Ground & surfaces */
-  --color-bg: #161826;
-  --color-surface: #1c1f2e;
-  --color-surface-raised: #20222e;
-  --color-divider: #2a2d40;
-  --color-neutral-800: #20222e;
-  --color-neutral-400: #8a8fa3;
+  --color-bg: #000000;
+  --color-surface: rgba(15, 15, 15, 0.6);
+  --color-surface-raised: rgba(0, 0, 0, 0.85);
+  --color-divider: rgba(255, 255, 255, 0.08);
+  --color-neutral-800: rgba(0, 0, 0, 0.85);
+  --color-neutral-400: #a0a0a0;
+  --color-muted: #666666;
 
   /* Text */
-  --color-text: #e6e7f0;
+  --color-text: #ffffff;
 
-  /* Accent */
-  --color-accent: #9184d9;
-  --color-accent-300: #b3a8e8;
-  --color-accent-2: #5ec9c7;
+  /* Deep Neon Accents */
+  --accent-primary: #66fcf1;
+  --accent-secondary: #d870ff;
+  --color-accent: #66fcf1;
+  --color-accent-300: #66fcf1;
+  --color-accent-2: #d870ff;
 
   /* Status */
-  --color-success: #5fd98a;
-  --color-warning: #f5b942;
-  --color-danger: #e5484d;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-danger: #ff4d4d;
 
   /* Typography */
-  --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   /* Spacing scale (space-N = N * 4px) */
   --space-1: 4px;
@@ -41,6 +42,9 @@
   --radius-lg: 12px;
   --radius-full: 999px;
 
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28), 0 1px 1px rgba(0, 0, 0, 0.16);
+  /* Shadows / Glows */
+  --glow-hover: -8px 0 22px -6px rgba(102, 252, 241, 0.45), 8px 0 22px -6px rgba(216, 112, 255, 0.45);
+  --glow-nav: -6px 0 18px -6px rgba(102, 252, 241, 0.45), 6px 0 18px -6px rgba(216, 112, 255, 0.45);
+  --glow-seg: -4px 0 14px -4px rgba(102, 252, 241, 0.45), 4px 0 14px -4px rgba(216, 112, 255, 0.45);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.8);
 }

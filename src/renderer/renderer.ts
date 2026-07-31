@@ -18,27 +18,26 @@ if (window.api && window.api.onSidecarStateChange) {
   });
 }
 
-// GPU Telemetry Poller — mirrored into the sidebar mini-card and the bulk
-// progress panel's duplicate widget (distinct ids, same data).
+// GPU Telemetry Poller — sidebar mini-card.
 const gpuNameText = document.getElementById("gpu-name-text") as HTMLSpanElement;
 const gpuVramText = document.getElementById("gpu-vram-text") as HTMLSpanElement;
 const gpuVramBarFill = document.getElementById("gpu-vram-bar-fill") as HTMLDivElement;
 const gpuTempText = document.getElementById("gpu-temp-text") as HTMLSpanElement;
-const gpuNameText2 = document.getElementById("gpu-name-text-2") as HTMLSpanElement;
-const gpuVramText2 = document.getElementById("gpu-vram-text-2") as HTMLElement;
-const gpuTempText2 = document.getElementById("gpu-temp-text-2") as HTMLElement;
+const gpuNameText2 = document.getElementById("gpu-name-text-2") as HTMLSpanElement | null;
+const gpuVramText2 = document.getElementById("gpu-vram-text-2") as HTMLElement | null;
+const gpuTempText2 = document.getElementById("gpu-temp-text-2") as HTMLElement | null;
 
 function getVramColor(pct: number): string {
-  if (pct >= 89) return "#e5484d"; // Red (>= 89%)
-  if (pct >= 70) return "#f5b942"; // Orange (70% - 88%)
-  return "#5fd98a"; // Green (< 70%)
+  if (pct >= 89) return "#ff4d4d"; // Red (>= 89%)
+  if (pct >= 70) return "#eab308"; // Orange (70% - 88%)
+  return "#22c55e"; // Green (< 70%)
 }
 
 function getTempColor(temp: number | null): string {
   if (temp === null) return "var(--color-neutral-400)";
-  if (temp >= 80) return "#e5484d"; // Red (>= 80°C)
-  if (temp >= 65) return "#f5b942"; // Orange (65°C - 79°C)
-  return "#5fd98a"; // Green (< 65°C)
+  if (temp >= 80) return "#ff4d4d"; // Red (>= 80°C)
+  if (temp >= 65) return "#eab308"; // Orange (65°C - 79°C)
+  return "#22c55e"; // Green (< 65°C)
 }
 
 async function updateGpuStatus() {
@@ -47,15 +46,17 @@ async function updateGpuStatus() {
     const gpu = await window.api.getGpuStatus();
     if (gpu.status === "ok") {
       gpuNameText.textContent = gpu.name;
-      gpuNameText2.textContent = gpu.name;
+      if (gpuNameText2) gpuNameText2.textContent = gpu.name;
 
       const pct = Math.round(gpu.vram_pct);
       const vramLabel = `${gpu.vram_used_gb} / ${gpu.vram_total_gb} GB (${pct}%)`;
       const vramColor = getVramColor(pct);
       gpuVramText.textContent = vramLabel;
       gpuVramText.style.color = vramColor;
-      gpuVramText2.textContent = vramLabel;
-      gpuVramText2.style.color = vramColor;
+      if (gpuVramText2) {
+        gpuVramText2.textContent = vramLabel;
+        gpuVramText2.style.color = vramColor;
+      }
       gpuVramBarFill.style.width = `${Math.min(100, pct)}%`;
       gpuVramBarFill.style.background = vramColor;
 
@@ -63,34 +64,44 @@ async function updateGpuStatus() {
       const tempLabel = gpu.temperature_c !== null ? `${gpu.temperature_c}°C` : "N/A";
       gpuTempText.textContent = tempLabel;
       gpuTempText.style.color = tempColor;
-      gpuTempText2.textContent = tempLabel;
-      gpuTempText2.style.color = tempColor;
+      if (gpuTempText2) {
+        gpuTempText2.textContent = tempLabel;
+        gpuTempText2.style.color = tempColor;
+      }
     } else {
       const name = gpu.name || "No CUDA GPU Detected";
       gpuNameText.textContent = name;
-      gpuNameText2.textContent = name;
+      if (gpuNameText2) gpuNameText2.textContent = name;
       gpuVramText.textContent = "0.0 / 0.0 GB (0%)";
       gpuVramText.style.color = "var(--color-neutral-400)";
-      gpuVramText2.textContent = "0.0 / 0.0 GB (0%)";
-      gpuVramText2.style.color = "var(--color-neutral-400)";
+      if (gpuVramText2) {
+        gpuVramText2.textContent = "0.0 / 0.0 GB (0%)";
+        gpuVramText2.style.color = "var(--color-neutral-400)";
+      }
       gpuVramBarFill.style.width = "0%";
       gpuTempText.textContent = "--°C";
       gpuTempText.style.color = "var(--color-neutral-400)";
-      gpuTempText2.textContent = "--°C";
-      gpuTempText2.style.color = "var(--color-neutral-400)";
+      if (gpuTempText2) {
+        gpuTempText2.textContent = "--°C";
+        gpuTempText2.style.color = "var(--color-neutral-400)";
+      }
     }
   } catch {
     gpuNameText.textContent = "GPU Telemetry Offline";
-    gpuNameText2.textContent = "GPU Telemetry Offline";
+    if (gpuNameText2) gpuNameText2.textContent = "GPU Telemetry Offline";
     gpuVramText.textContent = "0.0 / 0.0 GB (0%)";
     gpuVramText.style.color = "var(--color-neutral-400)";
-    gpuVramText2.textContent = "0.0 / 0.0 GB (0%)";
-    gpuVramText2.style.color = "var(--color-neutral-400)";
+    if (gpuVramText2) {
+      gpuVramText2.textContent = "0.0 / 0.0 GB (0%)";
+      gpuVramText2.style.color = "var(--color-neutral-400)";
+    }
     gpuVramBarFill.style.width = "0%";
     gpuTempText.textContent = "--°C";
     gpuTempText.style.color = "var(--color-neutral-400)";
-    gpuTempText2.textContent = "--°C";
-    gpuTempText2.style.color = "var(--color-neutral-400)";
+    if (gpuTempText2) {
+      gpuTempText2.textContent = "--°C";
+      gpuTempText2.style.color = "var(--color-neutral-400)";
+    }
   }
 }
 
@@ -113,14 +124,18 @@ const singleView = document.getElementById("single-view") as HTMLElement;
 const bulkView = document.getElementById("bulk-view") as HTMLElement;
 
 navSingle.addEventListener("click", () => {
+  navSingle.classList.add("active");
   navSingle.classList.add("is-active");
+  navBulk.classList.remove("active");
   navBulk.classList.remove("is-active");
   singleView.style.display = "flex";
   bulkView.style.display = "none";
 });
 
 navBulk.addEventListener("click", () => {
+  navBulk.classList.add("active");
   navBulk.classList.add("is-active");
+  navSingle.classList.remove("active");
   navSingle.classList.remove("is-active");
   bulkView.style.display = "flex";
   singleView.style.display = "none";
@@ -137,9 +152,11 @@ function wireSegTabs(entries: Array<{ radioId: string; panelId: string }>) {
       const label = radio.closest(".seg-opt");
       const panel = panels[i];
       if (radio.checked) {
+        label?.classList.add("active");
         label?.classList.add("is-active");
         if (panel) panel.style.display = "flex";
       } else {
+        label?.classList.remove("active");
         label?.classList.remove("is-active");
         if (panel) panel.style.display = "none";
       }
@@ -155,11 +172,6 @@ wireSegTabs([
   { radioId: "panel-tab-export", panelId: "export-panel" },
 ]);
 
-wireSegTabs([
-  { radioId: "bulk-tab-setup", panelId: "bulk-setup-panel" },
-  { radioId: "bulk-tab-export", panelId: "bulk-export-panel" },
-  { radioId: "bulk-tab-progress", panelId: "bulk-progress-panel" },
-]);
 
 // Toggle switches: a real checkbox drives an adjacent visual pill+knob span.
 function wireToggle(checkboxId: string, toggleId: string, onChange?: (checked: boolean) => void) {
@@ -456,10 +468,40 @@ function resetZoomAndPan() {
 resetZoomBtn.addEventListener("click", resetZoomAndPan);
 previewContainer.addEventListener("dblclick", resetZoomAndPan);
 
-// Mousewheel Zooming
+// Global UI Scale Zooming (Ctrl + Mouse Wheel)
+window.addEventListener(
+  "wheel",
+  (e: WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const currentZoom = window.api?.getZoomFactor ? window.api.getZoomFactor() : 1.0;
+      const delta = e.deltaY < 0 ? 0.05 : -0.05;
+      const newZoom = Math.min(Math.max(0.5, Math.round((currentZoom + delta) * 100) / 100), 2.5);
+      if (window.api?.setZoomFactor) {
+        window.api.setZoomFactor(newZoom);
+      }
+    }
+  },
+  { passive: false },
+);
+
+// Reset UI Zoom shortcut (Ctrl + 0)
+window.addEventListener("keydown", (e: KeyboardEvent) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "0" && document.activeElement?.tagName !== "TEXTAREA" && document.activeElement?.tagName !== "INPUT") {
+    e.preventDefault();
+    if (window.api?.setZoomFactor) {
+      window.api.setZoomFactor(1.0);
+    }
+  }
+});
+
+// Mousewheel Zooming for Image Preview
 previewContainer.addEventListener(
   "wheel",
   (e: WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      return; // Handled by global UI scale zoom listener
+    }
     e.preventDefault();
     const rect = previewContainer.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
@@ -476,6 +518,7 @@ previewContainer.addEventListener(
   },
   { passive: false },
 );
+
 
 // Pan Drag Controls
 window.addEventListener("keydown", (e) => {

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
 
 contextBridge.exposeInMainWorld("api", {
   // Sidecar State Listener
@@ -6,9 +6,13 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("sidecar:state", (_event, data: { state: string }) => callback(data.state));
   },
 
+  // UI Zoom Factor Controls
+  setZoomFactor: (factor: number) => webFrame.setZoomFactor(factor),
+  getZoomFactor: () => webFrame.getZoomFactor(),
 
   // GPU Status
   getGpuStatus: () => ipcRenderer.invoke("gpu:status"),
+
 
   // Window Controls
   minimizeWindow: () => ipcRenderer.invoke("window:minimize"),

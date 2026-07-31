@@ -9,42 +9,27 @@
   </head>
   <body>
     <div id="app-root">
-      <header id="titlebar">
+      <header id="titlebar" class="app-header">
         <div class="titlebar-brand">
-          <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
-            <rect width="48" height="48" rx="11" fill="#20222e"></rect>
-            <path d="M8 8h6v22h14v6H8z" fill="var(--color-accent)"></path>
-            <path d="M24 8h16v6h-5v22h-6V14h-5z" fill="var(--color-accent-2)"></path>
-          </svg>
+          <span class="logo-lt">LT</span>
           <span class="titlebar-wordmark">Latent Tools</span>
+          <span class="version-badge">2.0</span>
           <div id="sidecar-status-pill" class="status-pill status-starting">
             <span class="status-dot"></span>
             <span id="sidecar-status-text">GPU Sidecar: Starting...</span>
           </div>
         </div>
         <div class="titlebar-controls">
-          <button
-            id="theme-toggle-btn"
-            class="btn btn-icon titlebar-icon-btn"
-            type="button"
-            title="Light theme coming soon"
-            disabled
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path>
-            </svg>
-          </button>
-          <div class="toolbar-divider"></div>
-          <button id="win-min" class="btn btn-icon titlebar-icon-btn" type="button" title="Minimize">–</button>
-          <button id="win-max" class="btn btn-icon titlebar-icon-btn" type="button" title="Maximize">▢</button>
-          <button id="win-close" class="btn btn-icon titlebar-icon-btn" type="button" title="Close">✕</button>
+          <button id="win-min" class="win-btn" type="button" title="Minimize">–</button>
+          <button id="win-max" class="win-btn" type="button" title="Maximize">▢</button>
+          <button id="win-close" class="win-btn" type="button" title="Close">✕</button>
         </div>
       </header>
 
-      <div id="shell">
-        <aside id="sidebar">
+      <div id="shell" class="app-body">
+        <aside id="sidebar" class="app-sidebar">
           <nav>
-            <button id="nav-single" class="nav-btn is-active" type="button" title="Single Image Editor">
+            <button id="nav-single" class="nav-btn active" type="button" title="Single Image Editor">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5-4 4-3-3-6 6"></path></svg>
               <span>Single Image Editor</span>
             </button>
@@ -56,7 +41,7 @@
 
           <div class="field">
             <label for="model-select">Captioning Model</label>
-            <select id="model-select" class="input">
+            <select id="model-select" class="lt-input">
               <option value="Qwen/Qwen2-VL-2B-Instruct" selected>Qwen2-VL-2B (Recommended)</option>
               <option value="Qwen/Qwen2-VL-7B-Instruct">Qwen2-VL-7B</option>
               <option value="__custom__">Custom folder…</option>
@@ -67,15 +52,15 @@
 
           <div class="sidebar-spacer"></div>
 
-          <div class="card elev-sm gpu-mini-card">
+          <div class="gpu-card">
             <div style="display: flex; align-items: center; justify-content: space-between">
-              <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="15" x2="23" y2="15"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="15" x2="4" y2="15"></line></svg>
+              <span style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="15" x2="23" y2="15"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="15" x2="4" y2="15"></line></svg>
                 <span id="gpu-name-text">Querying…</span>
               </span>
               <span class="tag tag-accent">GPU</span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 3px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
               <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--color-neutral-400)">
                 <span>VRAM</span>
                 <span id="gpu-vram-text">0.0 / 0.0 GB (0%)</span>
@@ -87,11 +72,15 @@
               <span id="gpu-temp-text">--°C</span>
             </div>
           </div>
+
+          <div class="sidebar-footer-logo">
+            <img src="assets/alk-logo.png" alt="ALK" />
+          </div>
         </aside>
 
-        <main id="main">
+        <main id="main" class="app-main">
           <!-- SINGLE IMAGE VIEW -->
-          <section id="single-view" style="display: flex; flex-direction: column; gap: var(--space-4)">
+          <section id="single-view" style="display: flex; flex-direction: column; gap: 20px">
             <div class="view-header">
               <div>
                 <h2>Single Image Editor</h2>
@@ -104,52 +93,54 @@
               </label>
             </div>
 
-            <div class="card elev-sm pipeline-bar">
+            <div class="pipeline-bar">
               <button id="detect-btn" class="btn btn-primary" disabled>
-                <span class="tag tag-accent" style="min-width: 16px; justify-content: center">1</span>Detect Watermark
+                <span style="flex: none; width: 16px; height: 16px; border-radius: 50%; background: rgba(102,252,241,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 10px">1</span>Detect Watermark
               </button>
-              <div class="pipeline-divider"></div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.8" style="flex: none"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               <button id="inpaint-btn" class="btn btn-secondary" disabled>
-                <span class="tag tag-neutral" style="min-width: 16px; justify-content: center">2</span>Remove Watermark
+                <span style="flex: none; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 10px">2</span>Remove Watermark
               </button>
-              <div class="pipeline-divider"></div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.8" style="flex: none"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               <button id="caption-btn" class="btn btn-secondary" disabled>
-                <span class="tag tag-neutral" style="min-width: 16px; justify-content: center">3</span>Generate Caption
+                <span style="flex: none; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 10px">3</span>Generate Caption
               </button>
             </div>
 
             <div class="editor-grid">
-              <div class="card elev-sm preview-card">
+              <div class="preview-card">
                 <div id="mask-toolbar" class="mask-toolbar">
                   <div class="seg" role="radiogroup" aria-label="Brush mode">
-                    <label class="seg-opt is-active">
+                    <label class="seg-opt active">
                       <input type="radio" name="brush-mode" id="brush-add-btn" checked />
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"></path><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"></path></svg>
-                      Add
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"></path><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"></path></svg>
+                      <span>Add</span>
                     </label>
                     <label class="seg-opt">
                       <input type="radio" name="brush-mode" id="brush-erase-btn" />
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21H3v-3L15 6l6 6-9 9Z"></path><path d="M9 9l6 6"></path></svg>
-                      Erase
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21H3v-3L15 6l6 6-9 9Z"></path><path d="M9 9l6 6"></path></svg>
+                      <span>Erase</span>
                     </label>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-neutral-400)">
                     <label for="brush-size">Size <span id="brush-size-val">20</span>px</label>
-                    <input type="range" id="brush-size" min="5" max="100" value="20" style="width: 90px" />
+                    <input type="range" id="brush-size" class="lt-slider" min="5" max="100" value="20" style="width: 90px" />
                   </div>
                   <div class="toolbar-divider"></div>
-                  <div style="display: flex; align-items: center; gap: 4px">
-                    <span id="zoom-val" class="text-muted" style="font-size: 12px; min-width: 38px; text-align: center">100%</span>
-                    <button id="reset-zoom-btn" class="btn btn-icon titlebar-icon-btn" type="button" title="Reset zoom &amp; pan (double-click preview)" style="width: 28px; height: 28px">
+                  <div style="display: flex; align-items: center; gap: 6px">
+                    <button id="zoom-out-btn" class="btn btn-icon" type="button" style="width: 28px; height: 28px">–</button>
+                    <span id="zoom-val" style="font-size: 12px; color: var(--color-neutral-400); min-width: 38px; text-align: center">100%</span>
+                    <button id="zoom-in-btn" class="btn btn-icon" type="button" style="width: 28px; height: 28px">+</button>
+                    <button id="reset-zoom-btn" class="btn btn-icon" type="button" title="Reset zoom" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
                     </button>
                   </div>
                   <div class="toolbar-divider"></div>
-                  <div style="display: flex; align-items: center; gap: 4px">
-                    <button id="undo-btn" class="btn btn-secondary" style="font-size: 12px; padding: 5px 10px" disabled>Undo</button>
-                    <button id="redo-btn" class="btn btn-secondary" style="font-size: 12px; padding: 5px 10px" disabled>Redo</button>
-                    <button id="clear-mask-btn" class="btn btn-ghost" style="font-size: 12px; padding: 5px 8px">Clear</button>
-                    <button id="reset-mask-btn" class="btn btn-ghost" style="font-size: 12px; padding: 5px 8px">Reset</button>
+                  <div style="display: flex; align-items: center; gap: 6px">
+                    <button id="undo-btn" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px" disabled>Undo</button>
+                    <button id="redo-btn" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px" disabled>Redo</button>
+                    <button id="clear-mask-btn" class="btn btn-ghost" style="font-size: 12px; padding: 6px 10px">Clear</button>
+                    <button id="reset-mask-btn" class="btn btn-ghost" style="font-size: 12px; padding: 6px 10px">Reset</button>
                   </div>
                 </div>
 
@@ -160,49 +151,59 @@
                   </div>
                   <div id="brush-cursor"></div>
                 </div>
+
+                <div class="preview-meta">
+                  <span id="image-name-dim">No image loaded</span>
+                  <span id="mask-region-count" class="tag tag-neutral">Mask: 0 regions</span>
+                </div>
               </div>
 
               <div class="inspector-panel">
                 <div class="seg" role="radiogroup" aria-label="Inspector panel" style="width: 100%">
-                  <label class="seg-opt is-active" style="flex: 1; justify-content: center">
+                  <label class="seg-opt active" style="flex: 1; text-align: center">
                     <input type="radio" name="inspector-tab" id="panel-tab-caption" checked />
-                    Caption
+                    <span>Caption</span>
                   </label>
-                  <label class="seg-opt" style="flex: 1; justify-content: center">
+                  <label class="seg-opt" style="flex: 1; text-align: center">
                     <input type="radio" name="inspector-tab" id="panel-tab-export" />
-                    Export
+                    <span>Export</span>
                   </label>
                 </div>
 
-                <div id="caption-panel" class="card" style="gap: var(--space-3)">
-                  <div class="card-title" style="font-size: 15px">Dataset Caption</div>
+                <div id="caption-panel" class="inspector-card">
+                  <div class="card-title">Dataset Caption</div>
                   <div class="field">
                     <label for="system-prompt-input">System Prompt &amp; Trigger Words</label>
-                    <textarea id="system-prompt-input" class="input" rows="3" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually…">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
+                    <textarea id="system-prompt-input" class="lt-input" rows="3" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually…">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
                   </div>
+                  <button id="single-gen-caption-btn" class="btn btn-primary" style="align-self: flex-start">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"></path></svg>
+                    Generate Caption
+                  </button>
                   <div class="hr"></div>
-                  <div class="field" style="margin: 0">
+                  <div class="field">
                     <label for="caption-text">Generated Caption (.txt sidecar)</label>
-                    <textarea id="caption-text" class="input" rows="6" placeholder="Generated dataset caption will appear here…"></textarea>
+                    <textarea id="caption-text" class="lt-input" rows="6" placeholder="Generated dataset caption will appear here…"></textarea>
                   </div>
                   <div class="card-meta" style="justify-content: space-between">
-                    <span id="caption-status"></span>
+                    <span id="caption-status" style="font-size: 11px; color: var(--color-muted)"></span>
+                    <span class="tag tag-neutral">Kohya format</span>
                   </div>
                 </div>
 
-                <div id="export-panel" class="card" style="gap: var(--space-3); display: none">
-                  <div class="card-title" style="font-size: 15px">Export Settings</div>
+                <div id="export-panel" class="inspector-card" style="display: none">
+                  <div class="card-title">Export Settings</div>
 
                   <div class="field">
                     <label for="export-preset-select">Preset</label>
                     <div style="display: flex; gap: 8px">
-                      <select id="export-preset-select" class="input" style="flex: 1">
+                      <select id="export-preset-select" class="lt-input" style="flex: 1">
                         <option value="">Custom</option>
                         <option value="lora">LoRA Dataset — JPEG 92, strip metadata</option>
                         <option value="archive">Archive — Lossless PNG, keep metadata</option>
                         <option value="web">Web — WEBP 82, strip metadata</option>
                       </select>
-                      <button id="export-preset-save-btn" class="btn btn-secondary btn-icon" type="button" title="Save current settings as preset" style="width: 36px; height: 36px; flex: none">
+                      <button id="export-preset-save-btn" class="btn btn-secondary btn-icon" type="button" title="Save current settings as preset" style="width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
                       </button>
                     </div>
@@ -210,7 +211,7 @@
 
                   <div class="field">
                     <label for="format-select">Format</label>
-                    <select id="format-select" class="input">
+                    <select id="format-select" class="lt-input">
                       <option value="png" selected>PNG (Lossless)</option>
                       <option value="jpeg">JPEG</option>
                       <option value="webp">WEBP</option>
@@ -219,7 +220,7 @@
 
                   <div id="quality-container" class="field" style="display: none">
                     <label for="quality-range">Quality — <span id="quality-val">90</span></label>
-                    <input type="range" id="quality-range" min="1" max="100" value="90" />
+                    <input type="range" id="quality-range" class="lt-slider" min="1" max="100" value="90" />
                   </div>
 
                   <div id="lossless-container" class="toggle-row" style="display: none">
@@ -232,7 +233,7 @@
 
                   <div id="compress-container" class="field">
                     <label for="compress-select">PNG Compression</label>
-                    <select id="compress-select" class="input">
+                    <select id="compress-select" class="lt-input">
                       <option value="0">0 — Fastest, largest file</option>
                       <option value="3">3</option>
                       <option value="6" selected>6 — Default balance</option>
@@ -248,23 +249,23 @@
                     </div>
                   </div>
 
-                  <div class="field" style="margin: 0">
+                  <div class="field">
                     <label for="metadata-select">Metadata (EXIF &amp; ICC)</label>
-                    <select id="metadata-select" class="input">
+                    <select id="metadata-select" class="lt-input">
                       <option value="strip" selected>Strip all metadata</option>
                       <option value="keep">Keep EXIF &amp; ICC profile</option>
                       <option value="strip_except_orientation">Strip except orientation</option>
                     </select>
                   </div>
 
-                  <button id="export-btn" class="btn btn-primary btn-block" disabled>Export Image</button>
+                  <button id="export-btn" class="btn btn-primary" style="align-self: flex-start" disabled>Export Image</button>
                 </div>
               </div>
             </div>
           </section>
 
-          <!-- BULK DATASET VIEW -->
-          <section id="bulk-view" style="display: none; flex-direction: column; gap: var(--space-4)">
+          <!-- BULK DATASET VIEW (SINGLE SCROLLING COLUMN) -->
+          <section id="bulk-view" class="bulk-container" style="display: none">
             <div class="view-header">
               <div>
                 <h2>Bulk Dataset Processor</h2>
@@ -275,43 +276,29 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l14 8-14 8V4Z"></path></svg>
                   Start Bulk Processing
                 </button>
-                <button id="bulk-cancel-btn" class="btn btn-secondary" style="display: none; background-color: #7f1d1d; color: #fff">Cancel</button>
+                <button id="bulk-cancel-btn" class="btn btn-secondary" style="display: none; background-color: rgba(255,77,77,0.15); color: #ff4d4d; border-color: rgba(255,77,77,0.3)">Cancel</button>
               </div>
             </div>
 
-            <div class="seg" role="radiogroup" aria-label="Bulk view panel" style="width: 100%">
-              <label class="seg-opt is-active" style="flex: 1; justify-content: center">
-                <input type="radio" name="bulk-tab" id="bulk-tab-setup" checked />
-                Setup
-              </label>
-              <label class="seg-opt" style="flex: 1; justify-content: center">
-                <input type="radio" name="bulk-tab" id="bulk-tab-export" />
-                Export Settings
-              </label>
-              <label class="seg-opt" style="flex: 1; justify-content: center">
-                <input type="radio" name="bulk-tab" id="bulk-tab-progress" />
-                Progress &amp; Logs
-              </label>
+            <div class="bulk-card" style="gap: 4px">
+              <div class="card-kicker">Note</div>
+              <p class="card-body" style="margin: 0">
+                Batch watermark removal may not catch every watermark. After a run, spot-check the output folder and
+                re-run any missed images in the Single Image Editor for manual mask cleanup.
+              </p>
             </div>
 
-            <div id="bulk-setup-panel" style="display: flex; flex-direction: column; gap: var(--space-4)">
-              <div class="card" style="gap: 4px">
-                <div class="card-kicker">Note</div>
-                <p class="card-body" style="margin: 0">
-                  Batch watermark removal may not catch every watermark. After a run, spot-check the output folder and
-                  re-run any missed images in the Single Image Editor for manual mask cleanup.
-                </p>
-              </div>
-
+            <!-- BULK SETUP SECTION -->
+            <div id="bulk-setup-panel" style="display: flex; flex-direction: column; gap: 16px">
               <div class="dropzone-grid">
                 <div id="bulk-input-dropzone" class="dropzone">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>
                   <div class="dropzone-title">Input Image Folder</div>
                   <div id="bulk-input-path" class="dropzone-path">No folder selected</div>
                   <button id="bulk-input-btn" class="btn btn-secondary" type="button" style="margin-top: 4px">Select Folder</button>
                 </div>
-                <div id="bulk-output-dropzone" class="dropzone">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>
+                <div id="bulk-output-dropzone" class="dropzone dropzone-output">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>
                   <div class="dropzone-title">Output Destination Folder</div>
                   <div id="bulk-output-path" class="dropzone-path">No folder selected</div>
                   <button id="bulk-output-btn" class="btn btn-secondary" type="button" style="margin-top: 4px">Select Folder</button>
@@ -319,10 +306,10 @@
               </div>
 
               <div class="options-grid">
-                <div class="card" style="gap: 10px">
+                <div class="bulk-card" style="gap: 10px">
                   <div class="toggle-row">
                     <div>
-                      <div class="card-title" style="font-size: 14px">Watermark Removal</div>
+                      <div class="card-title">Watermark Removal</div>
                       <p class="card-body" style="margin: 2px 0 0">Auto-detect and remove watermarks (Florence-2 + LaMa)</p>
                     </div>
                     <label>
@@ -331,10 +318,10 @@
                     </label>
                   </div>
                 </div>
-                <div class="card" style="gap: 10px">
+                <div class="bulk-card" style="gap: 10px">
                   <div class="toggle-row">
                     <div>
-                      <div class="card-title" style="font-size: 14px">Captioning</div>
+                      <div class="card-title">Captioning</div>
                       <p class="card-body" style="margin: 2px 0 0">Generate .txt sidecar captions via Qwen2-VL</p>
                     </div>
                     <label>
@@ -342,52 +329,64 @@
                       <span id="bulk-generate-captions-toggle" class="toggle is-on" role="presentation"><span class="toggle-knob"></span></span>
                     </label>
                   </div>
-                  <div id="bulk-prompt-container" class="field" style="margin-top: 4px; margin-bottom: 0">
+                  <div id="bulk-prompt-container" class="field" style="margin-top: 4px">
                     <label for="bulk-system-prompt">Trigger Words / System Prompt</label>
-                    <textarea id="bulk-system-prompt" class="input" rows="2">Describe this image factually and completely for a dataset training caption. Include trigger words as needed.</textarea>
+                    <textarea id="bulk-system-prompt" class="lt-input" rows="2">Describe this image factually and completely for a dataset training caption. Include trigger words as needed.</textarea>
                   </div>
                 </div>
               </div>
 
-              <div class="card">
+              <div class="bulk-card">
                 <div style="display: flex; align-items: center; justify-content: space-between">
-                  <div class="card-title" style="font-size: 14px">Dataset Preview</div>
+                  <div class="card-title">Dataset Preview</div>
                   <span id="bulk-thumb-count" class="tag tag-neutral">No folder selected</span>
                 </div>
                 <div id="bulk-thumb-grid" class="thumb-grid"></div>
               </div>
             </div>
 
-            <div id="bulk-export-panel" class="card" style="gap: var(--space-3); max-width: 480px; display: none">
-              <div class="card-title" style="font-size: 15px">Output Format &amp; Compression</div>
+            <!-- BULK EXPORT SECTION -->
+            <div id="bulk-export-panel" class="bulk-card">
+              <div class="card-title">Output Format &amp; Compression</div>
 
-              <div class="field">
-                <label for="bulk-export-preset-select">Preset</label>
-                <div style="display: flex; gap: 8px">
-                  <select id="bulk-export-preset-select" class="input" style="flex: 1">
-                    <option value="">Custom</option>
-                    <option value="lora">LoRA Dataset — JPEG 92, strip metadata</option>
-                    <option value="archive">Archive — Lossless PNG, keep metadata</option>
-                    <option value="web">Web — WEBP 82, strip metadata</option>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+                <div class="field">
+                  <label for="bulk-export-preset-select">Preset</label>
+                  <div style="display: flex; gap: 8px">
+                    <select id="bulk-export-preset-select" class="lt-input" style="flex: 1">
+                      <option value="">Custom</option>
+                      <option value="lora">LoRA Dataset — JPEG 92, strip metadata</option>
+                      <option value="archive">Archive — Lossless PNG, keep metadata</option>
+                      <option value="web">Web — WEBP 82, strip metadata</option>
+                    </select>
+                    <button id="bulk-export-preset-save-btn" class="btn btn-secondary btn-icon" type="button" title="Save current settings as preset" style="width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="bulk-format-select">Format</label>
+                  <select id="bulk-format-select" class="lt-input">
+                    <option value="png" selected>PNG (Lossless)</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="webp">WEBP</option>
                   </select>
-                  <button id="bulk-export-preset-save-btn" class="btn btn-secondary btn-icon" type="button" title="Save current settings as preset" style="width: 36px; height: 36px; flex: none">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>
-                  </button>
                 </div>
               </div>
 
-              <div class="field">
-                <label for="bulk-format-select">Format</label>
-                <select id="bulk-format-select" class="input">
-                  <option value="png" selected>PNG (Lossless)</option>
-                  <option value="jpeg">JPEG</option>
-                  <option value="webp">WEBP</option>
-                </select>
-              </div>
-
-              <div id="bulk-quality-container" class="field" style="display: none">
-                <label for="bulk-quality-range">Quality — <span id="bulk-quality-val">90</span></label>
-                <input type="range" id="bulk-quality-range" min="1" max="100" value="90" />
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+                <div id="bulk-quality-container" class="field" style="display: none">
+                  <label for="bulk-quality-range">Quality — <span id="bulk-quality-val">90</span></label>
+                  <input type="range" id="bulk-quality-range" class="lt-slider" min="1" max="100" value="90" />
+                </div>
+                <div id="bulk-compress-container" class="field">
+                  <label for="bulk-compress-select">PNG Compression</label>
+                  <select id="bulk-compress-select" class="lt-input">
+                    <option value="1">1 — Fastest, largest file</option>
+                    <option value="6" selected>6 — Default balance</option>
+                    <option value="9">9 — Slowest, smallest file</option>
+                  </select>
+                </div>
               </div>
 
               <div id="bulk-lossless-container" class="toggle-row" style="display: none">
@@ -398,15 +397,6 @@
                 </label>
               </div>
 
-              <div id="bulk-compress-container" class="field">
-                <label for="bulk-compress-select">PNG Compression</label>
-                <select id="bulk-compress-select" class="input">
-                  <option value="1">1 — Fastest, largest file</option>
-                  <option value="6" selected>6 — Default balance</option>
-                  <option value="9">9 — Slowest, smallest file</option>
-                </select>
-              </div>
-
               <div id="bulk-flatten-container" class="field" style="display: none">
                 <label for="bulk-flatten-color">Flatten Background</label>
                 <div style="display: flex; align-items: center; gap: 10px">
@@ -415,9 +405,9 @@
                 </div>
               </div>
 
-              <div class="field" style="margin: 0">
+              <div class="field">
                 <label for="bulk-metadata-select">Metadata (EXIF &amp; ICC)</label>
-                <select id="bulk-metadata-select" class="input">
+                <select id="bulk-metadata-select" class="lt-input">
                   <option value="strip" selected>Strip all metadata</option>
                   <option value="keep">Keep EXIF &amp; ICC profile</option>
                   <option value="strip_except_orientation">Strip except orientation</option>
@@ -425,27 +415,17 @@
               </div>
             </div>
 
-            <div id="bulk-progress-panel" style="display: none; flex-direction: column; gap: var(--space-4)">
-              <div class="card" style="gap: var(--space-3)">
+            <!-- BULK PROGRESS & LOGS SECTION -->
+            <div id="bulk-progress-panel" style="display: flex; flex-direction: column; gap: 16px">
+              <div class="bulk-card" style="gap: 10px">
                 <div style="display: flex; justify-content: space-between; align-items: baseline">
-                  <span id="bulk-progress-text" class="text-muted" style="font-size: 13px">Ready to process dataset</span>
+                  <span id="bulk-progress-text" style="font-size: 13px; color: var(--color-neutral-400)">Ready to process dataset</span>
                 </div>
                 <div class="progress-track"><div id="progress-bar-fill" class="progress-fill"></div></div>
               </div>
 
-              <div class="card gpu-telemetry-card">
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="15" x2="23" y2="15"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="15" x2="4" y2="15"></line></svg>
-                  <span id="gpu-name-text-2">Querying…</span>
-                </div>
-                <div class="gpu-telemetry-row">
-                  <span class="text-muted">VRAM <b id="gpu-vram-text-2" style="font-family: monospace">0.0 / 0.0 GB (0%)</b></span>
-                  <span class="text-muted">Temp <b id="gpu-temp-text-2" style="font-family: monospace">--°C</b></span>
-                </div>
-              </div>
-
-              <div class="card" style="gap: var(--space-2)">
-                <div class="card-title" style="font-size: 14px">Logs</div>
+              <div class="bulk-card" style="gap: 8px">
+                <div class="card-title">Logs</div>
                 <div id="bulk-log-box" class="log-box">Waiting for job to start…</div>
               </div>
             </div>

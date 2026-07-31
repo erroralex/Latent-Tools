@@ -3,7 +3,12 @@ interface Window {
     // Sidecar Listener
     onSidecarStateChange: (callback: (state: string) => void) => void;
 
+    // UI Zoom Factor Controls
+    setZoomFactor: (factor: number) => void;
+    getZoomFactor: () => number;
+
     // GPU Status
+
     getGpuStatus: () => Promise<{
       name: string;
       vram_used_mb: number;
