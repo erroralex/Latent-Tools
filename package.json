@@ -5,13 +5,59 @@
   "main": "dist/main/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-renderer-html.js",
+    "dist": "npm run build && electron-builder",
     "start": "npm run build && electron .",
     "test": "vitest run"
+  },
+  "build": {
+    "appId": "com.latenttools.app",
+    "productName": "Latent Tools",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "sidecar",
+        "to": "sidecar",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/.pytest_cache/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }
 }
+

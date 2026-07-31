@@ -1,92 +1,81 @@
-name: Build and Release
+name: Build and Release Standalone Executable (.exe)
 
 on:
   push:
+    branches:
+      - main
     tags:
-      - 'v*' # Trigger only when a tag starting with 'v' is pushed (e.g., v1.0.2)
+      - 'v*'
+  release:
+    types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ windows-latest, ubuntu-latest, macos-latest ]
+  build-windows:
+    name: Build Windows Standalone (.exe)
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'sidecar/pyproject.toml'
 
-      - name: Build Backend (Spring Boot)
-        working-directory: ./backend
-        run: mvn clean package -DskipTests
+      - name: Install Python Sidecar Dependencies & PyInstaller
+        run: |
+          cd sidecar
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e ".[dev]"
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+          pip install pyinstaller
+
+      - name: Build PyInstaller Standalone Sidecar
+        run: |
+          cd sidecar
+          pyinstaller --noconfirm --onedir --name sidecar run.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
 
-      - name: Install Frontend Dependencies
-        working-directory: ./frontend
+      - name: Install NPM Dependencies
         run: npm ci
 
-      - name: Build Frontend (Vue)
-        working-directory: ./frontend
+      - name: Run Electron Unit Tests
+        run: npm test
+
+      - name: Run Sidecar Unit Tests
+        run: |
+          cd sidecar
+          python -m pytest tests/ -v
+
+      - name: Build Renderer & Main Process Bundle
         run: npm run build
 
-      - name: Install Electron Dependencies
-        working-directory: ./electron
-        run: npm ci
-
-      # Prepare the runtime folder structure expected by electron-builder
-      - name: Prepare Runtime Directory
-        shell: bash
-        run: |
-          mkdir -p electron/runtime/app
-          mkdir -p electron/runtime/bin
-          cp backend/target/backend.jar electron/runtime/app/
-
-      # Copy the JRE (Java Runtime Environment) for the specific OS
-      # This ensures the user doesn't need Java installed.
-      - name: Download JRE (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        run: |
-          # Use jlink to create a custom runtime image.
-          # We include 'java.se' to ensure all standard modules are present, preventing ClassNotFoundExceptions.
-          # We also include 'jdk.unsupported' and 'jdk.crypto.ec' for library compatibility.
-          "$JAVA_HOME/bin/jlink" --add-modules java.se,jdk.unsupported,jdk.crypto.ec --output electron/runtime/jre --strip-debug --no-man-pages --no-header-files --compress=2
-          cp -r electron/runtime/jre/* electron/runtime/
-
-      - name: Download JRE (Linux/macOS)
-        if: matrix.os != 'windows-latest'
-        run: |
-          $JAVA_HOME/bin/jlink --add-modules java.se,jdk.unsupported,jdk.crypto.ec --output electron/runtime/jre --strip-debug --no-man-pages --no-header-files --compress=2
-          cp -r electron/runtime/jre/* electron/runtime/
-
-      - name: Build Electron App
-        working-directory: ./electron
+      - name: Package Standalone Windows Executable & Installer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist
+        run: npx electron-builder --win --x64
 
-      - name: Upload Artifacts
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            electron/dist/*.exe
-            electron/dist/*.AppImage
-            electron/dist/*.dmg
+          name: Latent-Tools-Windows-Release
+          path: release/*.exe
+          if-no-files-found: error
+
+      - name: Attach Executables to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe

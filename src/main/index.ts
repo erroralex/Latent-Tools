@@ -7,44 +7,53 @@ import { SidecarClient } from "./sidecar-client";
 import { SidecarProcess } from "./sidecar-process";
 import { registerIpcHandlers } from "./ipc-handlers";
 
-const SIDECAR_URL = "http://127.0.0.1:8756";
-const SIDECAR_CWD = path.join(__dirname, "../../sidecar");
+const SIDECAR_PORT = process.env.LATENT_SIDECAR_PORT || process.env.PORT || "8756";
+const SIDECAR_URL = `http://127.0.0.1:${SIDECAR_PORT}`;
 
-// The sidecar's dependencies (iopaint, transformers, cv2, ...) are installed
-// into sidecar/.venv, not into whatever "python" resolves to on PATH — a
-// system Python has none of them and the spawned process crashes on import
-// before it ever binds the health-check port. Prefer the venv interpreter;
-// only fall back to bare "python" if the venv hasn't been created yet.
-function resolvePythonExecutable(): string {
-  const venvPython =
-    process.platform === "win32"
-      ? path.join(SIDECAR_CWD, ".venv", "Scripts", "python.exe")
-      : path.join(SIDECAR_CWD, ".venv", "bin", "python");
-  return fs.existsSync(venvPython) ? venvPython : "python";
+function getSidecarCwd(): string {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "sidecar")
+    : path.join(__dirname, "../../sidecar");
 }
 
-// SidecarProcess always invokes spawnFn with `{}` as the options argument
-// (see sidecar-process.ts), so the only way to control the spawned
-// process's cwd is to bake it into the spawnFn passed in here. Without
-// this, `python run.py` would resolve relative to Electron's own cwd
-// instead of `sidecar/`, and the sidecar process would fail to find
-// run.py / the `app` package at runtime.
+function resolvePythonExecutable(): { executable: string; scriptArgs: string[] } {
+  const cwd = getSidecarCwd();
+  const standaloneExe = path.join(cwd, "sidecar.exe");
+  const standaloneExeSub = path.join(cwd, "sidecar", "sidecar.exe");
+
+  if (fs.existsSync(standaloneExe)) {
+    return { executable: standaloneExe, scriptArgs: ["--port", SIDECAR_PORT] };
+  }
+  if (fs.existsSync(standaloneExeSub)) {
+    return { executable: standaloneExeSub, scriptArgs: ["--port", SIDECAR_PORT] };
+  }
+
+  const venvPython =
+    process.platform === "win32"
+      ? path.join(cwd, ".venv", "Scripts", "python.exe")
+      : path.join(cwd, ".venv", "bin", "python");
+  const pythonExec = fs.existsSync(venvPython) ? venvPython : "python";
+  return { executable: pythonExec, scriptArgs: ["run.py", "--port", SIDECAR_PORT] };
+}
+
 function spawnSidecarProcess(
   command: string,
   args: readonly string[],
   options: SpawnOptions,
 ): ChildProcess {
-  return spawn(command, args, { ...options, cwd: SIDECAR_CWD });
+  return spawn(command, args, { ...options, cwd: getSidecarCwd() });
 }
 
 async function createWindow(): Promise<void> {
+  const { executable, scriptArgs } = resolvePythonExecutable();
   const client = new SidecarClient(SIDECAR_URL);
   const sidecarProcess = new SidecarProcess({
     spawnFn: spawnSidecarProcess,
     client,
-    pythonExecutable: resolvePythonExecutable(),
-    scriptArgs: ["run.py"],
+    pythonExecutable: executable,
+    scriptArgs,
   });
+
   sidecarProcess.onStateChange((state) => {
     for (const window of BrowserWindow.getAllWindows()) {
       window.webContents.send("sidecar:state", { state });

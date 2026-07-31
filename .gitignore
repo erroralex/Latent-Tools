@@ -16,5 +16,11 @@ dist/
 sidecar/.venv/
 sidecar/**/__pycache__/
 sidecar/.pytest_cache/
+# Build releases & PyInstaller
+release/
+sidecar/dist/
+sidecar/build/
 *.egg-info/
-/tests/images/
+tests/images/
+
+
