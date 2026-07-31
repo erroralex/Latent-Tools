@@ -1,7 +1,11 @@
-import { contextBridge, ipcRenderer, webFrame } from "electron";
+import { contextBridge, ipcRenderer, webFrame, shell } from "electron";
 
 contextBridge.exposeInMainWorld("api", {
+  // External link opener
+  openExternal: (url: string) => shell.openExternal(url),
+
   // Sidecar State Listener
+
   onSidecarStateChange: (callback: (state: string) => void) => {
     ipcRenderer.on("sidecar:state", (_event, data: { state: string }) => callback(data.state));
   },

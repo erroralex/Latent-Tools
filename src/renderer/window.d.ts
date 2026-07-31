@@ -1,6 +1,10 @@
 interface Window {
   api: {
+    // External link opener
+    openExternal: (url: string) => Promise<void>;
+
     // Sidecar Listener
+
     onSidecarStateChange: (callback: (state: string) => void) => void;
 
     // UI Zoom Factor Controls

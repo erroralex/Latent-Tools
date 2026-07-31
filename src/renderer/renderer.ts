@@ -117,6 +117,18 @@ winMin.addEventListener("click", () => window.api.minimizeWindow());
 winMax.addEventListener("click", () => window.api.maximizeWindow());
 winClose.addEventListener("click", () => window.api.closeWindow());
 
+// Sidebar Logo External Link
+const sidebarLogoLink = document.getElementById("sidebar-logo-link") as HTMLAnchorElement | null;
+if (sidebarLogoLink) {
+  sidebarLogoLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (window.api?.openExternal) {
+      void window.api.openExternal("https://github.com/erroralex");
+    }
+  });
+}
+
+
 // Sidebar nav (single / bulk)
 const navSingle = document.getElementById("nav-single") as HTMLButtonElement;
 const navBulk = document.getElementById("nav-bulk") as HTMLButtonElement;

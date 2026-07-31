@@ -143,6 +143,7 @@ If **Latent Tools** has saved you hours of manual dataset prep and watermark rem
 
 <p align="center">
   <b>Developed by</b><br>
-  <img src="frontend/src/assets/alx_logo_neon.png" width="120" alt="Alexander Nilsson Logo" onerror="this.style.display='none'"><br>
+  <a href="https://github.com/erroralex" target="_blank" rel="noopener noreferrer"><img src="assets/ALX Logo Neon.png" width="120" alt="Alexander Nilsson Logo"></a><br>
   Copyright (c) 2026 Alexander Nilsson
 </p>
+
