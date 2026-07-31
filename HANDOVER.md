@@ -1,6 +1,6 @@
 # Handover — where the project stands
 
-_Last updated: 2026-07-30_
+_Last updated: 2026-07-31_
 
 ## What this project is
 
@@ -35,9 +35,30 @@ flow, testing strategy, and 6 phased milestones.
 - **IntelliJ tooling**: `.idea/runConfigurations/` has a `Sidecar` (Python) config, an `Electron App` (npm) config, and a `Latent Tools (Full Stack)` compound combining both.
 
 ## TODO
-- **Speed and optimizations** Currently, it takes minutes per image to remove watermark and caption. We need to improve this while still keeping original image resolution intact
+- **Speed and optimizations.** Measured on an RTX 5080 (16 GiB) against
+  `tests/images/`, a bulk run is **~8.6s per image** end-to-end (24 items in 207s),
+  *not* the "minutes per image" this doc previously claimed — that figure came from
+  runs where a second process was competing for VRAM (see the VRAM note below).
+  After the cuDNN fix landed, the remaining per-image budget is roughly:
+  - **Caption ~2.1s** — now the largest single stage. Untouched by the cuDNN fix
+    (Qwen2-VL is matmul-heavy, not convolutional). Next target.
+  - **normalize + convert ~1–2s** at 2560×3264 — six full-resolution PNG
+    encode/decode + base64 hops per bulk item. A single `/process` endpoint for
+    the bulk path (Single editor still needs the intermediate mask) would collapse
+    these into one.
+  - **Inpaint 0.1–4.8s**, already using IOPaint's crop strategy.
+  - **Detect ~0.3s** — done, see below.
+
+  Two things measured and rejected as *not* worth doing: deduplicating Florence-2's
+  three `_encode_image` calls (~0.1s once cuDNN is healthy), and cutting detection's
+  `max_new_tokens` 1024→64 (bit-identical boxes, but marginal now).
 
 ## Completed Improvements
+- **Detection speed (Completed 2026-07-31)** — `/detect` went from **2.5–2.9s to
+  0.27–0.36s per image (~9x)**, verified end-to-end over HTTP against the real
+  sidecar, with bounding-box counts unchanged. Root cause was a one-line
+  process-wide side effect of importing IOPaint; see the verified-facts note below.
+  Fix and regression test in `sidecar/app/inpainting.py` / `tests/test_inpaint.py`.
 - **Logs (Completed 2026-07-31)** Structured logging implemented in Python sidecar (`[Detect]`, `[Inpaint]`, `[Caption]`, `[Convert]`, `[Normalize]`) and stdout/stderr stream piping added to Electron `SidecarProcess`. Processing milestones and timing are now logged to Dev and IntelliJ run consoles.
 
 ## UI rework: shipped
@@ -71,6 +92,31 @@ Two deliberate deviations from the plan text:
 (These cost real GPU/network time to verify during Phase 1–6 development — see the plan doc's "Verified facts" section for full detail.)
 
 - Plain `pip install torch` gives a **CPU-only** wheel on Windows even with a discrete GPU driver present. Use `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128`.
+- **Importing `iopaint` makes Florence-2 detection ~10x slower.** Its `__init__.py`
+  sets `TORCH_CUDNN_V8_API_LRU_CACHE_LIMIT=1` process-wide (to avoid a CPU memory
+  leak in its own long-running jobs), which caps cuDNN's execution-plan cache at a
+  single entry. Florence-2's vision encoder issues 156 convolutions across many
+  shapes, so nearly every call re-runs cuDNN plan selection: **2.74s → 0.28s per
+  image** when reverted. `sidecar/app/inpainting.py` restores the limit right after
+  the iopaint import; PyTorch reads the variable lazily on first cuDNN use, so
+  setting it there still takes effect. Captioning is unaffected (matmul/cuBLAS, not
+  conv), and iopaint's other two env mitigations are deliberately left alone —
+  restoring only the cuDNN one is sufficient. Guarded by
+  `test_iopaint_cudnn_plan_cache_clamp_is_reverted`.
+- **Two model-loading processes do not fit on a 16 GiB card.** The sidecar's three
+  models total ~8 GiB resident; a second process with its own set drives the card to
+  ~96% and the driver spills to host memory, at which point *everything* degrades
+  catastrophically (captioning observed at 377s, detection at 64s) until one process
+  exits. If the app appears to hang mid-run, check `nvidia-smi` for a second Python
+  process before debugging anything else. Nothing in the app currently guards
+  against this.
+- Diagnosed and **rejected** as causes of pipeline slowness, so they need not be
+  re-investigated: model co-residency in one process (no effect on a clean card),
+  allocator fragmentation / `expandable_segments`, `torch.cuda.empty_cache()` policy
+  (it works — VRAM settles at 8.05 GiB), the OpenCV mask-building step (0.002s),
+  HTTP/serialization/payload size, anyio worker threads, which thread loads the
+  model, an asyncio event loop on the main thread, and GPU power state (detection is
+  0.29s at P3 and 0.288s at P1 — clocks are irrelevant here).
 - Qwen2-VL model execution MUST be wrapped in `with torch.inference_mode():` and followed by `torch.cuda.empty_cache()` after inference to prevent VRAM memory accumulation across bulk dataset runs.
 - Hugging Face `from_pretrained` automatically checks local `.cache/huggingface/hub/` model directories (`models--Qwen--Qwen2-VL-2B-Instruct` / `7B`) before connecting online, bypassing remote download hangs.
 - Image resolution is 100% preserved 1:1 across normalization, Florence-2 detection, LaMa inpainting, format conversion, and Qwen2-VL dataset captioning.
