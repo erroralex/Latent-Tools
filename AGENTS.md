@@ -21,6 +21,13 @@
   never "later".
 - Before claiming anything works: run the test/build command and show the result.
   "Should work" is not done — verified is done.
+- **Performance work needs exclusive GPU access.** One discrete GPU serves the
+  Electron app, the sidecar, and any benchmark you run. Before measuring, confirm
+  `nvidia-smi --query-compute-apps=pid,process_name --format=csv,noheader` lists no
+  other python/electron process, and stop the app first. A second model-loading
+  process exhausts a 16 GiB card and degrades *both* by 10–100x, producing timings
+  that look exactly like real bugs. Attribute a slowdown only after reproducing it
+  on a verified-idle GPU.
 - When a task touches unfamiliar code, read the surrounding files first and follow
   the patterns already there.
 - Check `.agents/skills/` for an applicable skill before starting specialized work
