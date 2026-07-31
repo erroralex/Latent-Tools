@@ -4,12 +4,54 @@ import { SidecarProcess } from "../src/main/sidecar-process";
 import type { SidecarClient } from "../src/main/sidecar-client";
 
 function fakeChildProcess() {
-  const emitter = new EventEmitter() as EventEmitter & { kill: () => void };
+  const emitter = new EventEmitter() as EventEmitter & {
+    kill: () => void;
+    stdout: EventEmitter;
+    stderr: EventEmitter;
+  };
   emitter.kill = vi.fn();
+  emitter.stdout = new EventEmitter();
+  emitter.stderr = new EventEmitter();
   return emitter;
 }
 
 describe("SidecarProcess", () => {
+  it("forwards child stdout and stderr data to process.stdout and process.stderr", async () => {
+    const child = fakeChildProcess();
+    const spawnFn = vi.fn().mockReturnValue(child);
+    let healthCallCount = 0;
+    const client = {
+      health: vi.fn().mockImplementation(() => {
+        healthCallCount++;
+        return healthCallCount < 2
+          ? Promise.reject(new Error("not up yet"))
+          : Promise.resolve({ status: "ok" });
+      }),
+    } as unknown as SidecarClient;
+
+    const processSidecar = new SidecarProcess({
+      spawnFn,
+      client,
+      pythonExecutable: "python",
+      scriptArgs: [],
+      healthPollIntervalMs: 1,
+    });
+
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    await processSidecar.start();
+
+    child.stdout.emit("data", Buffer.from("[Detect] Starting watermark detection..."));
+    child.stderr.emit("data", Buffer.from("stderr message"));
+
+    expect(stdoutSpy).toHaveBeenCalledWith(expect.anything());
+    expect(stderrSpy).toHaveBeenCalledWith(expect.anything());
+
+    stdoutSpy.mockRestore();
+    stderrSpy.mockRestore();
+  });
+
   it("does not spawn a child if the sidecar is already reachable (started externally)", async () => {
     const spawnFn = vi.fn();
     const client = {

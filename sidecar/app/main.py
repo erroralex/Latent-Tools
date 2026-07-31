@@ -13,6 +13,7 @@ from PIL import Image, ImageColor, ImageOps
 from app.captioning import get_captioner, get_captioner_for_model
 from app.detection import WatermarkDetector, get_detector
 from app.inpainting import Inpainter, get_inpainter
+from app.logger import logger
 from app.schemas import (
     CaptionRequestBody,
     CaptionResponseBody,
@@ -30,6 +31,11 @@ from app.schemas import (
 app = FastAPI(title="Latent Tools Sidecar")
 
 
+@app.on_event("startup")
+def on_startup() -> None:
+    logger.info("[Sidecar] Latent Tools Python sidecar starting up...")
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -45,6 +51,8 @@ def shutdown() -> dict:
     # moment to flush — this lets the caller (Electron, on app quit) know
     # the sidecar accepted the shutdown request, whether it was spawned by
     # Electron itself or started independently (e.g. an IntelliJ run config).
+    logger.info("[Sidecar] Received shutdown request. Shutting down sidecar...")
+
     def _delayed_terminate() -> None:
         time.sleep(0.1)
         _terminate_process()
@@ -141,7 +149,7 @@ def caption(body: CaptionRequestBody) -> CaptionResponseBody:
         result_caption = active_captioner.caption(image, system_prompt=body.system_prompt)
         return CaptionResponseBody(caption=result_caption)
     except Exception as e:
-        print(f"[/caption endpoint error]: {e}")
+        logger.error(f"[/caption endpoint error]: {e}")
         return CaptionResponseBody(caption=None)
 
 
@@ -151,12 +159,14 @@ def caption(body: CaptionRequestBody) -> CaptionResponseBody:
 @app.post("/normalize", response_model=NormalizeResponseBody)
 def normalize(body: NormalizeRequestBody) -> NormalizeResponseBody:
     try:
+        logger.info("[Normalize] Normalizing image orientation and mode to RGBA PNG...")
         raw_bytes = base64.b64decode(body.image_base64)
         image = Image.open(io.BytesIO(raw_bytes))
         image = ImageOps.exif_transpose(image)
         image = image.convert("RGBA")
         return NormalizeResponseBody(normalized_base64=_encode_png(image))
     except Exception as e:
+        logger.error(f"[Normalize] Failed to normalize image: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to normalize image: {str(e)}")
 
 
@@ -206,13 +216,15 @@ def _parse_flatten_color(color_str: str | None) -> tuple[int, int, int]:
 @app.post("/convert", response_model=ConvertResponseBody)
 def convert(body: ConvertRequestBody) -> ConvertResponseBody:
     try:
-        working_image = Image.open(io.BytesIO(base64.b64decode(body.image_base64)))
         fmt = body.format.lower()
         if fmt == "jpg":
             fmt = "jpeg"
 
         if fmt not in ("jpeg", "png", "webp"):
             raise HTTPException(status_code=400, detail=f"Unsupported format: {body.format}")
+
+        logger.info(f"[Convert] Converting image to target format '{fmt.upper()}' (quality={body.quality}, metadata={body.metadata_mode})...")
+        working_image = Image.open(io.BytesIO(base64.b64decode(body.image_base64)))
 
         content_types = {
             "jpeg": "image/jpeg",
@@ -259,6 +271,7 @@ def convert(body: ConvertRequestBody) -> ConvertResponseBody:
         buf = io.BytesIO()
         target_image.save(buf, format=fmt.upper(), **save_kwargs)
         result_b64 = base64.b64encode(buf.getvalue()).decode()
+        logger.info(f"[Convert] Image converted successfully to {fmt.upper()}.")
 
         return ConvertResponseBody(
             result_base64=result_b64,
@@ -267,5 +280,6 @@ def convert(body: ConvertRequestBody) -> ConvertResponseBody:
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"[Convert] Failed to convert image: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to convert image: {str(e)}")
 

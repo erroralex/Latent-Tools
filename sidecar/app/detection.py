@@ -1,3 +1,4 @@
+import time
 from functools import lru_cache
 from typing import Protocol
 
@@ -6,6 +7,8 @@ import numpy as np
 import torch
 from PIL import Image
 from transformers import AutoModelForCausalLM, AutoProcessor
+
+from app.logger import logger
 
 _TASK = "<OPEN_VOCABULARY_DETECTION>"
 _MASK_DILATE_PX = 6  # grow each box slightly so inpainting covers watermark edges
@@ -18,12 +21,16 @@ class WatermarkDetector(Protocol):
 class Florence2Detector:
     def __init__(self, device: str = "cuda", model_id: str = "microsoft/Florence-2-base") -> None:
         self._device = device
+        logger.info(f"[Detect] Initializing Florence2Detector ({model_id}) on {device}...")
         self._model = AutoModelForCausalLM.from_pretrained(
             model_id, trust_remote_code=True, torch_dtype=torch.float16
         ).to(device)
         self._processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        logger.info("[Detect] Florence2Detector ready.")
 
     def detect(self, image: Image.Image) -> Image.Image:
+        start_time = time.perf_counter()
+        logger.info(f"[Detect] Starting watermark detection on image ({image.width}x{image.height})...")
         rgb_image = image.convert("RGB")
         all_bboxes: list[list[float]] = []
 
@@ -50,10 +57,15 @@ class Florence2Detector:
                 )
                 bboxes = parsed.get(_TASK, {}).get("bboxes", [])
                 all_bboxes.extend(bboxes)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[Detect] Prompt execution error for '{prompt}': {e}")
 
-        return _mask_from_bboxes(all_bboxes, rgb_image)
+        result_mask = _mask_from_bboxes(all_bboxes, rgb_image)
+        elapsed = time.perf_counter() - start_time
+        logger.info(
+            f"[Detect] Watermark detection complete in {elapsed:.2f}s (found {len(all_bboxes)} bounding box candidate(s))."
+        )
+        return result_mask
 
 
 def _mask_from_bboxes(bboxes: list[list[float]], image: Image.Image) -> Image.Image:

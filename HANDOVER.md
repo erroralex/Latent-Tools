@@ -36,7 +36,9 @@ flow, testing strategy, and 6 phased milestones.
 
 ## TODO
 - **Speed and optimizations** Currently, it takes minutes per image to remove watermark and caption. We need to improve this while still keeping original image resolution intact
-- **Logs** Logs should be better utilized in dev/intellij instead of using the just /health checks. Write out starting detetection/removing watermark etc.
+
+## Completed Improvements
+- **Logs (Completed 2026-07-31)** Structured logging implemented in Python sidecar (`[Detect]`, `[Inpaint]`, `[Caption]`, `[Convert]`, `[Normalize]`) and stdout/stderr stream piping added to Electron `SidecarProcess`. Processing milestones and timing are now logged to Dev and IntelliJ run consoles.
 
 ## UI rework: shipped
 

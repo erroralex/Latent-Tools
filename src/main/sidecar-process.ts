@@ -68,6 +68,12 @@ export class SidecarProcess {
         // reuse it instead of racing it for the same port.
         if (!spawned) {
           this.child = this.spawnFn(this.pythonExecutable, this.scriptArgs, {});
+          this.child.stdout?.on("data", (chunk: Buffer | string) => {
+            process.stdout.write(chunk);
+          });
+          this.child.stderr?.on("data", (chunk: Buffer | string) => {
+            process.stderr.write(chunk);
+          });
           spawned = true;
         }
         await new Promise((resolve) => setTimeout(resolve, this.healthPollIntervalMs));

@@ -1,8 +1,11 @@
+import time
 from functools import lru_cache
 from typing import Protocol
 
 import torch
 from PIL import Image
+
+from app.logger import logger
 
 _REFUSAL_PREFIXES = (
     "i cannot",
@@ -43,6 +46,8 @@ class Captioner(Protocol):
 
 class Qwen2VLCaptioner:
     def __init__(self, device: str = "cuda", model_id: str = "Qwen/Qwen2-VL-2B-Instruct") -> None:
+        self._model_id = model_id
+        logger.info(f"[Caption] Loading captioning model '{model_id}' on device '{device}'...")
         from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
 
         try:
@@ -95,10 +100,15 @@ class Qwen2VLCaptioner:
             min_pixels=256 * 28 * 28,
             max_pixels=1024 * 28 * 28,
         )
+        logger.info(f"[Caption] Model '{model_id}' successfully loaded.")
 
 
 
     def caption(self, image: Image.Image, system_prompt: str | None = None) -> str | None:
+        start_time = time.perf_counter()
+        logger.info(
+            f"[Caption] Starting caption generation with model '{self._model_id}' for image ({image.width}x{image.height})..."
+        )
         try:
             rgb_image = image.convert("RGB")
 
@@ -141,11 +151,19 @@ class Qwen2VLCaptioner:
                     generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
                 )[0]
 
+            elapsed = time.perf_counter() - start_time
             if is_refusal_or_empty(output_text):
+                logger.warning(
+                    f"[Caption] Caption generation completed in {elapsed:.2f}s but returned refusal or empty response."
+                )
                 return None
-            return output_text.strip()
+            res_clean = output_text.strip()
+            logger.info(
+                f"[Caption] Caption generation complete in {elapsed:.2f}s ({len(res_clean)} chars generated)."
+            )
+            return res_clean
         except Exception as e:
-            print(f"[Captioner Exception] {e}")
+            logger.error(f"[Caption] Error during caption generation: {e}")
             return None
         finally:
             if torch.cuda.is_available():
