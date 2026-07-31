@@ -47,27 +47,27 @@
               <option value="__custom__">Custom folder…</option>
             </select>
             <button id="model-browse-btn" class="btn btn-secondary" type="button" style="display: none">Browse…</button>
-            <span id="model-path-text" class="text-muted" style="font-size: 11px; font-family: monospace; word-break: break-all"></span>
+            <span id="model-path-text" class="text-muted" style="font-size: 13px; font-family: monospace; word-break: break-all"></span>
           </div>
 
           <div class="sidebar-spacer"></div>
 
           <div class="gpu-card">
             <div style="display: flex; align-items: center; justify-content: space-between">
-              <span style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700">
+              <span style="display: flex; align-items: center; gap: 6px; font-size: 14.5px; font-weight: 700">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="15" x2="23" y2="15"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="15" x2="4" y2="15"></line></svg>
                 <span id="gpu-name-text">Querying…</span>
               </span>
               <span class="tag tag-accent">GPU</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 4px">
-              <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--color-neutral-400)">
+              <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--color-neutral-400)">
                 <span>VRAM</span>
                 <span id="gpu-vram-text">0.0 / 0.0 GB (0%)</span>
               </div>
               <div class="gpu-vram-bar-track"><div id="gpu-vram-bar-fill" class="gpu-vram-bar-fill"></div></div>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--color-neutral-400)">
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--color-neutral-400)">
               <span>Temp</span>
               <span id="gpu-temp-text">--°C</span>
             </div>
@@ -96,15 +96,15 @@
 
             <div class="pipeline-bar">
               <button id="detect-btn" class="btn btn-primary" disabled>
-                <span style="flex: none; width: 16px; height: 16px; border-radius: 50%; background: rgba(102,252,241,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 10px">1</span>Detect Watermark
+                <span style="flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(102,252,241,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 12px">1</span>Detect Watermark
               </button>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.8" style="flex: none"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               <button id="inpaint-btn" class="btn btn-secondary" disabled>
-                <span style="flex: none; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 10px">2</span>Remove Watermark
+                <span style="flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 12px">2</span>Remove Watermark
               </button>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.8" style="flex: none"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               <button id="caption-btn" class="btn btn-secondary" disabled>
-                <span style="flex: none; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 10px">3</span>Generate Caption
+                <span style="flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 12px">3</span>Generate Caption
               </button>
             </div>
 
@@ -123,14 +123,14 @@
                       <span>Erase</span>
                     </label>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-neutral-400)">
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--color-neutral-400)">
                     <label for="brush-size">Size <span id="brush-size-val">20</span>px</label>
                     <input type="range" id="brush-size" class="lt-slider" min="5" max="100" value="20" style="width: 90px" />
                   </div>
                   <div class="toolbar-divider"></div>
                   <div style="display: flex; align-items: center; gap: 6px">
                     <button id="zoom-out-btn" class="btn btn-icon" type="button" style="width: 28px; height: 28px">–</button>
-                    <span id="zoom-val" style="font-size: 12px; color: var(--color-neutral-400); min-width: 38px; text-align: center">100%</span>
+                    <span id="zoom-val" style="font-size: 14px; color: var(--color-neutral-400); min-width: 38px; text-align: center">100%</span>
                     <button id="zoom-in-btn" class="btn btn-icon" type="button" style="width: 28px; height: 28px">+</button>
                     <button id="reset-zoom-btn" class="btn btn-icon" type="button" title="Reset zoom" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
@@ -138,10 +138,10 @@
                   </div>
                   <div class="toolbar-divider"></div>
                   <div style="display: flex; align-items: center; gap: 6px">
-                    <button id="undo-btn" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px" disabled>Undo</button>
-                    <button id="redo-btn" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px" disabled>Redo</button>
-                    <button id="clear-mask-btn" class="btn btn-ghost" style="font-size: 12px; padding: 6px 10px">Clear</button>
-                    <button id="reset-mask-btn" class="btn btn-ghost" style="font-size: 12px; padding: 6px 10px">Reset</button>
+                    <button id="undo-btn" class="btn btn-secondary" style="font-size: 14px; padding: 6px 12px" disabled>Undo</button>
+                    <button id="redo-btn" class="btn btn-secondary" style="font-size: 14px; padding: 6px 12px" disabled>Redo</button>
+                    <button id="clear-mask-btn" class="btn btn-ghost" style="font-size: 14px; padding: 6px 10px">Clear</button>
+                    <button id="reset-mask-btn" class="btn btn-ghost" style="font-size: 14px; padding: 6px 10px">Reset</button>
                   </div>
                 </div>
 
@@ -187,7 +187,7 @@
                     <textarea id="caption-text" class="lt-input" rows="6" placeholder="Generated dataset caption will appear here…"></textarea>
                   </div>
                   <div class="card-meta" style="justify-content: space-between">
-                    <span id="caption-status" style="font-size: 11px; color: var(--color-muted)"></span>
+                    <span id="caption-status" style="font-size: 13px; color: var(--color-muted)"></span>
                     <span class="tag tag-neutral">Kohya format</span>
                   </div>
                 </div>
@@ -225,7 +225,7 @@
                   </div>
 
                   <div id="lossless-container" class="toggle-row" style="display: none">
-                    <span style="font-size: 13px">Lossless WEBP</span>
+                    <span style="font-size: 15px">Lossless WEBP</span>
                     <label>
                       <input type="checkbox" id="lossless-checkbox" style="position: absolute; opacity: 0; pointer-events: none" />
                       <span id="lossless-toggle" class="toggle" role="presentation"><span class="toggle-knob"></span></span>
@@ -246,7 +246,7 @@
                     <label for="flatten-color">Flatten Background</label>
                     <div style="display: flex; align-items: center; gap: 10px">
                       <input type="color" id="flatten-color" value="#ffffff" />
-                      <span class="text-muted" style="font-size: 12px">Default: White</span>
+                      <span class="text-muted" style="font-size: 14px">Default: White</span>
                     </div>
                   </div>
 
@@ -391,7 +391,7 @@
               </div>
 
               <div id="bulk-lossless-container" class="toggle-row" style="display: none">
-                <span style="font-size: 13px">Lossless WEBP</span>
+                <span style="font-size: 15px">Lossless WEBP</span>
                 <label>
                   <input type="checkbox" id="bulk-lossless-checkbox" style="position: absolute; opacity: 0; pointer-events: none" />
                   <span id="bulk-lossless-toggle" class="toggle" role="presentation"><span class="toggle-knob"></span></span>
@@ -402,7 +402,7 @@
                 <label for="bulk-flatten-color">Flatten Background</label>
                 <div style="display: flex; align-items: center; gap: 10px">
                   <input type="color" id="bulk-flatten-color" value="#ffffff" />
-                  <span class="text-muted" style="font-size: 12px">Default: White</span>
+                  <span class="text-muted" style="font-size: 14px">Default: White</span>
                 </div>
               </div>
 
@@ -420,7 +420,7 @@
             <div id="bulk-progress-panel" style="display: flex; flex-direction: column; gap: 16px">
               <div class="bulk-card" style="gap: 10px">
                 <div style="display: flex; justify-content: space-between; align-items: baseline">
-                  <span id="bulk-progress-text" style="font-size: 13px; color: var(--color-neutral-400)">Ready to process dataset</span>
+                  <span id="bulk-progress-text" style="font-size: 15px; color: var(--color-neutral-400)">Ready to process dataset</span>
                 </div>
                 <div class="progress-track"><div id="progress-bar-fill" class="progress-fill"></div></div>
               </div>
