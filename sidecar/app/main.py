@@ -313,11 +313,7 @@ def convert(body: ConvertRequestBody) -> ConvertResponseBody:
 
 
 @app.post("/process", response_model=ProcessResponseBody)
-def process(
-    body: ProcessRequestBody,
-    detector: WatermarkDetector = Depends(get_detector),
-    inpainter: Inpainter = Depends(get_inpainter),
-) -> ProcessResponseBody:
+def process(body: ProcessRequestBody) -> ProcessResponseBody:
     try:
         fmt = _normalize_format(body.format)
         raw_bytes = base64.b64decode(body.image_base64)
@@ -328,6 +324,12 @@ def process(
         image = image.convert("RGBA")
 
         if body.auto_remove_watermark:
+            # Resolved lazily (rather than via Depends()) so a request that
+            # skips watermark removal never pays for loading the detector/inpainter.
+            detector_fn = app.dependency_overrides.get(get_detector, get_detector)
+            inpainter_fn = app.dependency_overrides.get(get_inpainter, get_inpainter)
+            detector: WatermarkDetector = detector_fn()
+            inpainter: Inpainter = inpainter_fn()
             logger.info("[Process] Detecting watermark...")
             mask = detector.detect(image)
             logger.info("[Process] Inpainting detected region...")
