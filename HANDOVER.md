@@ -26,14 +26,14 @@ flow, testing strategy, and 6 phased milestones.
 ## What's built right now
 
 - **Sidecar** (`sidecar/`, FastAPI): `/health`, `/gpu` (real-time GPU Name, VRAM usage & Temp telemetry), `/normalize`, `/detect` (Florence-2 open-vocabulary detection + adaptive Canny stroke contouring), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-2B-Instruct / Qwen2-VL-7B-Instruct or a custom local model folder, selectable per-request via `model_id`, with custom system prompts & trigger words), `/shutdown`. Hardened Uvicorn engine to `127.0.0.1` loopback with `--port` CLI flag and `LATENT_SIDECAR_PORT` environment variable to prevent Windows Firewall prompts. PyInstaller support (`sidecar.exe`) for single-binary packaging.
-- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`gpu:status`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), default window dimensions `1440x900` centered in windowed mode. Dynamic `app.isPackaged` sidecar path resolution (`process.resourcesPath/sidecar/sidecar.exe`).
+- **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`gpu:status`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), default window dimensions `1440x900` centered in windowed mode. Dynamic `app.isPackaged` sidecar path resolution (`process.resourcesPath/sidecar/sidecar.exe`). System tray icon (`assets/lt_icon.png`) with a Show/Quit context menu; `BrowserWindow` and packaged `.exe` both carry the same icon.
 - **Renderer UI** (Deep Neon design system — pure black ground `#000000`, cyan `#66fcf1`, purple `#d870ff`, glass blurs, hover glow shadows):
-  - **App shell**: frameless glass titlebar (window controls, `LT` gradient logo, live GPU Sidecar status pill) + left sidebar (Single/Bulk nav, shared captioning model selector, GPU mini-widget with VRAM bar, ALK developer logo linked to GitHub profile).
+  - **App shell**: frameless glass titlebar (window controls, `lt_icon.png` app logo, live GPU Sidecar status pill) + left sidebar (Single/Bulk nav, shared captioning model selector, GPU mini-widget with VRAM bar, ALK developer logo linked to GitHub profile).
   - **UI Zooming & Scaling**: `Ctrl` + mousewheel zooming (50%–250%) and `Ctrl+0` reset shortcut via `webFrame`. Default base text sizes increased by +2px across all components.
   - **Dark Dropdown Styling**: `color-scheme: dark` enforced across all `<select>` and `<option>` elements (Captioning Model, Export Presets, Formats, Compression Levels, Metadata settings).
   - **Single Image Editor**: pipeline stepper (Detect → Remove → Caption) above a preview/inspector grid. Full-featured canvas mask overlay with adaptive brush editing, undo/redo history, mousewheel zoom, and click & drag panning. Inspector Caption/Export tabs with presets (LoRA/Archive/Web + `localStorage`-backed custom presets).
   - **Bulk Dataset Processor**: single scrolling column card layout containing disclaimer banner, Setup (input/output dropzones + thumbnail grid), Export Settings, and Progress & Real-time Logs terminal.
-- **Packaging & CI/CD**: `package.json` configured with `electron-builder` for Windows NSIS installer (`.exe`) and Portable standalone (`.exe`). Automated GitHub Actions workflow ([`.github/workflows/build.yml`](.github/workflows/build.yml)) compiles PyInstaller sidecar binary, runs Vitest & Pytest test suites, and publishes standalone release installers.
+- **Packaging & CI/CD**: `package.json` configured with `electron-builder` for Windows NSIS installer (`.exe`) and Portable standalone (`.exe`), both carrying `assets/lt_icon.png` as the `.exe` icon. GitHub Actions workflow ([`.github/workflows/build.yml`](.github/workflows/build.yml)) compiles the PyInstaller sidecar binary, runs Vitest & Pytest test suites, and publishes standalone release installers — it now triggers only on `v*` tag pushes, GitHub releases, or manual dispatch, **not** on every commit to `main`. First beta tags: `v0.1.0-beta.1`, `v0.1.0-beta.2`.
 
 ## TODO
 - No open items on the bulk-pipeline speed track. Detect (0.3-0.5s) and caption
@@ -42,6 +42,20 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **App icon in titlebar, tray, and `.exe` (Completed 2026-07-31)** — Added
+  `assets/lt_icon.png` and wired it in three places: the renderer's custom
+  titlebar logo (`src/renderer/index.html`, replacing the CSS gradient-text
+  "LT"), a new system tray icon with a Show/Quit menu (`src/main/index.ts`,
+  also sets the `BrowserWindow` icon), and `electron-builder`'s `win.icon` in
+  `package.json` for the packaged installer/portable `.exe`. Note: Windows
+  Explorer/Start Menu can keep showing a stale generic icon from its shell
+  icon cache after a rebuild even when the exe's icon resource is correct —
+  not a packaging bug, don't chase it.
+- **Release build workflow restricted to version tags (Completed 2026-07-31)** —
+  `.github/workflows/build.yml` previously ran the full PyInstaller +
+  electron-builder packaging pipeline on every push to `main`. Now it only
+  triggers on `v*` tag pushes, GitHub releases, or manual dispatch, since
+  that pipeline is expensive and only meaningful when cutting a release.
 - **CI fix: `/process` no longer eagerly loads CUDA-only models (Completed 2026-07-31)** —
   `sidecar/app/main.py`'s `/process` endpoint took `detector`/`inpainter` as
   `Depends(get_detector)`/`Depends(get_inpainter)`, so FastAPI constructed the
