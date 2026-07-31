@@ -2,13 +2,42 @@ import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process"
 import * as fs from "node:fs";
 import * as fsPromises from "node:fs/promises";
 import * as path from "node:path";
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage } from "electron";
 import { SidecarClient } from "./sidecar-client";
 import { SidecarProcess } from "./sidecar-process";
 import { registerIpcHandlers } from "./ipc-handlers";
 
 const SIDECAR_PORT = process.env.LATENT_SIDECAR_PORT || process.env.PORT || "8756";
 const SIDECAR_URL = `http://127.0.0.1:${SIDECAR_PORT}`;
+
+let tray: Tray | undefined;
+
+function getAppIconPath(): string {
+  return path.join(__dirname, "../renderer/assets/lt_icon.png");
+}
+
+function createTray(window: BrowserWindow): void {
+  const trayIcon = nativeImage.createFromPath(getAppIconPath()).resize({ width: 32, height: 32 });
+  tray = new Tray(trayIcon);
+  tray.setToolTip("Latent Tools");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      {
+        label: "Show Latent Tools",
+        click: () => {
+          window.show();
+          window.focus();
+        },
+      },
+      { type: "separator" },
+      { label: "Quit", click: () => app.quit() },
+    ]),
+  );
+  tray.on("double-click", () => {
+    window.show();
+    window.focus();
+  });
+}
 
 function getSidecarCwd(): string {
   return app.isPackaged
@@ -67,10 +96,13 @@ async function createWindow(): Promise<void> {
     minHeight: 700,
     center: true,
     frame: false,
+    icon: getAppIconPath(),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
     },
   });
+
+  createTray(window);
 
 
   registerIpcHandlers(

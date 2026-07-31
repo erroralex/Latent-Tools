@@ -30,6 +30,7 @@
       }
     ],
     "win": {
+      "icon": "assets/lt_icon.png",
       "target": [
         {
           "target": "nsis",
