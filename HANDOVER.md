@@ -35,30 +35,49 @@ flow, testing strategy, and 6 phased milestones.
 - **IntelliJ tooling**: `.idea/runConfigurations/` has a `Sidecar` (Python) config, an `Electron App` (npm) config, and a `Latent Tools (Full Stack)` compound combining both.
 
 ## TODO
-- **Speed and optimizations.** Measured on an RTX 5080 (16 GiB) against
-  `tests/images/`, a bulk run is **~8.6s per image** end-to-end (24 items in 207s),
-  *not* the "minutes per image" this doc previously claimed — that figure came from
+- **Speed and optimizations.** Measured on an RTX 5080 (16 GiB) against a 26-image
+  bulk run. Before the cuDNN fix: **8.6s per image** (24 items in 207s). After:
+  **6.0s per image** (25 warm items in 151s), a ~30% gain. Neither figure is
+  anywhere near the "minutes per image" this doc used to claim — that came from
   runs where a second process was competing for VRAM (see the VRAM note below).
-  After the cuDNN fix landed, the remaining per-image budget is roughly:
-  - **Caption ~2.1s** — now the largest single stage. Untouched by the cuDNN fix
-    (Qwen2-VL is matmul-heavy, not convolutional). Next target.
-  - **normalize + convert ~1–2s** at 2560×3264 — six full-resolution PNG
-    encode/decode + base64 hops per bulk item. A single `/process` endpoint for
-    the bulk path (Single editor still needs the intermediate mask) would collapse
-    these into one.
-  - **Inpaint 0.1–4.8s**, already using IOPaint's crop strategy.
-  - **Detect ~0.3s** — done, see below.
 
-  Two things measured and rejected as *not* worth doing: deduplicating Florence-2's
-  three `_encode_image` calls (~0.1s once cuDNN is healthy), and cutting detection's
-  `max_new_tokens` 1024→64 (bit-identical boxes, but marginal now).
+  Where the 6.0s now goes, summed over the 25 warm items:
+
+  | stage | total | per image | share |
+  | --- | --- | --- | --- |
+  | Caption | 56.8s | 2.27s | 38% |
+  | Detect | 11.8s | 0.47s | 8% |
+  | Inpaint | 7.4s | 0.31s | 5% |
+  | **Everything else** | **~70s** | **~2.8s** | **46%** |
+
+  **The highest-value remaining work is that last row, not captioning.** "Everything
+  else" is `normalize` + `convert` + base64 + six HTTP hops + disk I/O per item; a
+  single 2754×3264 `convert` alone takes ~2s. A `/process` endpoint that runs the
+  whole pipeline in one call for the *bulk* path would collapse six full-resolution
+  PNG encode/decode round-trips into one. The Single editor must keep the granular
+  endpoints — it needs the intermediate mask for the brush overlay. Estimated
+  6.0s → ~4s. Captioning (2.27s, matmul-bound and untouched by the cuDNN fix) is
+  the target after that.
+
+  Three things measured and rejected as *not* worth doing: deduplicating Florence-2's
+  three `_encode_image` calls (~0.1s once cuDNN is healthy), cutting detection's
+  `max_new_tokens` 1024→64 (bit-identical boxes, but marginal now), and tuning
+  inpaint (0.31s average; the occasional multi-second outlier is LaMa's first
+  invocation warming up, not a steady-state cost).
 
 ## Completed Improvements
-- **Detection speed (Completed 2026-07-31)** — `/detect` went from **2.5–2.9s to
-  0.27–0.36s per image (~9x)**, verified end-to-end over HTTP against the real
-  sidecar, with bounding-box counts unchanged. Root cause was a one-line
+- **Detection speed (Completed 2026-07-31)** — root cause was a one-line
   process-wide side effect of importing IOPaint; see the verified-facts note below.
   Fix and regression test in `sidecar/app/inpainting.py` / `tests/test_inpaint.py`.
+  Confirmed on a real 26-image bulk run, not just a microbenchmark:
+  `/detect` went from **2.46–3.63s (avg ~2.9s) to 0.27–0.58s (avg 0.47s)**, roughly
+  **6x**, dropping detection from 33% of pipeline time to 8%. Whole-run throughput
+  improved 8.6s → 6.0s per image.
+
+  Output is unchanged, verified image-by-image against a pre-fix run of the same
+  dataset: bounding-box counts match on all 26 images in sequence
+  (`3,5,4,3,3,3,3,5,3,3,3,3,3,3,4,3,3,3,3,3,3,3,3,3,3,3`) and every caption's
+  character count is identical. Pure latency win, no behavioural change.
 - **Logs (Completed 2026-07-31)** Structured logging implemented in Python sidecar (`[Detect]`, `[Inpaint]`, `[Caption]`, `[Convert]`, `[Normalize]`) and stdout/stderr stream piping added to Electron `SidecarProcess`. Processing milestones and timing are now logged to Dev and IntelliJ run consoles.
 
 ## UI rework: shipped
