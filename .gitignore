@@ -17,3 +17,4 @@ sidecar/.venv/
 sidecar/**/__pycache__/
 sidecar/.pytest_cache/
 *.egg-info/
+/tests/images/
