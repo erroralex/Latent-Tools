@@ -7,8 +7,7 @@
 - **Purpose:** Local-first Electron desktop app for bulk image-dataset prep: watermark removal (AI detection + inpainting), format conversion (JPEG/PNG/WEBP), and uncensored image captioning, running entirely on-device. Bulk (folder) processing is first-class, not an afterthought.
 - **Stack:** Electron (TypeScript, strict) renderer + main process; Python sidecar (FastAPI — Florence-2 detection, IOPaint/LaMa inpainting, Qwen2-VL captioning) over localhost HTTP. Target hardware: discrete GPU. See `docs/implementation-plan.md` for the full architecture. **See `HANDOVER.md` for exactly where the project stands right now.**
 
-
-- **Build:** `npm run build` (TypeScript, at repo root). Sidecar has no build step — `cd sidecar && pip install -e ".[dev]"` into a venv (see Run locally).
+- **Build:** `npm run build` (TypeScript, at repo root). Packaging standalone `.exe`: `npm run dist` (`electron-builder`). Sidecar has no build step — `cd sidecar && pip install -e ".[dev]"` into a venv (see Run locally). PyInstaller compilation: `pyinstaller --noconfirm --onedir --name sidecar --entrypoint run.py` (handled automatically by `.github/workflows/build.yml`).
 - **Test:** `npm test` (Vitest, repo root) for the Electron/TS side. `cd sidecar && <venv>/Scripts/python -m pytest tests/ -v` for the Python side (GPU-marked tests are excluded by default via `pyproject.toml`'s `addopts`).
 - **Run locally:** One-time sidecar setup: `cd sidecar && python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" && .venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128` (plain `pip install torch` gives a CPU-only wheel — GPU needs the cu128 index explicitly). Then from repo root: `npm install && npm start`.
 
@@ -129,4 +128,3 @@
   if HTML insertion is unavoidable, sanitize.
 - Performance basics: `defer` scripts; set width/height (or aspect-ratio) on images;
   lazy-load below-the-fold images; don't ship a framework for a static page.
-
