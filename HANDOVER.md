@@ -36,22 +36,28 @@ flow, testing strategy, and 6 phased milestones.
 - **Packaging & CI/CD**: `package.json` configured with `electron-builder` for Windows NSIS installer (`.exe`) and Portable standalone (`.exe`). Automated GitHub Actions workflow ([`.github/workflows/build.yml`](.github/workflows/build.yml)) compiles PyInstaller sidecar binary, runs Vitest & Pytest test suites, and publishes standalone release installers.
 
 ## TODO
-- **Speed and optimizations.** Measured on an RTX 5080 (16 GiB) against a 26-image
-  bulk run. Before the cuDNN fix: **8.6s per image** (24 items in 207s). After:
-  **6.0s per image** (25 warm items in 151s), a ~30% gain.
-
-  Where the 6.0s now goes, summed over the 25 warm items:
-
-  | stage | total | per image | share |
-  | --- | --- | --- | --- |
-  | Caption | 56.8s | 2.27s | 38% |
-  | Detect | 11.8s | 0.47s | 8% |
-  | Inpaint | 7.4s | 0.31s | 5% |
-  | **Everything else** | **~70s** | **~2.8s** | **46%** |
-
-  A `/process` endpoint that runs the whole pipeline in one call for the *bulk* path would collapse six full-resolution PNG encode/decode round-trips into one. Estimated 6.0s → ~4s.
+- No open items on the bulk-pipeline speed track. Detect (0.3-0.5s) and caption
+  (2.0-3.4s) now dominate the per-image cost — further gains would mean optimizing
+  those model calls themselves (e.g. a smaller/faster caption model option), not
+  the transport layer.
 
 ## Completed Improvements
+- **Single-round-trip `/process` endpoint for bulk processing (Completed 2026-07-31)** —
+  Added `POST /process` to the sidecar (`sidecar/app/main.py`), which runs
+  normalize → detect → inpaint → caption → convert on one in-memory `PIL.Image`
+  and returns the final bytes in a single HTTP call. `bulk:process-item` in
+  `src/main/ipc-handlers.ts` now calls `SidecarClient.process()` once instead of
+  five separate `normalize`/`detect`/`inpaint`/`caption`/`convert` round-trips,
+  eliminating the five extra full-resolution PNG encode/decode/base64 round-trips
+  the old bulk path paid per image. The single-image editor path (`image:detect`,
+  `image:inpaint`, `image:caption`, `image:export`) is unchanged — it still needs
+  the intermediate results for the interactive mask-editing UI. Convert-format
+  logic was factored into a shared `_encode_image` helper used by both `/convert`
+  and `/process` to avoid duplicating the JPEG-flatten/metadata-keep logic.
+  **Verified on real hardware (RTX 5080, 26-image bulk run, warm model state):
+  6.0s/image → 3.32s/image (25 warm items in 83s), a 45% reduction** — beating the
+  ~4s estimate. Confirms the per-item overhead beyond detect/inpaint/caption was
+  almost entirely the now-eliminated HTTP/base64 round-trip cost.
 - **Standalone Windows Executable Release Pipeline (Completed 2026-07-31)** — Configured `electron-builder` in `package.json` (`npm run dist`) and created `.github/workflows/build.yml` for automated GitHub Actions builds. Hardened FastAPI Uvicorn sidecar to `127.0.0.1` loopback binding to prevent Windows Firewall prompts.
 - **Deep Neon Visual Design & UI Scale Zooming (Completed 2026-07-31)** — Replaced visual design system with Deep Neon tokens, added `Ctrl` + mousewheel zooming (50%–250%), increased default base font sizes by +2px, styled native select/option dropdowns in dark theme, and updated default window size to `1440x900` centered.
 - **Detection speed (Completed 2026-07-31)** — Root cause was process-wide side effect of importing IOPaint. Fix in `sidecar/app/inpainting.py`. `/detect` went from **2.9s to 0.47s avg (~6x faster)**.

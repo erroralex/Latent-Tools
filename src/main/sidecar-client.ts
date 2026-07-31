@@ -3,6 +3,7 @@ type DetectResponse = { mask_base64: string };
 type InpaintResponse = { result_base64: string };
 type NormalizeResponse = { normalized_base64: string };
 type ConvertResponse = { result_base64: string; content_type: string };
+type ProcessResponse = { result_base64: string; content_type: string; caption: string | null };
 
 export type ConvertOptions = {
   format: string;
@@ -11,6 +12,19 @@ export type ConvertOptions = {
   compressLevel?: number;
   metadataMode?: string;
   originalBase64?: string;
+  flattenColor?: string;
+};
+
+export type ProcessOptions = {
+  autoRemoveWatermark?: boolean;
+  generateCaption?: boolean;
+  systemPrompt?: string;
+  modelId?: string;
+  format: string;
+  quality?: number;
+  lossless?: boolean;
+  compressLevel?: number;
+  metadataMode?: string;
   flattenColor?: string;
 };
 
@@ -92,6 +106,38 @@ export class SidecarClient {
     return {
       result: Buffer.from(body.result_base64, "base64"),
       contentType: body.content_type,
+    };
+  }
+
+  async process(
+    imageRaw: Buffer,
+    options: ProcessOptions,
+  ): Promise<{ result: Buffer; contentType: string; caption: string | null }> {
+    const response = await fetch(`${this.baseUrl}/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image_base64: imageRaw.toString("base64"),
+        auto_remove_watermark: options.autoRemoveWatermark ?? false,
+        generate_caption: options.generateCaption ?? false,
+        system_prompt: options.systemPrompt,
+        model_id: options.modelId,
+        format: options.format,
+        quality: options.quality ?? 90,
+        lossless: options.lossless ?? false,
+        compress_level: options.compressLevel ?? 6,
+        metadata_mode: options.metadataMode ?? "strip",
+        flatten_color: options.flattenColor,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Sidecar /process failed: ${response.status}`);
+    }
+    const body = (await response.json()) as ProcessResponse;
+    return {
+      result: Buffer.from(body.result_base64, "base64"),
+      contentType: body.content_type,
+      caption: body.caption,
     };
   }
 

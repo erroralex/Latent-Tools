@@ -124,27 +124,16 @@ export function registerIpcHandlers(
     if (!readFile) throw new Error("readFile handler not configured");
 
     const rawBuffer = await readFile(inputPath);
-    let workingNormalized = await client.normalize(rawBuffer);
-
-    if (autoRemoveWatermark) {
-      const mask = await client.detect(workingNormalized);
-      workingNormalized = await client.inpaint(workingNormalized, mask);
-    }
-
-    let captionText: string | null = null;
-    if (generateCaption) {
-      captionText = await callCaption(client, workingNormalized, systemPrompt, modelId);
-    }
-
-
-
-    const { result } = await client.convert(workingNormalized, {
+    const { result, caption: captionText } = await client.process(rawBuffer, {
+      autoRemoveWatermark,
+      generateCaption,
+      systemPrompt,
+      modelId,
       format,
       quality,
       lossless,
       compressLevel,
       metadataMode,
-      originalBase64: rawBuffer.toString("base64"),
       flattenColor,
     });
 

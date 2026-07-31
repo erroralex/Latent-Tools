@@ -53,6 +53,26 @@ class CaptionResponseBody(BaseModel):
     caption: str | None
 
 
+class ProcessRequestBody(BaseModel):
+    image_base64: str
+    auto_remove_watermark: bool = False
+    generate_caption: bool = False
+    system_prompt: str | None = None
+    model_id: str | None = None
+    format: str = "png"
+    quality: int = 90
+    lossless: bool = False
+    compress_level: int = 6
+    metadata_mode: str = "strip"
+    flatten_color: str | None = None
+
+
+class ProcessResponseBody(BaseModel):
+    result_base64: str
+    content_type: str
+    caption: str | None = None
+
+
 class GpuStatusResponseBody(BaseModel):
     name: str
     vram_used_mb: float

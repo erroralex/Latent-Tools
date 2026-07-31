@@ -19,6 +19,11 @@ describe("registerIpcHandlers", () => {
         result: Buffer.from("converted-bytes"),
         contentType: "image/webp",
       }),
+      process: vi.fn().mockResolvedValue({
+        result: Buffer.from("converted-bytes"),
+        contentType: "image/webp",
+        caption: "A detailed caption of the image.",
+      }),
     } as unknown as SidecarClient;
     const showSaveDialog = vi.fn().mockResolvedValue(showSaveDialogResult);
     const writeFile = vi.fn().mockResolvedValue(undefined);
@@ -74,8 +79,8 @@ describe("registerIpcHandlers", () => {
     expect(files).toEqual(["img1.png", "img2.jpg"]);
   });
 
-  it("bulk:process-item runs complete normalization, detect, inpaint, caption, and export pipeline", async () => {
-    const { handlers, client, writeFile } = setup("C:\\chosen\\output.png");
+  it("bulk:process-item runs the full pipeline in a single sidecar /process call", async () => {
+    const { handlers, client, readFile, writeFile } = setup("C:\\chosen\\output.png");
     const bulkHandler = handlers.get("bulk:process-item");
     if (!bulkHandler) throw new Error("bulk:process-item missing");
 
@@ -90,11 +95,23 @@ describe("registerIpcHandlers", () => {
       },
     )) as { success: boolean; outputPath: string };
 
-    expect(client.normalize).toHaveBeenCalled();
-    expect(client.detect).toHaveBeenCalled();
-    expect(client.inpaint).toHaveBeenCalled();
-    expect(client.caption).toHaveBeenCalled();
-    expect(client.convert).toHaveBeenCalled();
+    expect(client.normalize).not.toHaveBeenCalled();
+    expect(client.detect).not.toHaveBeenCalled();
+    expect(client.inpaint).not.toHaveBeenCalled();
+    expect(client.caption).not.toHaveBeenCalled();
+    expect(client.convert).not.toHaveBeenCalled();
+    expect(client.process).toHaveBeenCalledWith(await readFile.mock.results[0]!.value, {
+      autoRemoveWatermark: true,
+      generateCaption: true,
+      systemPrompt: undefined,
+      modelId: undefined,
+      format: "webp",
+      quality: 90,
+      lossless: false,
+      compressLevel: 6,
+      metadataMode: "strip",
+      flattenColor: "#FFFFFF",
+    });
     expect(writeFile).toHaveBeenCalledWith(
       "C:\\out_folder\\photo.webp",
       Buffer.from("converted-bytes"),

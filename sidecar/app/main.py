@@ -26,6 +26,8 @@ from app.schemas import (
     InpaintResponseBody,
     NormalizeRequestBody,
     NormalizeResponseBody,
+    ProcessRequestBody,
+    ProcessResponseBody,
 )
 
 app = FastAPI(title="Latent Tools Sidecar")
@@ -213,73 +215,155 @@ def _parse_flatten_color(color_str: str | None) -> tuple[int, int, int]:
         return (255, 255, 255)
 
 
+_CONTENT_TYPES = {
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "webp": "image/webp",
+}
+
+
+def _normalize_format(format_str: str) -> str:
+    fmt = format_str.lower()
+    if fmt == "jpg":
+        fmt = "jpeg"
+    if fmt not in _CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Unsupported format: {format_str}")
+    return fmt
+
+
+def _encode_image(
+    image: Image.Image,
+    fmt: str,
+    quality: int,
+    lossless: bool,
+    compress_level: int,
+    metadata_mode: str,
+    original_bytes: bytes | None,
+    flatten_color: str | None,
+) -> tuple[bytes, str]:
+    save_kwargs = {}
+    target_image = image
+
+    if fmt == "jpeg":
+        save_kwargs["quality"] = max(1, min(100, quality))
+        if target_image.mode in ("RGBA", "LA", "P"):
+            bg_color = _parse_flatten_color(flatten_color)
+            bg = Image.new("RGB", target_image.size, bg_color)
+            if target_image.mode == "P":
+                target_image = target_image.convert("RGBA")
+            alpha = target_image.split()[-1]
+            bg.paste(target_image, mask=alpha)
+            target_image = bg
+        elif target_image.mode != "RGB":
+            target_image = target_image.convert("RGB")
+    elif fmt == "webp":
+        save_kwargs["quality"] = max(1, min(100, quality))
+        save_kwargs["lossless"] = lossless
+    elif fmt == "png":
+        save_kwargs["compress_level"] = max(0, min(9, compress_level))
+
+    if metadata_mode == "keep" and original_bytes:
+        try:
+            orig_img = Image.open(io.BytesIO(original_bytes))
+            icc = orig_img.info.get("icc_profile")
+            if icc:
+                save_kwargs["icc_profile"] = icc
+            exif = orig_img.getexif()
+            if exif:
+                if 0x0112 in exif:
+                    del exif[0x0112]
+                save_kwargs["exif"] = exif
+        except Exception:
+            pass
+
+    buf = io.BytesIO()
+    target_image.save(buf, format=fmt.upper(), **save_kwargs)
+    return buf.getvalue(), _CONTENT_TYPES[fmt]
+
+
 @app.post("/convert", response_model=ConvertResponseBody)
 def convert(body: ConvertRequestBody) -> ConvertResponseBody:
     try:
-        fmt = body.format.lower()
-        if fmt == "jpg":
-            fmt = "jpeg"
-
-        if fmt not in ("jpeg", "png", "webp"):
-            raise HTTPException(status_code=400, detail=f"Unsupported format: {body.format}")
-
+        fmt = _normalize_format(body.format)
         logger.info(f"[Convert] Converting image to target format '{fmt.upper()}' (quality={body.quality}, metadata={body.metadata_mode})...")
         working_image = Image.open(io.BytesIO(base64.b64decode(body.image_base64)))
 
-        content_types = {
-            "jpeg": "image/jpeg",
-            "png": "image/png",
-            "webp": "image/webp",
-        }
-
-        save_kwargs = {}
-        target_image = working_image
-
-        if fmt == "jpeg":
-            save_kwargs["quality"] = max(1, min(100, body.quality))
-            if target_image.mode in ("RGBA", "LA", "P"):
-                bg_color = _parse_flatten_color(body.flatten_color)
-                bg = Image.new("RGB", target_image.size, bg_color)
-                if target_image.mode == "P":
-                    target_image = target_image.convert("RGBA")
-                alpha = target_image.split()[-1]
-                bg.paste(target_image, mask=alpha)
-                target_image = bg
-            elif target_image.mode != "RGB":
-                target_image = target_image.convert("RGB")
-        elif fmt == "webp":
-            save_kwargs["quality"] = max(1, min(100, body.quality))
-            save_kwargs["lossless"] = body.lossless
-        elif fmt == "png":
-            save_kwargs["compress_level"] = max(0, min(9, body.compress_level))
-
-        if body.metadata_mode == "keep" and body.original_base64:
-            try:
-                orig_bytes = base64.b64decode(body.original_base64)
-                orig_img = Image.open(io.BytesIO(orig_bytes))
-                icc = orig_img.info.get("icc_profile")
-                if icc:
-                    save_kwargs["icc_profile"] = icc
-                exif = orig_img.getexif()
-                if exif:
-                    if 0x0112 in exif:
-                        del exif[0x0112]
-                    save_kwargs["exif"] = exif
-            except Exception:
-                pass
-
-        buf = io.BytesIO()
-        target_image.save(buf, format=fmt.upper(), **save_kwargs)
-        result_b64 = base64.b64encode(buf.getvalue()).decode()
+        original_bytes = base64.b64decode(body.original_base64) if body.original_base64 else None
+        result_bytes, content_type = _encode_image(
+            working_image,
+            fmt,
+            body.quality,
+            body.lossless,
+            body.compress_level,
+            body.metadata_mode,
+            original_bytes,
+            body.flatten_color,
+        )
         logger.info(f"[Convert] Image converted successfully to {fmt.upper()}.")
 
         return ConvertResponseBody(
-            result_base64=result_b64,
-            content_type=content_types[fmt],
+            result_base64=base64.b64encode(result_bytes).decode(),
+            content_type=content_type,
         )
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"[Convert] Failed to convert image: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to convert image: {str(e)}")
+
+
+@app.post("/process", response_model=ProcessResponseBody)
+def process(
+    body: ProcessRequestBody,
+    detector: WatermarkDetector = Depends(get_detector),
+    inpainter: Inpainter = Depends(get_inpainter),
+) -> ProcessResponseBody:
+    try:
+        fmt = _normalize_format(body.format)
+        raw_bytes = base64.b64decode(body.image_base64)
+
+        logger.info("[Process] Normalizing image orientation and mode to RGBA...")
+        image = Image.open(io.BytesIO(raw_bytes))
+        image = ImageOps.exif_transpose(image)
+        image = image.convert("RGBA")
+
+        if body.auto_remove_watermark:
+            logger.info("[Process] Detecting watermark...")
+            mask = detector.detect(image)
+            logger.info("[Process] Inpainting detected region...")
+            image = inpainter.inpaint(image, mask)
+
+        caption_text: str | None = None
+        if body.generate_caption:
+            logger.info("[Process] Generating caption...")
+            if body.model_id:
+                active_captioner = get_captioner_for_model(body.model_id)
+            else:
+                captioner_fn = app.dependency_overrides.get(get_captioner, get_captioner)
+                active_captioner = captioner_fn()
+            caption_text = active_captioner.caption(image, system_prompt=body.system_prompt)
+
+        logger.info(f"[Process] Converting to target format '{fmt.upper()}'...")
+        result_bytes, content_type = _encode_image(
+            image,
+            fmt,
+            body.quality,
+            body.lossless,
+            body.compress_level,
+            body.metadata_mode,
+            raw_bytes,
+            body.flatten_color,
+        )
+        logger.info("[Process] Pipeline complete.")
+
+        return ProcessResponseBody(
+            result_base64=base64.b64encode(result_bytes).decode(),
+            content_type=content_type,
+            caption=caption_text,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Process] Failed to process image: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
 
