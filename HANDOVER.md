@@ -42,6 +42,18 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **CI fix: `/process` no longer eagerly loads CUDA-only models (Completed 2026-07-31)** —
+  `sidecar/app/main.py`'s `/process` endpoint took `detector`/`inpainter` as
+  `Depends(get_detector)`/`Depends(get_inpainter)`, so FastAPI constructed the
+  real Florence-2 detector and LaMa inpainter on *every* call, even when
+  `auto_remove_watermark` was `False`. That passed on GPU dev machines but
+  failed on GitHub Actions' CPU-only Windows runner with
+  `AssertionError: Torch not compiled with CUDA enabled`
+  (`test_process_convert_only_skips_detect_inpaint_and_caption`,
+  `test_process_rejects_unsupported_format`,
+  `test_process_uses_model_specific_captioner`). Fixed by resolving the
+  detector/inpainter lazily inside the `if body.auto_remove_watermark:` branch,
+  mirroring the lazy-resolution pattern already used for the captioner.
 - **Single-round-trip `/process` endpoint for bulk processing (Completed 2026-07-31)** —
   Added `POST /process` to the sidecar (`sidecar/app/main.py`), which runs
   normalize → detect → inpaint → caption → convert on one in-memory `PIL.Image`
