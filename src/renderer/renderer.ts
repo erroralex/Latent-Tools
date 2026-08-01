@@ -357,11 +357,19 @@ bulkOutputBtn.addEventListener("click", async () => {
   if (folderPath) setOutputFolder(folderPath);
 });
 
-// Dropzone drag-over affordance. Resolving a dropped folder to an absolute
-// path requires Electron's webUtils bridged through the preload script,
-// which is out of scope for this renderer-only rework — dropping still
-// falls back to the existing click-to-browse flow (see plan §5.5/§6).
-function wireDropzoneHighlight(zone: HTMLDivElement) {
+function getDroppedPath(file: File): string {
+  if (window.api.getPathForFile) {
+    try {
+      const p = window.api.getPathForFile(file);
+      if (p) return p;
+    } catch {
+      // fallback
+    }
+  }
+  return (file as any).path || "";
+}
+
+function wireDropzoneFolder(zone: HTMLDivElement, onFolderSelected: (path: string) => void) {
   zone.addEventListener("dragover", (e) => {
     e.preventDefault();
     zone.classList.add("is-dragover");
@@ -370,11 +378,25 @@ function wireDropzoneHighlight(zone: HTMLDivElement) {
   zone.addEventListener("drop", (e) => {
     e.preventDefault();
     zone.classList.remove("is-dragover");
+    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        const folderPath = getDroppedPath(file);
+        if (folderPath) {
+          onFolderSelected(folderPath);
+        }
+      }
+    }
   });
 }
 
-wireDropzoneHighlight(bulkInputDropzone);
-wireDropzoneHighlight(bulkOutputDropzone);
+wireDropzoneFolder(bulkInputDropzone, (folderPath) => {
+  void setInputFolder(folderPath);
+});
+
+wireDropzoneFolder(bulkOutputDropzone, (folderPath) => {
+  setOutputFolder(folderPath);
+});
 
 bulkStartBtn.addEventListener("click", async () => {
   if (!selectedInputFolder || !selectedOutputFolder || isBulkRunning) return;
@@ -867,8 +889,16 @@ brushSize.addEventListener("input", () => {
 });
 
 function syncBrushModeUi() {
-  brushAddBtn.closest(".seg-opt")?.classList.toggle("is-active", brushAddBtn.checked);
-  brushEraseBtn.closest(".seg-opt")?.classList.toggle("is-active", brushEraseBtn.checked);
+  const addLabel = brushAddBtn.closest(".seg-opt");
+  const eraseLabel = brushEraseBtn.closest(".seg-opt");
+  if (addLabel) {
+    addLabel.classList.toggle("active", brushAddBtn.checked);
+    addLabel.classList.toggle("is-active", brushAddBtn.checked);
+  }
+  if (eraseLabel) {
+    eraseLabel.classList.toggle("active", brushEraseBtn.checked);
+    eraseLabel.classList.toggle("is-active", brushEraseBtn.checked);
+  }
 }
 
 brushAddBtn.addEventListener("change", () => {
