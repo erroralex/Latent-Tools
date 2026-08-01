@@ -93,15 +93,20 @@ Latent Tools combines an Electron frontend with an embedded Python FastAPI sidec
 
 ---
 
-## 📦 Download
+## 📦 Downloads for End Users
 
-Prebuilt Windows installer (NSIS `.exe`) and portable `.exe` builds are published on the [Releases page](https://github.com/erroralex/Latent-Tools/releases) for tagged versions (`v1.0.0`). These bundle the compiled Python sidecar, so no separate Python setup is required.
+Prebuilt standalone Windows executables are published on the **[Releases Page](https://github.com/erroralex/Latent-Tools/releases)**:
 
-To build from source instead, follow the steps below.
+* **Portable Standalone (`Latent-Tools.exe`):** **No installation required & no Python setup required.** Simply download, double-click, and run immediately.
+* **Installer (`Latent-Tools-Setup.exe`):** Optional standard Windows installer with Start Menu shortcuts and uninstaller if you prefer a traditional desktop installation.
+
+Both prebuilt downloads come fully self-contained with the compiled GPU sidecar bundled inside.
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Developer Guide (Building from Source)
+
+The instructions below are **only for developers** who want to contribute code or run the application directly from the source repository.
 
 ### 1. One-Time Sidecar Setup (Python Venv)
 
@@ -122,7 +127,7 @@ cd ..
 
 > **⚡ Important:** Plain `pip install torch` installs a CPU-only wheel on Windows. The explicit `--index-url https://download.pytorch.org/whl/cu128` ensures full GPU hardware acceleration on RTX graphics cards.
 
-### 2. Launching the Application
+### 2. Launching the Application Locally
 
 ```bash
 # Install Node dependencies
@@ -131,7 +136,7 @@ npm install
 # Build TypeScript renderer and main process
 npm run build
 
-# Start Electron (spawns Python GPU sidecar automatically)
+# Start Electron dev mode (spawns Python GPU sidecar automatically)
 npm start
 ```
 
@@ -152,13 +157,13 @@ cd sidecar
 
 ---
 
-## 🏗️ Building a Standalone Windows Executable
+## 🏗️ Packaging Standalone Executables
 
 ```bash
 npm run dist
 ```
 
-Packages the app with `electron-builder`, compiling the Python sidecar to `sidecar.exe` via PyInstaller and producing both an NSIS installer and a portable `.exe` under `release/`.
+Packages the application via `electron-builder`, compiling the Python sidecar engine into a standalone binary (`sidecar.exe`) via PyInstaller and producing both the zero-install portable `.exe` and the NSIS setup installer under `release/`.
 
 ---
 
