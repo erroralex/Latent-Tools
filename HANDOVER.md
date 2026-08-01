@@ -42,6 +42,15 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **Modernized Deep Neon UI rework (Completed 2026-08-01)** —
+  Updated visual tokens, app shell layout, typography, and component styling
+  to the Modernized Deep Neon specification (`docs/modernized-neon-implementation-plan.md`).
+  Replaced pure black ground `#000000` with charcoal-navy `#0a0b10` and ambient
+  radial gradients, dropped heavy card backdrop blur in favor of solid `#12141b`
+  surfaces, replaced full halo box-shadow glows with subtle hover rings (`--glow-ring`),
+  introduced solid gradient `.btn-cta` primary action buttons, added 2.5px gradient
+  left indicator bars on active navigation items, added `JetBrains Mono` for telemetry
+  readouts (VRAM, temp, zoom %), and trimmed range sliders to 3px tracks.
 - **README overhaul, LICENSE.md, and CONTRIBUTING.md added (Completed 2026-08-01)** —
   `README.md` now documents bulk dataset processing, the `/process`
   single-round-trip sidecar endpoint, the 2B/7B/custom captioning model

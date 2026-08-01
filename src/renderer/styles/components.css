@@ -12,18 +12,22 @@ body {
   color: var(--color-text);
   background: var(--color-bg);
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(102, 252, 241, 0.07) 0%, transparent 42%),
-    radial-gradient(circle at 85% 80%, rgba(216, 112, 255, 0.07) 0%, transparent 42%);
+    radial-gradient(circle at 12% 8%, rgba(79, 216, 201, 0.05) 0%, transparent 38%),
+    radial-gradient(circle at 88% 92%, rgba(155, 124, 240, 0.045) 0%, transparent 38%);
   overflow: hidden;
 }
 
 ::selection {
-  background: rgba(102, 252, 241, 0.3);
+  background: rgba(79, 216, 201, 0.3);
 }
 
 :focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--font-mono);
 }
 
 .text-muted {
@@ -49,12 +53,13 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 9px;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
-  font-size: 12.5px;
+  font-size: 9.5px;
   font-weight: 700;
   line-height: 1.6;
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 .tag-outline {
@@ -64,9 +69,9 @@ body {
 }
 
 .tag-accent {
-  background: rgba(102, 252, 241, 0.15);
+  background: rgba(79, 216, 201, 0.12);
   color: var(--accent-primary);
-  border: 1px solid rgba(102, 252, 241, 0.3);
+  border: 1px solid rgba(79, 216, 201, 0.25);
 }
 
 .tag-neutral {
@@ -81,54 +86,67 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
-  padding: 10px 18px;
+  padding: 8px 16px;
   font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  background: #000000;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f2f3f6;
   box-shadow: none;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease, filter 0.15s ease;
 }
 
 .btn:hover:not(:disabled) {
-  color: var(--accent-primary);
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: var(--glow-hover);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--glow-ring);
 }
 
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.06);
   color: var(--color-muted);
   box-shadow: none !important;
 }
 
 .btn-primary {
-  background: #000000;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: #f2f3f6;
 }
 
 .btn-primary:hover:not(:disabled) {
-  color: var(--accent-primary);
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: var(--glow-hover);
+  color: #ffffff;
+  border-color: rgba(79, 216, 201, 0.4);
+  box-shadow: var(--glow-ring);
+}
+
+.btn-cta {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border: none;
+  color: #0a0b10;
+  font-weight: 700;
+}
+
+.btn-cta:hover:not(:disabled) {
+  color: #0a0b10;
+  filter: brightness(1.08);
+  box-shadow: 0 0 12px rgba(79, 216, 201, 0.25);
 }
 
 .btn-secondary {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e4e6eb;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.06);
   box-shadow: none;
 }
@@ -141,7 +159,7 @@ body {
 
 .btn-ghost:hover:not(:disabled) {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .btn-icon {
@@ -166,7 +184,7 @@ body {
 /* Segmented Control */
 .seg {
   display: flex;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.5);
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-md);
   padding: 3px;
@@ -182,14 +200,14 @@ body {
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-neutral-400);
   background: transparent;
   border: 1px solid transparent;
   cursor: pointer;
   user-select: none;
-  transition: box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .seg-opt input {
@@ -199,23 +217,22 @@ body {
 }
 
 .seg-opt:hover {
-  background: #000000;
-  box-shadow: var(--glow-seg);
+  background: rgba(255, 255, 255, 0.045);
+  color: #e4e6eb;
 }
 
 .seg-opt.is-active,
 .seg-opt.active {
-  background: #000000;
-  box-shadow: var(--glow-seg);
-  color: var(--accent-primary);
+  background: rgba(79, 216, 201, 0.1);
+  color: #f2f3f6;
+  border-color: rgba(79, 216, 201, 0.2);
 }
 
 .seg-opt.is-active span,
 .seg-opt.active span {
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #f2f3f6;
+  background: none;
+  -webkit-text-fill-color: initial;
 }
 
 .seg-opt.is-active svg,
@@ -232,27 +249,26 @@ body {
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
-  backdrop-filter: blur(16px);
   box-shadow: var(--shadow-card);
 }
 
 .card-title {
   font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 15px;
   color: #ffffff;
 }
 
 .card-kicker {
-  font-size: 12.5px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--color-neutral-400);
 }
 
 .card-body {
-  font-size: 14.5px;
+  font-size: 13.5px;
   line-height: 1.5;
   color: var(--color-neutral-400);
 }
@@ -265,11 +281,11 @@ body {
 }
 
 .field label {
-  font-size: 12.5px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--color-neutral-400);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
 }
 
 .input,
@@ -277,13 +293,13 @@ body {
 input[type="text"],
 input[type="number"],
 textarea {
-  background: rgba(0, 0, 0, 0.85);
-  border: 1px solid var(--color-divider);
-  color: #ffffff;
-  padding: 9px 12px;
-  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f2f3f6;
+  padding: 8px 12px;
+  border-radius: 8px;
   font-family: var(--font-body);
-  font-size: 14.5px;
+  font-size: 13px;
   outline: none;
   width: 100%;
   transition: border-color 0.15s ease;
@@ -300,7 +316,7 @@ textarea {
 .lt-input:focus,
 input[type="text"]:focus,
 textarea:focus {
-  border-color: rgba(102, 252, 241, 0.4);
+  border-color: rgba(79, 216, 201, 0.4);
 }
 
 input[type="color"] {
@@ -319,31 +335,31 @@ select.lt-input {
   color-scheme: dark !important;
   appearance: none !important;
   -webkit-appearance: none !important;
-  background-color: #080c10 !important;
-  color: #ffffff !important;
-  border: 1px solid var(--color-divider) !important;
-  border-radius: var(--radius-md);
+  background-color: #12141b !important;
+  color: #f2f3f6 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px;
   background-image:
-    linear-gradient(45deg, transparent 50%, #a0a0a0 50%),
-    linear-gradient(135deg, #a0a0a0 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, #6b7280 50%),
+    linear-gradient(135deg, #6b7280 50%, transparent 50%);
   background-position:
     calc(100% - 16px) calc(50% - 2px),
     calc(100% - 11px) calc(50% - 2px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  padding: 9px 30px 9px 12px;
+  padding: 8px 30px 8px 12px;
   cursor: pointer;
   outline: none;
   font-family: var(--font-body);
-  font-size: 14.5px;
+  font-size: 12px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 select:focus,
 select.input:focus,
 select.lt-input:focus {
-  border-color: rgba(102, 252, 241, 0.4) !important;
-  box-shadow: 0 0 0 1px rgba(102, 252, 241, 0.2);
+  border-color: rgba(79, 216, 201, 0.4) !important;
+  box-shadow: 0 0 0 1px rgba(79, 216, 201, 0.2);
 }
 
 select option,
@@ -351,31 +367,29 @@ select.input option,
 select.lt-input option,
 option {
   color-scheme: dark !important;
-  background-color: #0c1017 !important;
-  color: #ffffff !important;
-  padding: 10px 14px;
+  background-color: #12141b !important;
+  color: #f2f3f6 !important;
+  padding: 8px 12px;
   font-family: var(--font-body);
-  font-size: 14.5px;
+  font-size: 12px;
 }
 
 select option:checked,
 select option:hover,
 select.input option:checked,
 select.lt-input option:checked {
-  background-color: #16222f !important;
+  background-color: #1a1e28 !important;
   color: var(--accent-primary) !important;
   font-weight: 600;
 }
-
-
 
 /* Sliders */
 input[type="range"].lt-slider,
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  height: 4px;
-  border-radius: 4px;
+  height: 3px;
+  border-radius: 3px;
   background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
   cursor: pointer;
 }
@@ -383,30 +397,31 @@ input[type="range"] {
 input[type="range"].lt-slider::-webkit-slider-thumb,
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #ffffff;
   border: 2px solid var(--accent-primary);
-  box-shadow: 0 0 10px rgba(102, 252, 241, 0.6);
+  box-shadow: 0 0 0 3px rgba(79, 216, 201, 0.18);
   cursor: pointer;
   margin-top: 0;
 }
 
 input[type="range"].lt-slider::-moz-range-thumb,
 input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #ffffff;
   border: 2px solid var(--accent-primary);
-  box-shadow: 0 0 10px rgba(102, 252, 241, 0.6);
+  box-shadow: 0 0 0 3px rgba(79, 216, 201, 0.18);
   cursor: pointer;
 }
 
 input[type="range"].lt-slider::-moz-range-track,
 input[type="range"]::-moz-range-track {
   background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-  height: 4px;
-  border-radius: 4px;
+  height: 3px;
+  border-radius: 3px;
 }
+
