@@ -1,6 +1,6 @@
 # Handover — where the project stands
 
-_Last updated: 2026-07-31_
+_Last updated: 2026-08-01_
 
 ## What this project is
 
@@ -42,6 +42,17 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **Fix: brush unusable after Remove Watermark until Detect → Clear (Completed 2026-08-01)** —
+  `src/renderer/renderer.ts`'s `inpaintBtn` handler set `maskCanvas.style.display
+  = "none"` after a successful inpaint. That overlay canvas owns every brush
+  `pointerdown`/`pointermove`/`pointerup` listener, and a `display: none`
+  element receives no pointer events at all, so brush strokes silently
+  no-oped until Detect (or importing a new image) set `display` back to
+  `"block"`. Fixed by clearing the stale mask (`offscreenCtx.clearRect` →
+  `syncVisibleCanvas` → `exportOffscreenMask` → `clearHistory` →
+  `saveHistoryState`, the same sequence the Clear Mask button already uses)
+  instead of hiding the canvas, so the overlay goes visually empty but stays
+  interactive for immediate touch-up masking.
 - **App icon in titlebar, tray, and `.exe` (Completed 2026-07-31)** — Added
   `assets/lt_icon.png` and wired it in three places: the renderer's custom
   titlebar logo (`src/renderer/index.html`, replacing the CSS gradient-text
