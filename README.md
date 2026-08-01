@@ -162,7 +162,7 @@ Packages the app with `electron-builder`, compiling the Python sidecar to `sidec
 
 ## 📜 License
 
-Distributed under the **MIT License**.
+Distributed under the **MIT License** — see [LICENSE.md](LICENSE.md) for the full text.
 
 ---
 
