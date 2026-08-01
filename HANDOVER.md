@@ -43,15 +43,7 @@ flow, testing strategy, and 6 phased milestones.
 
 ## Completed Improvements
 - **v1.0.0 Release & Unified Latent Design System Migration (Completed 2026-08-01)** —
-  Migrated `Latent Tools` to the official unified **Latent Design System** (`https://github.com/erroralex/Latent-Design-System.git`), standardizing tokens (`src/renderer/styles/latent/`), colors (near-black graphite `#0A0A0D`, Latent Cyan `#4FD8D0`, Latent Violet `#9B7EF5`, brand gradient), typography (`Inter` + `JetBrains Mono`), titlebar brand gradient rounded square, white active/hover sidebar icon strokes, action button glow rings, and drag-and-drop folder support on bulk input/output dropzones with helper text. Tagged `v1.0.0` and published first full release via GitHub Actions.
-  Updated visual tokens, app shell layout, typography, and component styling
-  to the Modernized Deep Neon specification (`docs/modernized-neon-implementation-plan.md`).
-  Replaced pure black ground `#000000` with charcoal-navy `#0a0b10` and ambient
-  radial gradients, dropped heavy card backdrop blur in favor of solid `#12141b`
-  surfaces, replaced full halo box-shadow glows with subtle hover rings (`--glow-ring`),
-  introduced solid gradient `.btn-cta` primary action buttons, added 2.5px gradient
-  left indicator bars on active navigation items, added `JetBrains Mono` for telemetry
-  readouts (VRAM, temp, zoom %), and trimmed range sliders to 3px tracks.
+  Migrated `Latent Tools` to the official unified **Latent Design System** (`https://github.com/erroralex/Latent-Design-System.git`), standardizing tokens (`src/renderer/styles/latent/`), colors (near-black graphite `#0A0A0D`, Latent Cyan `#4FD8D0`, Latent Violet `#9B7EF5`, brand gradient), typography (`Inter` + `JetBrains Mono`), titlebar brand gradient rounded square, white active/hover sidebar icon strokes, action button glow rings, and drag-and-drop folder support on bulk input/output dropzones with helper text. Tagged `v1.0.0` and published first full release via GitHub Actions. Updated developer mark asset to `alx_logo.png` across renderer sidebar and `README.md`.
 - **README overhaul, LICENSE.md, and CONTRIBUTING.md added (Completed 2026-08-01)** —
   `README.md` now documents bulk dataset processing, the `/process`
   single-round-trip sidecar endpoint, the 2B/7B/custom captioning model
