@@ -23,4 +23,5 @@ sidecar/build/
 *.egg-info/
 tests/images/
 
-
+# Scratch
+scratch/

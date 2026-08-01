@@ -1,56 +1,37 @@
-/* Deep Neon Design Tokens — Modernized charcoal-navy ground, refined accents */
-:root {
-  color-scheme: dark;
+/* Latent Design System Tokens Wrapper */
+@import "latent/styles.css";
 
-  /* Ground & surfaces */
-  --color-bg: #0a0b10;
-  --color-surface: #12141b;
-  --color-surface-raised: #181b24;
+:root {
+  /* Legacy alias mappings for Latent Tools */
+  --color-bg: var(--color-bg-canvas);
+  --color-surface: var(--color-surface-1);
+  --color-surface-raised: var(--color-surface-2);
   --color-surface-alt: rgba(255, 255, 255, 0.03);
-  --color-divider: rgba(255, 255, 255, 0.06);
-  --color-neutral-800: #12141b;
-  --color-neutral-400: #6b7280;
-  --color-muted: #6b7280;
+  --color-divider: var(--color-border-subtle);
+  --color-neutral-800: var(--gray-850);
+  --color-neutral-400: var(--gray-400);
+  --color-muted: var(--gray-400);
 
   /* Text */
-  --color-text: #f2f3f6;
-  --color-text-secondary: #e4e6eb;
+  --color-text: var(--color-text-primary);
 
-  /* Refined Accents */
-  --accent-primary: #4fd8c9;
-  --accent-secondary: #9b7cf0;
-  --color-accent: #4fd8c9;
-  --color-accent-300: #4fd8c9;
-  --color-accent-2: #9b7cf0;
+  /* Accents */
+  --accent-primary: var(--color-accent-primary);
+  --accent-secondary: var(--color-accent-secondary);
+  --color-accent: var(--color-accent-primary);
+  --color-accent-300: var(--color-accent-primary);
+  --color-accent-2: var(--color-accent-secondary);
 
   /* Status */
-  --color-success: #22c55e;
-  --color-warning: #eab308;
-  --color-danger: #f87171;
+  --color-success: var(--green-500);
+  --color-warning: var(--amber-500);
+  --color-danger: var(--red-500);
 
   /* Typography */
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-
-  /* Spacing scale (space-N = N * 4px) */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-full: 999px;
+  --font-heading: var(--font-sans);
+  --font-body: var(--font-sans);
 
   /* Shadows / Glows */
-  --glow-ring: 0 0 0 3px rgba(79, 216, 201, 0.08);
-  --glow-hover: 0 0 0 3px rgba(79, 216, 201, 0.08);
-  --glow-nav: none;
-  --glow-seg: none;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --glow-ring: var(--glow-primary);
+  --glow-hover: var(--glow-primary);
 }
