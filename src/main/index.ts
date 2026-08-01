@@ -2,7 +2,7 @@ import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process"
 import * as fs from "node:fs";
 import * as fsPromises from "node:fs/promises";
 import * as path from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage, shell } from "electron";
 import { SidecarClient } from "./sidecar-client";
 import { SidecarProcess } from "./sidecar-process";
 import { registerIpcHandlers } from "./ipc-handlers";
@@ -120,6 +120,9 @@ async function createWindow(): Promise<void> {
     (folderPath) => fsPromises.readdir(folderPath),
     (filePath) => fsPromises.readFile(filePath),
     () => window,
+    async (url) => {
+      await shell.openExternal(url);
+    },
   );
 
   void window.loadFile(path.join(__dirname, "../renderer/index.html"));

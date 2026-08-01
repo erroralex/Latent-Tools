@@ -20,6 +20,8 @@ export type GetWindowFn = () => {
   close: () => void;
 } | null;
 
+export type OpenExternalFn = (url: string) => Promise<void>;
+
 function callCaption(
   client: SidecarClient,
   image: Buffer,
@@ -40,8 +42,18 @@ export function registerIpcHandlers(
   readDir?: ReadDirFn,
   readFile?: ReadFileFn,
   getWindow?: GetWindowFn,
+  openExternal?: OpenExternalFn,
 ): void {
   const images = new Map<string, { normalized: Buffer; original: Buffer; currentMask?: Buffer }>();
+
+  // External Link Opener
+  ipcMain.handle("shell:open-external", async (_event, args) => {
+    const { url } = (args as { url?: string }) ?? {};
+    if (url && openExternal) {
+      await openExternal(url);
+    }
+    return { success: true };
+  });
 
   // Window Controls
   ipcMain.handle("window:minimize", async () => {

@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer, webFrame, shell, webUtils } from "electron"
 
 contextBridge.exposeInMainWorld("api", {
   // External link opener
-  openExternal: (url: string) => shell.openExternal(url),
+  openExternal: (url: string) => ipcRenderer.invoke("shell:open-external", { url }),
 
   // File Path Utilities for drag and drop
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
