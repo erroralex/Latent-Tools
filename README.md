@@ -14,7 +14,19 @@ A local-first, on-device desktop application for bulk image dataset preparation:
 
 Latent Tools is built to remove watermarks **you have the rights to remove** — your own marks, marks on images you own or are licensed to edit, or marks on assets you otherwise have permission to modify. It is **not** a tool for stripping copyright, attribution, or ownership marks from other people's work.
 
-You are solely responsible for ensuring you have the legal right to edit any image you process with this tool. The authors and contributors accept no liability for misuse.
+Watermarks, credit lines, and similar overlays can constitute Copyright Management Information (CMI) under 17 U.S.C. § 1202 (and analogous laws elsewhere). Removing or altering CMI from a work without the rightsholder's authority — or knowingly distributing an image after doing so — can carry legal liability independent of ordinary copyright infringement, and can attach to the person who did the removal even where the underlying use might otherwise be permitted. This software performs no rights checking of any kind: it does not verify that you own, license, or are otherwise authorized to modify any image you feed into it. That determination is entirely yours to make **before** you process an image, not after.
+
+You are solely responsible for ensuring you have the legal right to edit any image you process with this tool, including the right to remove any watermark, credit line, or CMI it contains. The authors and contributors accept no liability for misuse, and provide no warranty that use of this tool complies with copyright law, the DMCA, or any other applicable law in your jurisdiction.
+
+### Third-party models — separate licenses, not covered by this repo's MIT grant
+
+This repository's own code is MIT-licensed (see [LICENSE.md](LICENSE.md)). At runtime, the sidecar downloads and runs third-party model weights from Hugging Face that are **not** part of that grant and carry their own license terms — read them before commercial or redistributive use:
+
+* **Florence-2** (`microsoft/Florence-2-base`) — MIT.
+* **Qwen2-VL** (`Qwen/Qwen2-VL-2B-Instruct` / `Qwen/Qwen2-VL-7B-Instruct`) — Tongyi Qianwen license, which imposes use-based restrictions (including a large-scale-commercial-use threshold); review Qwen's license terms directly if that applies to you.
+* **IOPaint / LaMa** — see the `iopaint` package and upstream LaMa licensing.
+
+Using a custom local model in place of the defaults shifts responsibility for that model's license onto whoever supplies it.
 
 ---
 

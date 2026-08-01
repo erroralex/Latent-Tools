@@ -88,10 +88,13 @@ cd sidecar
 ## Scope and responsible use
 
 Watermark removal in this project is intended for marks you have the rights
-to remove — your own, or images you're licensed to edit. Contributions that
-specifically aim to defeat copyright/ownership marks on others' work, or
-that weaken the tool's fitness for legitimate use in favor of that, will be
-declined. See the README's disclaimer for the full statement.
+to remove — your own, or images you're licensed to edit. Watermarks and
+credit lines can constitute Copyright Management Information (CMI) under
+17 U.S.C. § 1202, and removing CMI without the rightsholder's authority can
+carry legal liability independent of copyright infringement. Contributions
+that specifically aim to defeat copyright/ownership/CMI marks on others'
+work, or that weaken the tool's fitness for legitimate use in favor of that,
+will be declined. See the README's disclaimer for the full statement.
 
 ## Reporting bugs / requesting features
 
