@@ -3,6 +3,9 @@ interface Window {
     // External link opener
     openExternal: (url: string) => Promise<void>;
 
+    // File Path Utilities for drag and drop
+    getPathForFile?: (file: File) => string;
+
     // Sidecar Listener
 
     onSidecarStateChange: (callback: (state: string) => void) => void;
