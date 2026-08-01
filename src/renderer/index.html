@@ -90,11 +90,6 @@
                 <h2>Single Image Editor</h2>
                 <p>Detect and remove watermarks, then write a training caption before exporting.</p>
               </div>
-              <label class="btn btn-secondary" style="cursor: pointer">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 8l5-5 5 5"></path><path d="M4 21h16"></path></svg>
-                Select Image
-                <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" style="display: none" />
-              </label>
             </div>
 
             <div class="pipeline-bar">
@@ -146,6 +141,11 @@
                     <button id="clear-mask-btn" class="btn btn-ghost" style="font-size: 14px; padding: 6px 10px">Clear</button>
                     <button id="reset-mask-btn" class="btn btn-ghost" style="font-size: 14px; padding: 6px 10px">Reset</button>
                   </div>
+                  <label class="btn btn-secondary" style="cursor: pointer; margin-left: auto; padding: 6px 14px">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 8l5-5 5 5"></path><path d="M4 21h16"></path></svg>
+                    Select Image
+                    <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" style="display: none" />
+                  </label>
                 </div>
 
                 <div id="preview-container">
