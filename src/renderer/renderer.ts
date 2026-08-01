@@ -867,8 +867,16 @@ brushSize.addEventListener("input", () => {
 });
 
 function syncBrushModeUi() {
-  brushAddBtn.closest(".seg-opt")?.classList.toggle("is-active", brushAddBtn.checked);
-  brushEraseBtn.closest(".seg-opt")?.classList.toggle("is-active", brushEraseBtn.checked);
+  const addLabel = brushAddBtn.closest(".seg-opt");
+  const eraseLabel = brushEraseBtn.closest(".seg-opt");
+  if (addLabel) {
+    addLabel.classList.toggle("active", brushAddBtn.checked);
+    addLabel.classList.toggle("is-active", brushAddBtn.checked);
+  }
+  if (eraseLabel) {
+    eraseLabel.classList.toggle("active", brushEraseBtn.checked);
+    eraseLabel.classList.toggle("is-active", brushEraseBtn.checked);
+  }
 }
 
 brushAddBtn.addEventListener("change", () => {
