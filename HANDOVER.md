@@ -42,6 +42,17 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **README overhaul, LICENSE.md, and CONTRIBUTING.md added (Completed 2026-08-01)** —
+  `README.md` now documents bulk dataset processing, the `/process`
+  single-round-trip sidecar endpoint, the 2B/7B/custom captioning model
+  selector, export presets, the Deep Neon UI, and prebuilt-release
+  downloads — all previously undocumented — plus a disclaimer that the
+  tool is for removing watermarks users have the rights to remove, not
+  for stripping copyright from others' work. Added `LICENSE.md` (MIT,
+  matching `package.json`'s new `license`/`author` fields) and
+  `CONTRIBUTING.md` (setup, AGENTS.md-derived workflow rules, GPU
+  exclusivity note, commit/PR conventions, and the same responsible-use
+  scope statement), neither of which existed before.
 - **Fix: brush unusable after Remove Watermark until Detect → Clear (Completed 2026-08-01)** —
   `src/renderer/renderer.ts`'s `inpaintBtn` handler set `maskCanvas.style.display
   = "none"` after a successful inpaint. That overlay canvas owns every brush
