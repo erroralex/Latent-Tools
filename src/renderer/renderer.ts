@@ -128,6 +128,40 @@ if (sidebarLogoLink) {
   });
 }
 
+// Settings Modal
+const navSettings = document.getElementById("nav-settings") as HTMLButtonElement | null;
+const settingsModal = document.getElementById("settings-modal") as HTMLDivElement | null;
+const settingsCloseBtn = document.getElementById("settings-close-btn") as HTMLButtonElement | null;
+const kofiBtn = document.getElementById("kofi-btn") as HTMLButtonElement | null;
+
+if (navSettings && settingsModal) {
+  navSettings.addEventListener("click", () => {
+    settingsModal.style.display = "flex";
+  });
+}
+
+if (settingsCloseBtn && settingsModal) {
+  settingsCloseBtn.addEventListener("click", () => {
+    settingsModal.style.display = "none";
+  });
+}
+
+if (settingsModal) {
+  settingsModal.addEventListener("click", (e) => {
+    if (e.target === settingsModal) {
+      settingsModal.style.display = "none";
+    }
+  });
+}
+
+if (kofiBtn) {
+  kofiBtn.addEventListener("click", () => {
+    if (window.api?.openExternal) {
+      void window.api.openExternal("https://ko-fi.com/error_alex");
+    }
+  });
+}
+
 
 // Sidebar nav (single / bulk)
 const navSingle = document.getElementById("nav-single") as HTMLButtonElement;
