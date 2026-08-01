@@ -173,6 +173,10 @@ body {
   color: var(--color-text-primary);
 }
 
+.nav-btn:hover svg {
+  stroke: var(--color-text-primary);
+}
+
 .nav-btn.is-active,
 .nav-btn.active {
   background: var(--color-surface-1);
@@ -186,7 +190,7 @@ body {
 
 .nav-btn.is-active svg,
 .nav-btn.active svg {
-  stroke: var(--color-accent-primary);
+  stroke: var(--color-text-primary);
 }
 
 .nav-btn.is-active span,
