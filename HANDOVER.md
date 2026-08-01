@@ -14,26 +14,26 @@ Full spec: [`docs/implementation-plan.md`](docs/implementation-plan.md) —
 architecture, component breakdown, IPC/HTTP contract, error handling, UI/UX
 flow, testing strategy, and 6 phased milestones.
 
-## Where we are: All 6 Phases Complete & Standalone Release Ready
+## Where we are: All 6 Phases Complete & v1.0.0 Standalone Release Published
 
 **Phase 1** ("sidecar + single-image round trip, one format") is complete.  
 **Phase 2** ("multi-format conversion") is complete.  
 **Phase 3** ("captioning") is complete.  
 **Phase 4** ("manual mask adjustment UI") is complete.  
 **Phase 5** ("bulk / batch dataset processing") is complete.  
-**Phase 6** ("polish, telemetry, user experience & edge-case robustness") is complete — Deep Neon visual theme, standalone `.exe` release packaging, loopback firewall isolation, UI scale zoom, and dark select popups.
+**Phase 6** ("polish, telemetry, user experience & edge-case robustness") is complete — Unified Latent Design System visual theme, standalone `.exe` release packaging, loopback firewall isolation, UI scale zoom, and dark select popups.
 
 ## What's built right now
 
 - **Sidecar** (`sidecar/`, FastAPI): `/health`, `/gpu` (real-time GPU Name, VRAM usage & Temp telemetry), `/normalize`, `/detect` (Florence-2 open-vocabulary detection + adaptive Canny stroke contouring), `/inpaint` (IOPaint/LaMa), `/convert` (JPEG/PNG/WEBP export), `/caption` (Qwen2-VL-2B-Instruct / Qwen2-VL-7B-Instruct or a custom local model folder, selectable per-request via `model_id`, with custom system prompts & trigger words), `/shutdown`. Hardened Uvicorn engine to `127.0.0.1` loopback with `--port` CLI flag and `LATENT_SIDECAR_PORT` environment variable to prevent Windows Firewall prompts. PyInstaller support (`sidecar.exe`) for single-binary packaging.
 - **Electron main** (`src/main/`): `SidecarClient`, `SidecarProcess`, `ipc-handlers.ts` (`image:import`/`detect`/`inpaint`/`caption`/`save`/`export`/`gpu:status`/`mask:update`/`folder:select`/`folder:list-images`/`bulk:process-item`/window controls), default window dimensions `1440x900` centered in windowed mode. Dynamic `app.isPackaged` sidecar path resolution (`process.resourcesPath/sidecar/sidecar.exe`). System tray icon (`assets/lt_icon.png`) with a Show/Quit context menu; `BrowserWindow` and packaged `.exe` both carry the same icon.
-- **Renderer UI** (Deep Neon design system — pure black ground `#000000`, cyan `#66fcf1`, purple `#d870ff`, glass blurs, hover glow shadows):
-  - **App shell**: frameless glass titlebar (window controls, `lt_icon.png` app logo, live GPU Sidecar status pill) + left sidebar (Single/Bulk nav, shared captioning model selector, GPU mini-widget with VRAM bar, ALK developer logo linked to GitHub profile).
+- **Renderer UI** (Unified Latent Design System — near-black graphite canvas `#0A0A0D`, step-up flat surfaces `#14151B` / `#23252F`, Latent Cyan `#4FD8D0`, Latent Violet `#9B7EF5`, brand gradient, `Inter` typography, `JetBrains Mono` telemetry):
+  - **App shell**: frameless titlebar (window controls, Latent brand gradient rounded square logo, live GPU Sidecar status pill) + left sidebar (Single/Bulk nav with 2.5px brand indicator bar, shared captioning model selector, GPU mini-widget with VRAM bar, ALK developer logo linked to GitHub profile).
   - **UI Zooming & Scaling**: `Ctrl` + mousewheel zooming (50%–250%) and `Ctrl+0` reset shortcut via `webFrame`. Default base text sizes increased by +2px across all components.
   - **Dark Dropdown Styling**: `color-scheme: dark` enforced across all `<select>` and `<option>` elements (Captioning Model, Export Presets, Formats, Compression Levels, Metadata settings).
-  - **Single Image Editor**: pipeline stepper (Detect → Remove → Caption) above a preview/inspector grid. Full-featured canvas mask overlay with adaptive brush editing, undo/redo history, mousewheel zoom, and click & drag panning. Inspector Caption/Export tabs with presets (LoRA/Archive/Web + `localStorage`-backed custom presets).
-  - **Bulk Dataset Processor**: single scrolling column card layout containing disclaimer banner, Setup (input/output dropzones + thumbnail grid), Export Settings, and Progress & Real-time Logs terminal.
-- **Packaging & CI/CD**: `package.json` configured with `electron-builder` for Windows NSIS installer (`.exe`) and Portable standalone (`.exe`), both carrying `assets/lt_icon.png` as the `.exe` icon. GitHub Actions workflow ([`.github/workflows/build.yml`](.github/workflows/build.yml)) compiles the PyInstaller sidecar binary, runs Vitest & Pytest test suites, and publishes standalone release installers — it now triggers only on `v*` tag pushes, GitHub releases, or manual dispatch, **not** on every commit to `main`. First beta tags: `v0.1.0-beta.1`, `v0.1.0-beta.2`.
+  - **Single Image Editor**: pipeline stepper (Detect → Remove → Caption) above a preview/inspector grid. Full-featured canvas mask overlay with adaptive brush editing, undo/redo history, mousewheel zoom, click & drag panning, and top-right "Select Image" button. Inspector Caption/Export tabs with presets (LoRA/Archive/Web + `localStorage`-backed custom presets).
+  - **Bulk Dataset Processor**: single scrolling column card layout containing disclaimer banner, Setup (input/output drag-and-drop folder dropzones with native `webUtils.getPathForFile` resolution & helper text + thumbnail grid), Export Settings, and Progress & Real-time Logs terminal.
+- **Packaging & CI/CD**: `package.json` configured with `electron-builder` for Windows NSIS installer (`.exe`) and Portable standalone (`.exe`), both carrying `assets/lt_icon.png` as the `.exe` icon. GitHub Actions workflow ([`.github/workflows/build.yml`](.github/workflows/build.yml)) compiles the PyInstaller sidecar binary, runs Vitest & Pytest test suites, and publishes standalone release installers on `v*` tag pushes or GitHub releases. First full release tag: `v1.0.0`.
 
 ## TODO
 - No open items on the bulk-pipeline speed track. Detect (0.3-0.5s) and caption
@@ -42,7 +42,8 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
-- **Modernized Deep Neon UI rework (Completed 2026-08-01)** —
+- **v1.0.0 Release & Unified Latent Design System Migration (Completed 2026-08-01)** —
+  Migrated `Latent Tools` to the official unified **Latent Design System** (`https://github.com/erroralex/Latent-Design-System.git`), standardizing tokens (`src/renderer/styles/latent/`), colors (near-black graphite `#0A0A0D`, Latent Cyan `#4FD8D0`, Latent Violet `#9B7EF5`, brand gradient), typography (`Inter` + `JetBrains Mono`), titlebar brand gradient rounded square, white active/hover sidebar icon strokes, action button glow rings, and drag-and-drop folder support on bulk input/output dropzones with helper text. Tagged `v1.0.0` and published first full release via GitHub Actions.
   Updated visual tokens, app shell layout, typography, and component styling
   to the Modernized Deep Neon specification (`docs/modernized-neon-implementation-plan.md`).
   Replaced pure black ground `#000000` with charcoal-navy `#0a0b10` and ambient
