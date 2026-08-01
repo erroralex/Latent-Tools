@@ -1135,7 +1135,14 @@ inpaintBtn.addEventListener("click", async () => {
   try {
     const { resultBase64 } = await window.api.inpaint(currentImageId, currentMaskBase64);
     preview.src = `data:image/png;base64,${resultBase64}`;
-    maskCanvas.style.display = "none";
+    // The old strokes described the now-removed watermark and are stale for
+    // the new image; clear them but keep the canvas visible/interactive so
+    // the brush works immediately for touch-up masking.
+    offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    syncVisibleCanvas();
+    await exportOffscreenMask();
+    clearHistory();
+    saveHistoryState();
   } finally {
     inpaintBtn.disabled = false;
     inpaintBtn.textContent = "Remove Watermark";
