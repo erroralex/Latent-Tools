@@ -173,7 +173,7 @@ body {
 }
 
 .btn-primary:hover:not(:disabled) {
-  border-color: var(--color-accent-primary);
+  border-color: var(--color-border-strong);
   box-shadow: var(--glow-primary);
 }
 
@@ -238,8 +238,9 @@ body {
 }
 
 .btn-icon:hover:not(:disabled) {
-  border-color: var(--color-accent-primary);
-  color: var(--color-accent-primary);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+  box-shadow: var(--glow-primary);
 }
 
 .btn-block {
