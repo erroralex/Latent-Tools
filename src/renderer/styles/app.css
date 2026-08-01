@@ -52,8 +52,9 @@ body {
 .logo-lt {
   width: 22px;
   height: 22px;
-  object-fit: contain;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
+  background: var(--gradient-brand);
+  flex: none;
 }
 
 .titlebar-controls {
