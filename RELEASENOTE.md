@@ -1,11 +1,17 @@
-## Latent Tools — v0.1.0-beta.3
+## Latent Tools — v0.2.0-beta
 
 Local-first Windows desktop app for bulk image-dataset prep: AI watermark
 removal, format conversion, and uncensored image captioning — all running
 entirely on-device on your own GPU.
 
-### What's new since v0.1.0-beta.2
+### What's new in v0.2.0-beta
 
+- **Modernized Deep Neon UI Design System** — Full visual refresh with
+  charcoal-navy ground (`#0a0b10`), ambient radial gradients, crisp solid
+  card surfaces (`#12141b`), restrained hover rings (`--glow-ring`), active
+  navigation gradient left accent bars, solid gradient `.btn-cta` primary
+  action buttons, 3px range sliders, and `JetBrains Mono` typography for VRAM,
+  temperature, and zoom readouts.
 - **Fix: brush unusable right after "Remove Watermark"** — Previously the
   mask canvas was hidden after an inpaint pass, which silently disabled all
   brush input until you ran Detect again and cleared it. The brush now
@@ -16,16 +22,15 @@ entirely on-device on your own GPU.
   have the rights to remove (your own marks, or marks on assets you're
   licensed to edit) — not for stripping copyright or ownership marks from
   other people's work. Responsibility for lawful use rests with the user.
-- **LICENSE.md added** — The MIT license was previously only claimed in the
-  README with no license file; it's now published in the repo and
+- **LICENSE.md added** — The MIT license was published in the repo and
   referenced from `package.json`.
 - **CONTRIBUTING.md added** — Setup steps, workflow expectations (GPU
   exclusivity for performance work, test-first bugfixes), and commit/PR
   conventions for anyone contributing to the project.
-- **README overhaul** — Now documents bulk dataset processing, the
+- **README overhaul** — Documents bulk dataset processing, the
   single-round-trip `/process` sidecar endpoint, the 2B/7B/custom
   captioning model selector, export presets, the Deep Neon UI, and how to
-  grab a prebuilt release — all previously undocumented.
+  grab a prebuilt release.
 
 ### Highlights (full feature set)
 
