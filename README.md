@@ -19,7 +19,7 @@ A local-first, on-device desktop application for bulk image dataset preparation:
 <p align="center">
   <img src="assets/single.jpg" width="800" alt="Single Image Editor">
   <br>
-  <i><b>Single Image Editor:</b> Detect and remove watermarks on an interactive mask canvas, then write and export a training caption.</i>
+  <i><b>Single Image Editor:</b> Detect and remove watermarks on an interactive mask canvas, then write/generate and export a training caption.</i>
 </p>
 
 <p align="center">
