@@ -42,6 +42,21 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **License/docs coherence pass against Latent Library (Completed 2026-08-02)** —
+  Auditing this repo's LICENSE/README/BUILDING/CONTRIBUTING against Latent Library
+  (the reference app for this pass, since it also went through this same audit
+  earlier) found this repo's license was plain MIT — missing the Commons Clause
+  condition (no reselling/hosting as a paid service) that Library and Model
+  Organizer both carry. That was an oversight, not an intentional divergence for
+  this app. Renamed `LICENSE.md` → `LICENSE` and added the Commons Clause block,
+  matching the other two byte-for-byte. Updated `package.json`'s `license` field
+  from `"MIT"` to `"SEE LICENSE IN LICENSE"` and fixed the two license references
+  in `README.md` (the third-party-models section and the License section) to match.
+  Also added `BUILDING.md` (this repo didn't have one, unlike Library/Organizer),
+  extracted from README's "Developer Guide"/"Running Tests"/"Packaging" sections —
+  those sections were removed from README, matching how Library/Organizer keep
+  build-from-source detail out of the README and in BUILDING.md instead. Verified
+  `npm run build` and `npm test` still pass after the `package.json` edit.
 - **Dev-credit logo sized to match sibling apps (Completed 2026-08-02)** —
   `.sidebar-footer-logo img` (`src/renderer/styles/app.css`) used a plain
   `width: 64px`, matching Latent Model Organizer but not Latent Library
