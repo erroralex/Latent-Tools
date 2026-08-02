@@ -43,10 +43,12 @@ body {
 
 .titlebar-wordmark {
   font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-text-primary);
+  font-size: var(--text-body-lg, 16px);
+  font-weight: var(--weight-bold, 700);
+  background: var(--gradient-brand-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: var(--tracking-tight, -0.01em);
 }
 
 .logo-lt {

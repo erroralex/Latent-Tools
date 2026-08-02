@@ -1,3 +1,8 @@
+// Render all [data-lucide] icon placeholders into real inline SVGs.
+if (typeof lucide !== "undefined") {
+  lucide.createIcons({ attrs: { "stroke-width": "1.8" } });
+}
+
 // Sidecar Status Listener
 const sidecarStatusPill = document.getElementById("sidecar-status-pill") as HTMLDivElement;
 const sidecarStatusText = document.getElementById("sidecar-status-text") as HTMLSpanElement;

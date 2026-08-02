@@ -1,3 +1,10 @@
+// Loaded via a plain <script> tag from the lucide UMD bundle (see
+// scripts/copy-renderer-html.js) — the renderer has no bundler, so lucide's
+// npm package is shipped as a prebuilt global instead of an ES import.
+declare const lucide: {
+  createIcons: (options?: { attrs?: Record<string, string> }) => void;
+};
+
 interface Window {
   api: {
     // External link opener

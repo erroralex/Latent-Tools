@@ -55,6 +55,9 @@
       "createStartMenuShortcut": true
     }
   },
+  "dependencies": {
+    "lucide": "^0.400.0"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "electron": "^33.0.0",

@@ -1,6 +1,6 @@
 # Handover — where the project stands
 
-_Last updated: 2026-08-01_
+_Last updated: 2026-08-02_
 
 ## What this project is
 
@@ -42,6 +42,46 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **Titlebar wordmark aligned with sibling apps (Completed 2026-08-02)** —
+  Follow-up from the icon migration below, found via a user screenshot comparison
+  against Latent Model Organizer and Latent Library. `.titlebar-wordmark`
+  (`src/renderer/styles/app.css`) rendered "Latent Tools" as flat
+  `var(--color-text-primary)` at 14px, while both sibling apps use a gradient
+  treatment. Changed to `font-size: var(--text-body-lg, 16px)`,
+  `font-weight: var(--weight-bold, 700)`, gradient text via
+  `background: var(--gradient-brand-text)` + `-webkit-background-clip: text` +
+  `-webkit-text-fill-color: transparent`, `letter-spacing: var(--tracking-tight,
+  -0.01em)` — all tokens already existed in `styles/latent/tokens/`, no token
+  changes needed.
+- **Icon system standardized on real Lucide glyphs (Completed 2026-08-02)** —
+  This app's hand-rolled inline `<svg>` icons (already visually close to Lucide's
+  stroke style) were replaced with real Lucide icons across a cross-app pass that
+  also standardized Latent Library and Latent Model Organizer on
+  `lucide-vue-next`. This app has **no bundler** for the renderer (`renderer.ts`
+  compiles with plain `tsc` to CommonJS, loaded via a bare `<script>` tag under
+  Electron's default `contextIsolation`), so the usual `import { createIcons }
+  from 'lucide'` approach would compile to a `require()` call and break at
+  runtime — the standard vanilla-JS integration doesn't apply here. Instead,
+  `lucide`'s prebuilt UMD bundle (`node_modules/lucide/dist/umd/lucide.min.js`,
+  exposing `window.lucide`) is now copied into `dist/renderer/` alongside
+  `styles/`/`assets/` (`scripts/copy-renderer-html.js`) and loaded via a plain
+  `<script>` tag before `renderer.js`; `renderer.ts` calls
+  `lucide.createIcons({ attrs: { "stroke-width": "1.8" } })` on load (global
+  declared in `src/renderer/window.d.ts`). 16 of 18 inline SVGs in
+  `src/renderer/index.html` became `<i data-lucide="...">` placeholders:
+  `image`, `layers`, `cpu`, `settings` (×2), `arrow-right` (×2), `paintbrush`,
+  `eraser`, `search`, `upload`, `sparkles`, `save` (×2), `play`, `folder` (×2),
+  `palette`, `heart`. The app's own two-tone "L" brand mark and the Ko-fi
+  button's third-party mascot logo were deliberately left as inline SVG (not
+  generic UI icons, no Lucide equivalent). One mapping is a judgment call worth
+  a visual spot-check: `sparkles` for the "Generate Caption" button — the
+  original custom 8-ray asterisk-burst glyph has no exact Lucide match; confirmed
+  via a CSS grep that it is not a loading spinner (unrelated `@keyframes
+  lt-spin` exists separately) before picking `sparkles` as the closest semantic
+  "AI generate" icon. `package.json` gained `"lucide": "^0.400.0"` under a new
+  `dependencies` block (this app previously had none). Verified via `npx tsc
+  --noEmit`, `npm run build`, and `npx vitest run` (27 tests passed); all 15
+  icon names confirmed to exist in the installed `lucide@0.400.0` package.
 - **v1.0.0 Release & Unified Latent Design System Migration (Completed 2026-08-01)** —
   Migrated `Latent Tools` to the official unified **Latent Design System** (`https://github.com/erroralex/Latent-Design-System.git`), standardizing tokens (`src/renderer/styles/latent/`), colors (near-black graphite `#0A0A0D`, Latent Cyan `#4FD8D0`, Latent Violet `#9B7EF5`, brand gradient), typography (`Inter` + `JetBrains Mono`), titlebar with official Latent `BrandMark` SVG icon (`assets/latent-mark.svg`), white active/hover sidebar icon strokes, action button glow rings, sidebar Settings button and modal dialog (`#settings-modal`) with appearance details & Ko-fi support link (routed via IPC `shell:open-external`), and drag-and-drop folder support on bulk input/output dropzones with helper text. Tagged `v1.0.0` and published first full release via GitHub Actions. Updated developer mark asset to `alx_logo.png` across renderer sidebar and `README.md`.
 - **README overhaul, LICENSE.md, and CONTRIBUTING.md added (Completed 2026-08-01)** —
