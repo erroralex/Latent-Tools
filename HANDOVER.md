@@ -31,7 +31,7 @@ flow, testing strategy, and 6 phased milestones.
   - **App shell**: frameless titlebar (window controls, Latent brand gradient rounded square logo, live GPU Sidecar status pill) + left sidebar (Single/Bulk nav with 2.5px brand indicator bar, shared captioning model selector, GPU mini-widget with VRAM bar, ALK developer logo linked to GitHub profile).
   - **UI Zooming & Scaling**: `Ctrl` + mousewheel zooming (50%–250%) and `Ctrl+0` reset shortcut via `webFrame`. Default base text sizes increased by +2px across all components.
   - **Dark Dropdown Styling**: `color-scheme: dark` enforced across all `<select>` and `<option>` elements (Captioning Model, Export Presets, Formats, Compression Levels, Metadata settings).
-  - **Single Image Editor**: pipeline stepper (Detect → Remove → Caption) above a preview/inspector grid. Full-featured canvas mask overlay with adaptive brush editing, undo/redo history, mousewheel zoom, click & drag panning, and top-right "Select Image" button. Inspector Caption/Export tabs with presets (LoRA/Archive/Web + `localStorage`-backed custom presets).
+  - **Single Image Editor**: Detect/Remove Watermark action buttons (brand-gradient, icon-led — not a numbered step tracker) above a preview/inspector grid. Full-featured canvas mask overlay with adaptive brush editing, undo/redo history, mousewheel zoom (+ working zoom-in/out buttons), click & drag panning, drag-and-drop or click-to-browse image import directly on the canvas (empty-state dropzone shown until an image loads), and a matching brand-gradient "Select Image" button. Inspector column: Dataset Caption card (Generate Caption button, `.txt`-sidecar disclaimer) always visible above an Export Settings card whose fields collapse into a closed-by-default `<details>` disclosure (Export Image button stays visible either way) — replaced the old Caption/Export tab switcher.
   - **Bulk Dataset Processor**: single scrolling column card layout containing disclaimer banner, Setup (input/output drag-and-drop folder dropzones with native `webUtils.getPathForFile` resolution & helper text + thumbnail grid), Export Settings, and Progress & Real-time Logs terminal.
 - **Packaging & CI/CD**: `package.json` configured with `electron-builder` for Windows NSIS installer (`.exe`) and Portable standalone (`.exe`), both carrying `assets/lt_icon.png` as the `.exe` icon. GitHub Actions workflow ([`.github/workflows/build.yml`](.github/workflows/build.yml)) compiles the PyInstaller sidecar binary, runs Vitest & Pytest test suites, and publishes standalone release installers on `v*` tag pushes or GitHub releases. First full release tag: `v1.0.0`.
 
@@ -42,6 +42,41 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **README interface screenshots (Completed 2026-08-02)** — Added a
+  "📸 Interface" section to `README.md` (`assets/single.jpg`,
+  `assets/bulk.png`), matching the centered-screenshot-with-caption layout
+  Latent Library's README already uses. Removed the now-unused
+  `assets/ALX Logo Neon.png` in the same commit (unreferenced anywhere in
+  code).
+- **Single Image Editor UX pass: dead caption button, zoom buttons, canvas
+  import (Completed 2026-08-02)** — Several related bugs/gaps found and
+  fixed together in `src/renderer/`:
+  - The Caption panel's own "Generate Caption" button (`single-gen-caption-btn`)
+    had no click handler at all — only the separate pipeline-bar button did.
+    Removed the duplicate pipeline-bar button (it read as a numbered step
+    tracker, not an actionable control) and wired the panel button instead,
+    plus added a "saved as .txt on export" disclaimer under the caption
+    textarea.
+  - Merged the Caption/Export tab switcher into one always-visible column:
+    Export Settings' fields now live in a closed-by-default `<details>`
+    disclosure inside the same panel as Caption, with Export Image staying
+    visible outside the disclosure regardless of collapse state.
+  - `#zoom-in-btn`/`#zoom-out-btn` existed in the DOM with no click
+    listeners — only mousewheel zoom worked. Added a shared `stepZoom()`
+    handler.
+  - Added drag-and-drop and click-to-browse image import directly on the
+    canvas via an empty-state dropzone button, extracting the shared
+    `loadImageFile()` used by both the file input and the drop handler.
+  - Fixed a rendering race where the empty-state dropzone and a
+    broken/loading `<img>` could render on top of each other: the dropzone
+    was hidden as soon as `importImage()` resolved rather than when the
+    image actually finished rendering. `#preview` now defaults to
+    `display: none` in CSS and both the dropzone-hide and image-reveal now
+    happen together in the image's `load` event handler.
+  - Restyled Detect/Remove Watermark and Select Image as `btn-cta`
+    (brand-gradient, icon-led) buttons instead of muted step-badge styling,
+    per user feedback that they read as static tabs/instructions rather
+    than clickable controls.
 - **License/docs coherence pass against Latent Library (Completed 2026-08-02)** —
   Auditing this repo's LICENSE/README/BUILDING/CONTRIBUTING against Latent Library
   (the reference app for this pass, since it also went through this same audit
