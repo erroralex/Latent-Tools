@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src/renderer/assets/latent-mark.svg" width="64" alt="Latent Logo">
+</p>
+
 # Latent Tools
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
