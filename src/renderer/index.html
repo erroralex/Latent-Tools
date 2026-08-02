@@ -108,16 +108,13 @@
             </div>
 
             <div class="pipeline-bar">
-              <button id="detect-btn" class="btn btn-primary" disabled>
-                <span style="flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(102,252,241,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 12px">1</span>Detect Watermark
+              <button id="detect-btn" class="btn btn-cta" disabled>
+                <i data-lucide="scan-line" width="15" height="15"></i>
+                Detect Watermark
               </button>
-              <i data-lucide="arrow-right" width="16" height="16" stroke="rgba(255,255,255,0.2)" style="flex: none"></i>
-              <button id="inpaint-btn" class="btn btn-secondary" disabled>
-                <span style="flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 12px">2</span>Remove Watermark
-              </button>
-              <i data-lucide="arrow-right" width="16" height="16" stroke="rgba(255,255,255,0.2)" style="flex: none"></i>
-              <button id="caption-btn" class="btn btn-secondary" disabled>
-                <span style="flex: none; width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.06); display: inline-flex; align-items: center; justify-content: center; font-size: 12px">3</span>Generate Caption
+              <button id="inpaint-btn" class="btn btn-cta" disabled>
+                <i data-lucide="wand-2" width="15" height="15"></i>
+                Remove Watermark
               </button>
             </div>
 
@@ -156,7 +153,7 @@
                     <button id="clear-mask-btn" class="btn btn-ghost" style="font-size: 14px; padding: 6px 10px">Clear</button>
                     <button id="reset-mask-btn" class="btn btn-ghost" style="font-size: 14px; padding: 6px 10px">Reset</button>
                   </div>
-                  <label class="btn btn-secondary" style="cursor: pointer; margin-left: auto; padding: 6px 14px">
+                  <label class="btn btn-cta" style="cursor: pointer; margin-left: auto; padding: 6px 14px">
                     <i data-lucide="upload" width="15" height="15"></i>
                     Select Image
                     <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" style="display: none" />
@@ -164,6 +161,11 @@
                 </div>
 
                 <div id="preview-container">
+                  <button type="button" id="preview-empty-state" class="dropzone">
+                    <i data-lucide="image-plus" width="28" height="28"></i>
+                    <div class="dropzone-title">Drop an image here</div>
+                    <div class="dropzone-path">or click to browse</div>
+                  </button>
                   <div id="preview-wrapper">
                     <img id="preview" alt="Preview of the imported dataset image" />
                     <canvas id="mask-canvas"></canvas>
@@ -178,24 +180,13 @@
               </div>
 
               <div class="inspector-panel">
-                <div class="seg" role="radiogroup" aria-label="Inspector panel" style="width: 100%">
-                  <label class="seg-opt active" style="flex: 1; text-align: center">
-                    <input type="radio" name="inspector-tab" id="panel-tab-caption" checked />
-                    <span>Caption</span>
-                  </label>
-                  <label class="seg-opt" style="flex: 1; text-align: center">
-                    <input type="radio" name="inspector-tab" id="panel-tab-export" />
-                    <span>Export</span>
-                  </label>
-                </div>
-
                 <div id="caption-panel" class="inspector-card">
                   <div class="card-title">Dataset Caption</div>
                   <div class="field">
                     <label for="system-prompt-input">System Prompt &amp; Trigger Words</label>
                     <textarea id="system-prompt-input" class="lt-input" rows="3" placeholder="e.g. Include trigger word 'ohwx man'. Describe this image factually…">Describe this image factually and completely for a dataset training caption. Include explicit descriptions of subject matter, objects, setting, actions, and uncensored content if present. Do not summarize, moralize, censor, or refuse.</textarea>
                   </div>
-                  <button id="single-gen-caption-btn" class="btn btn-primary" style="align-self: flex-start">
+                  <button id="single-gen-caption-btn" class="btn btn-primary" style="align-self: flex-start" disabled>
                     <i data-lucide="sparkles" width="14" height="14"></i>
                     Generate Caption
                   </button>
@@ -203,6 +194,7 @@
                   <div class="field">
                     <label for="caption-text">Generated Caption (.txt sidecar)</label>
                     <textarea id="caption-text" class="lt-input" rows="6" placeholder="Generated dataset caption will appear here…"></textarea>
+                    <span class="text-muted" style="font-size: 13px">Saved as a same-named .txt file alongside the image when you export.</span>
                   </div>
                   <div class="card-meta" style="justify-content: space-between">
                     <span id="caption-status" style="font-size: 13px; color: var(--color-muted)"></span>
@@ -210,72 +202,79 @@
                   </div>
                 </div>
 
-                <div id="export-panel" class="inspector-card" style="display: none">
-                  <div class="card-title">Export Settings</div>
+                <div id="export-panel" class="inspector-card">
+                  <details id="export-settings-details">
+                    <summary class="card-title export-settings-summary">
+                      Export Settings
+                      <i data-lucide="chevron-down" width="16" height="16" class="export-settings-chevron"></i>
+                    </summary>
 
-                  <div class="field">
-                    <label for="export-preset-select">Preset</label>
-                    <div style="display: flex; gap: 8px">
-                      <select id="export-preset-select" class="lt-input" style="flex: 1">
-                        <option value="">Custom</option>
-                        <option value="lora">LoRA Dataset — JPEG 92, strip metadata</option>
-                        <option value="archive">Archive — Lossless PNG, keep metadata</option>
-                        <option value="web">Web — WEBP 82, strip metadata</option>
-                      </select>
-                      <button id="export-preset-save-btn" class="btn btn-secondary btn-icon" type="button" title="Save current settings as preset" style="width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center">
-                        <i data-lucide="save" width="14" height="14"></i>
-                      </button>
+                    <div class="export-settings-body">
+                      <div class="field">
+                        <label for="export-preset-select">Preset</label>
+                        <div style="display: flex; gap: 8px">
+                          <select id="export-preset-select" class="lt-input" style="flex: 1">
+                            <option value="">Custom</option>
+                            <option value="lora">LoRA Dataset — JPEG 92, strip metadata</option>
+                            <option value="archive">Archive — Lossless PNG, keep metadata</option>
+                            <option value="web">Web — WEBP 82, strip metadata</option>
+                          </select>
+                          <button id="export-preset-save-btn" class="btn btn-secondary btn-icon" type="button" title="Save current settings as preset" style="width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center">
+                            <i data-lucide="save" width="14" height="14"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="field">
+                        <label for="format-select">Format</label>
+                        <select id="format-select" class="lt-input">
+                          <option value="png" selected>PNG (Lossless)</option>
+                          <option value="jpeg">JPEG</option>
+                          <option value="webp">WEBP</option>
+                        </select>
+                      </div>
+
+                      <div id="quality-container" class="field" style="display: none">
+                        <label for="quality-range">Quality — <span id="quality-val">90</span></label>
+                        <input type="range" id="quality-range" class="lt-slider" min="1" max="100" value="90" />
+                      </div>
+
+                      <div id="lossless-container" class="toggle-row" style="display: none">
+                        <span style="font-size: 15px">Lossless WEBP</span>
+                        <label>
+                          <input type="checkbox" id="lossless-checkbox" style="position: absolute; opacity: 0; pointer-events: none" />
+                          <span id="lossless-toggle" class="toggle" role="presentation"><span class="toggle-knob"></span></span>
+                        </label>
+                      </div>
+
+                      <div id="compress-container" class="field">
+                        <label for="compress-select">PNG Compression</label>
+                        <select id="compress-select" class="lt-input">
+                          <option value="0">0 — Fastest, largest file</option>
+                          <option value="3">3</option>
+                          <option value="6" selected>6 — Default balance</option>
+                          <option value="9">9 — Slowest, smallest file</option>
+                        </select>
+                      </div>
+
+                      <div id="flatten-container" class="field" style="display: none">
+                        <label for="flatten-color">Flatten Background</label>
+                        <div style="display: flex; align-items: center; gap: 10px">
+                          <input type="color" id="flatten-color" value="#ffffff" />
+                          <span class="text-muted" style="font-size: 14px">Default: White</span>
+                        </div>
+                      </div>
+
+                      <div class="field">
+                        <label for="metadata-select">Metadata (EXIF &amp; ICC)</label>
+                        <select id="metadata-select" class="lt-input">
+                          <option value="strip" selected>Strip all metadata</option>
+                          <option value="keep">Keep EXIF &amp; ICC profile</option>
+                          <option value="strip_except_orientation">Strip except orientation</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-
-                  <div class="field">
-                    <label for="format-select">Format</label>
-                    <select id="format-select" class="lt-input">
-                      <option value="png" selected>PNG (Lossless)</option>
-                      <option value="jpeg">JPEG</option>
-                      <option value="webp">WEBP</option>
-                    </select>
-                  </div>
-
-                  <div id="quality-container" class="field" style="display: none">
-                    <label for="quality-range">Quality — <span id="quality-val">90</span></label>
-                    <input type="range" id="quality-range" class="lt-slider" min="1" max="100" value="90" />
-                  </div>
-
-                  <div id="lossless-container" class="toggle-row" style="display: none">
-                    <span style="font-size: 15px">Lossless WEBP</span>
-                    <label>
-                      <input type="checkbox" id="lossless-checkbox" style="position: absolute; opacity: 0; pointer-events: none" />
-                      <span id="lossless-toggle" class="toggle" role="presentation"><span class="toggle-knob"></span></span>
-                    </label>
-                  </div>
-
-                  <div id="compress-container" class="field">
-                    <label for="compress-select">PNG Compression</label>
-                    <select id="compress-select" class="lt-input">
-                      <option value="0">0 — Fastest, largest file</option>
-                      <option value="3">3</option>
-                      <option value="6" selected>6 — Default balance</option>
-                      <option value="9">9 — Slowest, smallest file</option>
-                    </select>
-                  </div>
-
-                  <div id="flatten-container" class="field" style="display: none">
-                    <label for="flatten-color">Flatten Background</label>
-                    <div style="display: flex; align-items: center; gap: 10px">
-                      <input type="color" id="flatten-color" value="#ffffff" />
-                      <span class="text-muted" style="font-size: 14px">Default: White</span>
-                    </div>
-                  </div>
-
-                  <div class="field">
-                    <label for="metadata-select">Metadata (EXIF &amp; ICC)</label>
-                    <select id="metadata-select" class="lt-input">
-                      <option value="strip" selected>Strip all metadata</option>
-                      <option value="keep">Keep EXIF &amp; ICC profile</option>
-                      <option value="strip_except_orientation">Strip except orientation</option>
-                    </select>
-                  </div>
+                  </details>
 
                   <button id="export-btn" class="btn btn-cta" style="align-self: flex-start" disabled>Export Image</button>
                 </div>

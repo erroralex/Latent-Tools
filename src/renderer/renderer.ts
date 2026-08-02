@@ -192,38 +192,6 @@ navBulk.addEventListener("click", () => {
   singleView.style.display = "none";
 });
 
-// Generic segmented-control helper: drives .is-active on each option's
-// label and shows/hides the associated panel based on which radio is checked.
-function wireSegTabs(entries: Array<{ radioId: string; panelId: string }>) {
-  const radios = entries.map((e) => document.getElementById(e.radioId) as HTMLInputElement);
-  const panels = entries.map((e) => document.getElementById(e.panelId) as HTMLElement);
-
-  function sync() {
-    radios.forEach((radio, i) => {
-      const label = radio.closest(".seg-opt");
-      const panel = panels[i];
-      if (radio.checked) {
-        label?.classList.add("active");
-        label?.classList.add("is-active");
-        if (panel) panel.style.display = "flex";
-      } else {
-        label?.classList.remove("active");
-        label?.classList.remove("is-active");
-        if (panel) panel.style.display = "none";
-      }
-    });
-  }
-
-  radios.forEach((radio) => radio.addEventListener("change", sync));
-  sync();
-}
-
-wireSegTabs([
-  { radioId: "panel-tab-caption", panelId: "caption-panel" },
-  { radioId: "panel-tab-export", panelId: "export-panel" },
-]);
-
-
 // Toggle switches: a real checkbox drives an adjacent visual pill+knob span.
 function wireToggle(checkboxId: string, toggleId: string, onChange?: (checked: boolean) => void) {
   const checkbox = document.getElementById(checkboxId) as HTMLInputElement;
@@ -541,6 +509,25 @@ function resetZoomAndPan() {
 resetZoomBtn.addEventListener("click", resetZoomAndPan);
 previewContainer.addEventListener("dblclick", resetZoomAndPan);
 
+const zoomInBtn = document.getElementById("zoom-in-btn") as HTMLButtonElement;
+const zoomOutBtn = document.getElementById("zoom-out-btn") as HTMLButtonElement;
+
+function stepZoom(delta: number) {
+  const rect = previewContainer.getBoundingClientRect();
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+  const newScale = Math.min(Math.max(0.5, zoomScale * delta), 5.0);
+
+  panX = centerX - (centerX - panX) * (newScale / zoomScale);
+  panY = centerY - (centerY - panY) * (newScale / zoomScale);
+  zoomScale = newScale;
+
+  updatePreviewTransform();
+}
+
+zoomInBtn.addEventListener("click", () => stepZoom(1.15));
+zoomOutBtn.addEventListener("click", () => stepZoom(0.87));
+
 // Global UI Scale Zooming (Ctrl + Mouse Wheel)
 window.addEventListener(
   "wheel",
@@ -654,7 +641,7 @@ let originalDetectedMaskBase64: string | undefined;
 const fileInput = document.getElementById("file-input") as HTMLInputElement;
 const detectBtn = document.getElementById("detect-btn") as HTMLButtonElement;
 const inpaintBtn = document.getElementById("inpaint-btn") as HTMLButtonElement;
-const captionBtn = document.getElementById("caption-btn") as HTMLButtonElement;
+const captionBtn = document.getElementById("single-gen-caption-btn") as HTMLButtonElement;
 const exportBtn = document.getElementById("export-btn") as HTMLButtonElement;
 const preview = document.getElementById("preview") as HTMLImageElement;
 const captionText = document.getElementById("caption-text") as HTMLTextAreaElement;
@@ -1132,9 +1119,10 @@ resetMaskBtn.addEventListener("click", async () => {
   }
 });
 
-fileInput.addEventListener("change", async () => {
-  const file = fileInput.files?.[0];
-  if (file === undefined) return;
+const previewEmptyState = document.getElementById("preview-empty-state") as HTMLButtonElement;
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+async function loadImageFile(file: File) {
   const buffer = new Uint8Array(await file.arrayBuffer());
   const { imageId, previewBase64 } = await window.api.importImage(buffer);
   currentImageId = imageId;
@@ -1146,10 +1134,14 @@ fileInput.addEventListener("change", async () => {
   offscreenCanvas.height = 0;
 
   // Give the user a blank, paintable mask as soon as the image loads, so
-  // manual masking doesn't require running AI detection first.
+  // manual masking doesn't require running AI detection first. Hiding the
+  // empty-state dropzone here too (rather than as soon as import resolves)
+  // avoids a moment where a broken/loading image overlaps the dropzone text.
   preview.addEventListener(
     "load",
     () => {
+      previewEmptyState.style.display = "none";
+      preview.style.display = "block";
       offscreenCanvas.width = preview.naturalWidth;
       offscreenCanvas.height = preview.naturalHeight;
       offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
@@ -1172,6 +1164,28 @@ fileInput.addEventListener("change", async () => {
   inpaintBtn.disabled = false;
   captionText.value = "";
   captionStatus.textContent = "";
+}
+
+fileInput.addEventListener("change", async () => {
+  const file = fileInput.files?.[0];
+  if (file === undefined) return;
+  await loadImageFile(file);
+});
+
+previewEmptyState.addEventListener("click", () => fileInput.click());
+
+previewContainer.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  previewContainer.classList.add("is-dragover");
+});
+previewContainer.addEventListener("dragleave", () => previewContainer.classList.remove("is-dragover"));
+previewContainer.addEventListener("drop", (e) => {
+  e.preventDefault();
+  previewContainer.classList.remove("is-dragover");
+  const file = e.dataTransfer?.files[0];
+  if (file && ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    void loadImageFile(file);
+  }
 });
 
 preview.addEventListener("load", () => {

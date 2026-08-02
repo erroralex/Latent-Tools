@@ -321,6 +321,34 @@ body {
   color: var(--color-text-primary);
 }
 
+.export-settings-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.export-settings-summary::-webkit-details-marker {
+  display: none;
+}
+
+.export-settings-chevron {
+  color: var(--color-text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+details[open] .export-settings-chevron {
+  transform: rotate(180deg);
+}
+
+.export-settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
 .card-kicker {
   font-size: 10px;
   font-weight: 700;
