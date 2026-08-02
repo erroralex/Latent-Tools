@@ -42,6 +42,12 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **Dev-credit logo sized to match sibling apps (Completed 2026-08-02)** —
+  `.sidebar-footer-logo img` (`src/renderer/styles/app.css`) used a plain
+  `width: 64px`, matching Latent Model Organizer but not Latent Library
+  (`max-width: 120px; max-height: 44px`). The 64px size read as too small once
+  compared side-by-side, so all three apps now share Library's larger sizing:
+  `max-width: 120px; height: auto; max-height: 44px; object-fit: contain;`.
 - **Titlebar wordmark aligned with sibling apps (Completed 2026-08-02)** —
   Follow-up from the icon migration below, found via a user screenshot comparison
   against Latent Model Organizer and Latent Library. `.titlebar-wordmark`
