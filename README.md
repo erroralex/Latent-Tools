@@ -14,6 +14,22 @@ A local-first, on-device desktop application for bulk image dataset preparation:
 
 ---
 
+## 📸 Interface
+
+<p align="center">
+  <img src="assets/single.jpg" width="800" alt="Single Image Editor">
+  <br>
+  <i><b>Single Image Editor:</b> Detect and remove watermarks on an interactive mask canvas, then write and export a training caption.</i>
+</p>
+
+<p align="center">
+  <img src="assets/bulk.png" width="800" alt="Bulk Dataset Processor">
+  <br>
+  <i><b>Bulk Dataset Processor:</b> Batch watermark removal and captioning across an entire image folder, with real-time progress and logs.</i>
+</p>
+
+---
+
 ## ⚠️ Disclaimer & Responsible Use
 
 Latent Tools is built to remove watermarks **you have the rights to remove** — your own marks, marks on images you own or are licensed to edit, or marks on assets you otherwise have permission to modify. It is **not** a tool for stripping copyright, attribution, or ownership marks from other people's work.
