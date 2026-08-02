@@ -20,7 +20,7 @@ You are solely responsible for ensuring you have the legal right to edit any ima
 
 ### Third-party models — separate licenses, not covered by this repo's MIT grant
 
-This repository's own code is MIT-licensed (see [LICENSE.md](LICENSE.md)). At runtime, the sidecar downloads and runs third-party model weights from Hugging Face that are **not** part of that grant and carry their own license terms — read them before commercial or redistributive use:
+This repository's own code is MIT-licensed with a Commons Clause condition (see [LICENSE](LICENSE)). At runtime, the sidecar downloads and runs third-party model weights from Hugging Face that are **not** part of that grant and carry their own license terms — read them before commercial or redistributive use:
 
 * **Florence-2** (`microsoft/Florence-2-base`) — MIT.
 * **Qwen2-VL** (`Qwen/Qwen2-VL-2B-Instruct` / `Qwen/Qwen2-VL-7B-Instruct`) — Tongyi Qianwen license, which imposes use-based restrictions (including a large-scale-commercial-use threshold); review Qwen's license terms directly if that applies to you.
@@ -116,72 +116,9 @@ Both prebuilt downloads come fully self-contained with the compiled GPU sidecar 
 
 ---
 
-## 🛠️ Developer Guide (Building from Source)
-
-The instructions below are **only for developers** who want to contribute code or run the application directly from the source repository.
-
-### 1. One-Time Sidecar Setup (Python Venv)
-
-From the repo root directory:
-
-```bash
-cd sidecar
-python -m venv .venv
-
-# Install sidecar dependencies in editable mode
-.venv\Scripts\python -m pip install -e ".[dev]"
-
-# Install PyTorch with CUDA 12.8 acceleration (crucial for RTX GPUs)
-.venv\Scripts\python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-
-cd ..
-```
-
-> **⚡ Important:** Plain `pip install torch` installs a CPU-only wheel on Windows. The explicit `--index-url https://download.pytorch.org/whl/cu128` ensures full GPU hardware acceleration on RTX graphics cards.
-
-### 2. Launching the Application Locally
-
-```bash
-# Install Node dependencies
-npm install
-
-# Build TypeScript renderer and main process
-npm run build
-
-# Start Electron dev mode (spawns Python GPU sidecar automatically)
-npm start
-```
-
----
-
-## 🧪 Running Unit & Integration Tests
-
-### Electron & IPC Vitest Suite
-```bash
-npm test
-```
-
-### Python Sidecar Pytest Suite
-```bash
-cd sidecar
-.venv\Scripts\python -m pytest tests/ -v
-```
-
----
-
-## 🏗️ Packaging Standalone Executables
-
-```bash
-npm run dist
-```
-
-Packages the application via `electron-builder`, compiling the Python sidecar engine into a standalone binary (`sidecar.exe`) via PyInstaller and producing both the zero-install portable `.exe` and the NSIS setup installer under `release/`.
-
----
-
 ## 📜 License
 
-Distributed under the **MIT License** — see [LICENSE.md](LICENSE.md) for the full text.
+Distributed under the **MIT License**. Free for personal use.
 
 ---
 
