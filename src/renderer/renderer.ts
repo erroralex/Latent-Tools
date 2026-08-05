@@ -637,6 +637,7 @@ previewContainer.addEventListener("contextmenu", (e) => e.preventDefault());
 let currentImageId: string | undefined;
 let currentMaskBase64: string | undefined;
 let originalDetectedMaskBase64: string | undefined;
+let currentObjectUrl: string | undefined;
 
 const fileInput = document.getElementById("file-input") as HTMLInputElement;
 const detectBtn = document.getElementById("detect-btn") as HTMLButtonElement;
@@ -1153,10 +1154,16 @@ async function loadImageFile(file: File) {
     { once: true },
   );
 
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+    currentObjectUrl = undefined;
+  }
+
   if (previewBase64) {
     preview.src = `data:image/png;base64,${previewBase64}`;
   } else {
-    preview.src = URL.createObjectURL(file);
+    currentObjectUrl = URL.createObjectURL(file);
+    preview.src = currentObjectUrl;
   }
   detectBtn.disabled = false;
   captionBtn.disabled = false;

@@ -40,25 +40,26 @@ class Florence2Detector:
             _TASK + "logo watermark",
         ]
 
-        for prompt in prompts:
-            try:
-                inputs = self._processor(text=prompt, images=rgb_image, return_tensors="pt").to(
-                    self._device, torch.float16
-                )
-                generated_ids = self._model.generate(
-                    input_ids=inputs["input_ids"],
-                    pixel_values=inputs["pixel_values"],
-                    max_new_tokens=1024,
-                    num_beams=3,
-                )
-                generated_text = self._processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-                parsed = self._processor.post_process_generation(
-                    generated_text, task=_TASK, image_size=(rgb_image.width, rgb_image.height)
-                )
-                bboxes = parsed.get(_TASK, {}).get("bboxes", [])
-                all_bboxes.extend(bboxes)
-            except Exception as e:
-                logger.warning(f"[Detect] Prompt execution error for '{prompt}': {e}")
+        with torch.inference_mode():
+            for prompt in prompts:
+                try:
+                    inputs = self._processor(text=prompt, images=rgb_image, return_tensors="pt").to(
+                        self._device, torch.float16
+                    )
+                    generated_ids = self._model.generate(
+                        input_ids=inputs["input_ids"],
+                        pixel_values=inputs["pixel_values"],
+                        max_new_tokens=1024,
+                        num_beams=3,
+                    )
+                    generated_text = self._processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
+                    parsed = self._processor.post_process_generation(
+                        generated_text, task=_TASK, image_size=(rgb_image.width, rgb_image.height)
+                    )
+                    bboxes = parsed.get(_TASK, {}).get("bboxes", [])
+                    all_bboxes.extend(bboxes)
+                except Exception as e:
+                    logger.warning(f"[Detect] Prompt execution error for '{prompt}': {e}")
 
         result_mask = _mask_from_bboxes(all_bboxes, rgb_image)
         elapsed = time.perf_counter() - start_time

@@ -334,5 +334,96 @@ describe("registerIpcHandlers", () => {
       /unknown imageId/i,
     );
   });
+
+  it("image:import evicts oldest images when cache exceeds MAX_IMAGES (10)", async () => {
+    const { handlers } = setup("C:\\chosen\\output.png");
+    const importHandler = handlers.get("image:import");
+    const detectHandler = handlers.get("image:detect");
+    if (!importHandler || !detectHandler) throw new Error("handlers missing");
+
+    const imageIds: string[] = [];
+    for (let i = 0; i < 11; i++) {
+      const { imageId } = (await importHandler({}, { buffer: Buffer.from(`img-${i}`) })) as {
+        imageId: string;
+      };
+      imageIds.push(imageId);
+    }
+
+    // The first imageId should be evicted
+    await expect(detectHandler({}, { imageId: imageIds[0]! })).rejects.toThrow(/unknown imageId/i);
+    // The 11th imageId should still exist
+    await expect(detectHandler({}, { imageId: imageIds[10]! })).resolves.toBeDefined();
+  });
+
+  it("shell:open-external restricts navigation to http and https protocols", async () => {
+    const handlers = new Map<string, (...args: unknown[]) => unknown>();
+    const ipcMain = {
+      handle: vi.fn((channel: string, listener: (...args: unknown[]) => unknown) => {
+        handlers.set(channel, listener);
+      }),
+    };
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+
+    registerIpcHandlers(
+      ipcMain,
+      {} as SidecarClient,
+      vi.fn(),
+      vi.fn(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      openExternal,
+    );
+
+    const openHandler = handlers.get("shell:open-external");
+    if (!openHandler) throw new Error("shell:open-external missing");
+
+    await openHandler({}, { url: "https://github.com/erroralex" });
+    expect(openExternal).toHaveBeenCalledWith("https://github.com/erroralex");
+
+    await openHandler({}, { url: "http://localhost:8756" });
+    expect(openExternal).toHaveBeenCalledWith("http://localhost:8756");
+
+    openExternal.mockClear();
+    await openHandler({}, { url: "file:///C:/Windows/System32/cmd.exe" });
+    expect(openExternal).not.toHaveBeenCalled();
+
+    await openHandler({}, { url: "javascript:alert(1)" });
+    expect(openExternal).not.toHaveBeenCalled();
+
+    await openHandler({}, { url: "not-a-url" });
+    expect(openExternal).not.toHaveBeenCalled();
+  });
+
+  it("folder:list-images gracefully handles readDir throwing an error", async () => {
+    const handlers = new Map<string, (...args: unknown[]) => unknown>();
+    const ipcMain = {
+      handle: vi.fn((channel: string, listener: (...args: unknown[]) => unknown) => {
+        handlers.set(channel, listener);
+      }),
+    };
+    const readDir = vi.fn().mockRejectedValue(new Error("Permission denied"));
+
+    registerIpcHandlers(
+      ipcMain,
+      {} as SidecarClient,
+      vi.fn(),
+      vi.fn(),
+      undefined,
+      readDir,
+    );
+
+    const listHandler = handlers.get("folder:list-images");
+    if (!listHandler) throw new Error("folder:list-images missing");
+
+    const result = (await listHandler({}, { folderPath: "C:\\forbidden" })) as {
+      files: string[];
+      error?: string;
+    };
+    expect(result.files).toEqual([]);
+    expect(result.error).toContain("Permission denied");
+  });
 });
+
 

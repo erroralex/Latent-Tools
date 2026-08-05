@@ -45,12 +45,20 @@ export function registerIpcHandlers(
   openExternal?: OpenExternalFn,
 ): void {
   const images = new Map<string, { normalized: Buffer; original: Buffer; currentMask?: Buffer }>();
+  const MAX_IMAGES = 10;
 
   // External Link Opener
   ipcMain.handle("shell:open-external", async (_event, args) => {
     const { url } = (args as { url?: string }) ?? {};
     if (url && openExternal) {
-      await openExternal(url);
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          await openExternal(url);
+        }
+      } catch {
+        // Invalid URL format or non-http protocol
+      }
     }
     return { success: true };
   });
@@ -96,12 +104,16 @@ export function registerIpcHandlers(
 
   ipcMain.handle("folder:list-images", async (_event, args) => {
     const { folderPath } = args as { folderPath: string };
-    if (!readDir) {
+    if (!readDir || !folderPath) {
       return { files: [] };
     }
-    const entries = await readDir(folderPath);
-    const files = entries.filter((file) => /\.(png|jpg|jpeg|webp)$/i.test(file));
-    return { files };
+    try {
+      const entries = await readDir(folderPath);
+      const files = entries.filter((file) => /\.(png|jpg|jpeg|webp)$/i.test(file));
+      return { files };
+    } catch (err) {
+      return { files: [], error: err instanceof Error ? err.message : String(err) };
+    }
   });
 
   ipcMain.handle("bulk:process-item", async (_event, args) => {
@@ -171,6 +183,12 @@ export function registerIpcHandlers(
     const original = Buffer.from(buffer);
     const normalized = await client.normalize(original);
     const imageId = randomUUID();
+    if (images.size >= MAX_IMAGES) {
+      const oldestKey = images.keys().next().value;
+      if (oldestKey !== undefined) {
+        images.delete(oldestKey);
+      }
+    }
     images.set(imageId, { normalized, original });
     return { imageId, previewBase64: normalized.toString("base64") };
   });

@@ -1,6 +1,6 @@
 # Handover — where the project stands
 
-_Last updated: 2026-08-02_
+_Last updated: 2026-08-05_
 
 ## What this project is
 
@@ -42,6 +42,13 @@ flow, testing strategy, and 6 phased milestones.
   the transport layer.
 
 ## Completed Improvements
+- **Code review fixes: LRU cache, torch.inference_mode, IPC security, error resilience & Blob URL cleanup (Completed 2026-08-05)** — Conducted a full codebase audit documented in `docs/code-review.md` and implemented 5 targeted improvements:
+  - Capped main process buffer cache in `src/main/ipc-handlers.ts` to `MAX_IMAGES = 10` with LRU eviction to prevent RAM growth over long single-editor sessions.
+  - Wrapped Florence-2 model detection in `sidecar/app/detection.py` with `torch.inference_mode()` to eliminate autograd graph tracking.
+  - Restricted `shell:open-external` IPC handler to safe `http:` and `https:` schemes in `src/main/ipc-handlers.ts`.
+  - Wrapped `readDir` in a `try...catch` block in `folder:list-images` to return cleanly on permission errors instead of throwing unhandled IPC rejections.
+  - Tracked Object URLs in `src/renderer/renderer.ts` and called `URL.revokeObjectURL()` on image reload/change.
+  - Added unit tests covering all 3 TypeScript IPC handler changes (Vitest suite expanded to 30 tests).
 - **README interface screenshots (Completed 2026-08-02)** — Added a
   "📸 Interface" section to `README.md` (`assets/single.jpg`,
   `assets/bulk.png`), matching the centered-screenshot-with-caption layout
