@@ -169,9 +169,6 @@ speed.
   design directions that the Latent Design System migration replaced. Only
   `implementation-plan.md` is current. A newcomer reading the folder cannot tell which is live.
   There is also a `Latent Tools.dc.html` artifact of unclear purpose.
-- **Two stale remote branches.** `origin/master` is fully merged into `main` (zero unmerged
-  commits) and is a legacy default-branch leftover. `redesign/latent-design-system` is likewise
-  fully merged but still exists locally and on `origin`. Both are safe to delete.
 - **The GPU tests have no CI coverage by design.** CI runs on a CPU-only Windows runner, so
   `test_real_models.py` never executes anywhere automatic. Real-model regressions can only be
   caught by running `-m gpu` locally before a release.
