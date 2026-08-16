@@ -2,11 +2,21 @@
 .idea/
 *.iml
 
-# Local junction/symlink to .agents/skills (recreate per clone, see AGENTS.md)
-.claude/skills/
+# Agent config and skills (local dev tooling, not part of the app)
+.agents/
+.claude/*
+# ...except the permission guardrails, which stay tracked so a fresh clone has them
+!.claude/settings.json
 
 # Setup kit (used to generate AGENTS.md/.agents/.claude — not part of the app)
 drop-in-brain-main/
+
+# Docs (local/internal, not part of the shipped app)
+docs/
+
+# Data folders
+data/
+**/data/
 
 # Node
 node_modules/
