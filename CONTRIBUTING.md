@@ -15,7 +15,8 @@ saves rework if the approach needs adjusting before code is written.
 - `sidecar/` — Python FastAPI service (Florence-2 detection, IOPaint/LaMa
   inpainting, Qwen2-VL captioning) over a `127.0.0.1`-only HTTP loopback.
 - `docs/implementation-plan.md` — full architecture, IPC/HTTP contract, and
-  phased milestones.
+  phased milestones. `docs/` is gitignored (local reference only), so this file
+  exists on disk but won't come from a fresh clone.
 - `HANDOVER.md` — current project status; read this to see what's built and
   what's in progress.
 - `AGENTS.md` — the canonical engineering rules for this repo (also read by

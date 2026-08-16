@@ -16,7 +16,8 @@ on-device. Bulk folder processing is first-class, not an afterthought — the ap
 prepare LoRA training datasets as for one-off cleanup.
 
 All six planned phases are complete and `v1.0.0` shipped as a standalone Windows release.
-`docs/implementation-plan.md` holds the original full spec.
+`docs/implementation-plan.md` holds the original full spec (present on disk, but `docs/` is
+gitignored — see Open issues).
 
 ### Two processes, one localhost hop
 
@@ -164,11 +165,23 @@ speed.
 
 ## Open issues
 
-- **`docs/` holds three superseded plans.** `deep-neon-implementation-plan.md`,
-  `modernized-neon-implementation-plan.md` and `ui-rework-implementation-plan.md` all describe
-  design directions that the Latent Design System migration replaced. Only
-  `implementation-plan.md` is current. A newcomer reading the folder cannot tell which is live.
-  There is also a `Latent Tools.dc.html` artifact of unclear purpose.
+- **`docs/`, `.agents/`, and `.claude/` (except `settings.json`) are gitignored and untracked.**
+  `docs/implementation-plan.md` and the `.agents/skills/*` files still exist on disk and are still
+  the current reference material — they're just no longer version-controlled, so a fresh clone
+  won't have them. `.claude/settings.json` (the permission deny-list for `.env`/`secrets/**`)
+  stays tracked deliberately. The three superseded design-direction plans
+  (`deep-neon-implementation-plan.md`, `modernized-neon-implementation-plan.md`,
+  `ui-rework-implementation-plan.md`) and the `Latent Tools.dc.html` artifact that used to clutter
+  `docs/` have been deleted outright, not just untracked.
+- **Coherency-check items from `docs/Latent Suite coherency check.md` are still open**, per the
+  most recent internal review (`docs/code-review-2026-08-16.md`, itself untracked): the titlebar
+  logo in `src/renderer/index.html` is still a hand-inlined gradient SVG instead of the vendored
+  `latent-mark.svg`; the Google Fonts `<link>` in `index.html` still double-loads fonts already
+  pulled by `tokens/fonts.css` and requests the wrong JetBrains Mono weight range; the sidebar
+  width token is `222px` against the Latent Design System's `224px`; `package.json`'s `appId` is
+  `com.latenttools.app` rather than the suite-wide `com.nilsson.latent.*` convention; and there is
+  no `lint` script in `package.json` at all, so the Design System's `_adherence.oxlintrc.json`
+  can't be wired in yet. None of these are functional bugs — they're suite-consistency debt.
 - **The GPU tests have no CI coverage by design.** CI runs on a CPU-only Windows runner, so
   `test_real_models.py` never executes anywhere automatic. Real-model regressions can only be
   caught by running `-m gpu` locally before a release.

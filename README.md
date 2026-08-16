@@ -8,7 +8,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-CUDA_12.8-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.108-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Electron](https://img.shields.io/badge/Electron-31-47848F?style=for-the-badge&logo=electron&logoColor=white)
+![Electron](https://img.shields.io/badge/Electron-33-47848F?style=for-the-badge&logo=electron&logoColor=white)
 
 A local-first, on-device desktop application for bulk image dataset preparation: automated AI watermark detection and removal, multi-format image conversion (JPEG/PNG/WEBP), and uncensored training dataset captioning—running entirely offline powered by an embedded Python GPU sidecar.
 
@@ -55,7 +55,7 @@ Using a custom local model in place of the defaults shifts responsibility for th
 Engineered for AI trainers and dataset creators preparing image libraries for LoRA, Fine-Tuning, and ControlNet models with zero cloud dependency.
 
 * **100% Local & On-Device Execution:** All inference models (Florence-2, IOPaint/LaMa, Qwen2-VL) run locally on your RTX GPU. Your images and dataset descriptions never leave your computer.
-* **Secure Loopback Architecture:** The Electron UI communicates with the embedded Python engine over a token-authenticated localhost HTTP loopback (`127.0.0.1:8756`). It never exposes external ports or requires open internet access during processing.
+* **Secure Loopback Architecture:** The Electron UI communicates with the embedded Python engine over a `127.0.0.1`-only HTTP loopback (default port `8756`, configurable via `LATENT_SIDECAR_PORT`). It never binds an external interface or requires open internet access during processing.
 * **First-Class Bulk Folder Processing:** Designed from day one to handle entire image dataset folders in batch mode—not just single one-off edits—with native folder drag-and-drop.
 * **Non-Destructive Sidecar Generation:** Text captions are exported as atomic `.txt` sidecar files (Kohya / Automatic1111 format) named identically to the destination image files, ensuring zero data loss.
 * **Precise Area & Box Filtering:** Automated watermark detection filters out giant false-positive background boxes, combining multiple text watermarks into clean masks without destroying subject geometry.
@@ -98,11 +98,14 @@ Engineered for AI trainers and dataset creators preparing image libraries for Lo
 
 ## 💻 System Requirements
 
-* **OS:** Windows 10/11 (64-bit), Linux, or macOS.
-* **GPU:** NVIDIA discrete GPU (8GB+ VRAM recommended for optimal inference speed).
+* **OS:** Windows 10/11 (64-bit). Prebuilt releases and the packaged build config
+  (`electron-builder`) target Windows only; there is no macOS/Linux CI build or
+  installer today.
+* **GPU:** NVIDIA discrete GPU (8GB+ VRAM recommended). There is no CPU fallback —
+  the sidecar requires CUDA.
 * **RAM:** 16GB minimum (32GB recommended for large 7B VLM models).
 * **Storage:** ~10GB for Python environment and local AI weights.
-* **Runtime:** Node.js v20+ & Python 3.11+.
+* **Runtime (source builds only):** Node.js v20+ & Python 3.11+.
 
 ---
 
