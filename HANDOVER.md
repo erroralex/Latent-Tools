@@ -186,6 +186,25 @@ speed.
 - **The GPU tests have no CI coverage by design.** CI runs on a CPU-only Windows runner, so
   `test_real_models.py` never executes anywhere automatic. Real-model regressions can only be
   caught by running `-m gpu` locally before a release.
+- **`package-lock.json` had drifted out of sync with `package.json`** (missing the `lucide`
+  entry since it was added), which failed `npm ci` in CI on the first `v1.1.0` tag push. Fixed by
+  regenerating the lock file and force-moving the `v1.1.0` tag onto the fix commit — no release
+  had been published from the failed run, so nothing was lost. If `npm ci` ever fails in CI with a
+  "not in sync" error again, this is the same class of bug: someone ran `npm install <pkg>`
+  without committing the resulting `package-lock.json` change.
+- **v1.0.0 shipped as `v1.0.0` in `package.json` but the GitHub tag actually predates the Latent
+  Design System redesign** — the tag sits on the pre-redesign commit, and the entire LDS
+  migration, the Settings modal, the security/memory fixes, and the coherency fixes all landed
+  *after* that tag, unreleased, until `v1.1.0`. If you're diffing "what changed since v1.0.0",
+  that's a much bigger diff than the version number implies.
+- **GitHub's repo homepage lists "claude" as a second contributor.** This is not an AI-attributed
+  commit — verified exhaustively (`git log --all`, GitHub's commits/PRs/reviews/stats APIs) that
+  every one of the repo's 127 commits is authored by Alexander Nilsson only, so the git history is
+  clean per this file's own no-AI-attribution rule. The listing traces to the **"Claude Design
+  Import" GitHub App** (published by `anthropics`) being installed with access to this repo
+  (visible under the account's Settings → Installed GitHub Apps, alongside a Cursor app) — an
+  installed app with write access can surface in that widget independent of actual commit
+  authorship. Not a bug to fix in code; remove the app's repo access there if it's unwanted.
 
 ---
 
