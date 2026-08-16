@@ -173,15 +173,16 @@ speed.
   (`deep-neon-implementation-plan.md`, `modernized-neon-implementation-plan.md`,
   `ui-rework-implementation-plan.md`) and the `Latent Tools.dc.html` artifact that used to clutter
   `docs/` have been deleted outright, not just untracked.
-- **Coherency-check items from `docs/Latent Suite coherency check.md` are still open**, per the
-  most recent internal review (`docs/code-review-2026-08-16.md`, itself untracked): the titlebar
-  logo in `src/renderer/index.html` is still a hand-inlined gradient SVG instead of the vendored
-  `latent-mark.svg`; the Google Fonts `<link>` in `index.html` still double-loads fonts already
-  pulled by `tokens/fonts.css` and requests the wrong JetBrains Mono weight range; the sidebar
-  width token is `222px` against the Latent Design System's `224px`; `package.json`'s `appId` is
-  `com.latenttools.app` rather than the suite-wide `com.nilsson.latent.*` convention; and there is
-  no `lint` script in `package.json` at all, so the Design System's `_adherence.oxlintrc.json`
-  can't be wired in yet. None of these are functional bugs — they're suite-consistency debt.
+- **Four of the five coherency-check items from `docs/Latent Suite coherency check.md`
+  are fixed** (titlebar now uses the vendored `latent-mark.svg` instead of an inlined
+  copy, the redundant Google Fonts `<link>` is gone, `--sidebar-width` is `224px`, and
+  `appId` is `com.nilsson.latent.tools`). **Still open:** there is no `lint` script in
+  `package.json` at all, so the Design System's `_adherence.oxlintrc.json` can't be
+  wired into the build yet — that's a precondition gap, not just an unwired config.
+  Renaming `appId` is a breaking change for existing installs: electron-builder/NSIS
+  key the uninstall registry entry off `appId`, so a `v1.0.0` user upgrading in place
+  via the new installer may end up with two Start Menu/uninstall entries instead of
+  one being replaced. Worth a release note when this ships.
 - **The GPU tests have no CI coverage by design.** CI runs on a CPU-only Windows runner, so
   `test_real_models.py` never executes anywhere automatic. Real-model regressions can only be
   caught by running `-m gpu` locally before a release.
