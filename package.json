@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "build": {
-    "appId": "com.latenttools.app",
+    "appId": "com.nilsson.latent.tools",
     "productName": "Latent Tools",
     "directories": {
       "output": "release"

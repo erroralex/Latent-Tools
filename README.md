@@ -90,7 +90,7 @@ Engineered for AI trainers and dataset creators preparing image libraries for Lo
 * **Unified Latent Design System:**
   * Dark graphite canvas (`#0A0A0D`) with step-up flat surface levels (`#14151B` / `#23252F`), desaturated **Latent Cyan** (`#4FD8D0`) & **Latent Violet** (`#9B7EF5`) accents, and the signature Latent brand gradient.
   * Frameless titlebar (`52px`) with standard Latent brand gradient rounded square logo, window controls, and live **GPU Sidecar Health Status Pill** (`Starting...`, `Online`, `Offline`).
-  * Sidebar (`222px`) with active navigation indicator bar, white active icon strokes, and live GPU VRAM usage bar widget.
+  * Sidebar (`224px`) with active navigation indicator bar, white active icon strokes, and live GPU VRAM usage bar widget.
   * `Ctrl` + mousewheel UI zoom (50%–250%, `Ctrl+0` to reset) and dark-themed native dropdowns throughout.
   * System tray icon with Show/Quit controls.
 
