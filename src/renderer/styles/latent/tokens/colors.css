@@ -46,6 +46,7 @@
   --color-text-tertiary: var(--gray-400);
   --color-text-disabled: var(--gray-500);
   --color-text-on-accent: #06101A;
+  --color-text-on-danger: #FFFFFF;
 
   --color-accent-primary: var(--cyan-500);
   --color-accent-primary-hover: var(--cyan-400);
