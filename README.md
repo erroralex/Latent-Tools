@@ -12,6 +12,10 @@
 
 A local-first, on-device desktop application for bulk image dataset preparation: automated AI watermark detection and removal, multi-format image conversion (JPEG/PNG/WEBP), and uncensored training dataset captioning—running entirely offline powered by an embedded Python GPU sidecar.
 
+> ⚡ **Requires a dedicated NVIDIA GPU.** All AI inference (watermark detection,
+> inpainting, captioning) runs on-device on a CUDA-capable discrete GPU — there is
+> no CPU fallback and no cloud inference. See [System Requirements](#-system-requirements).
+
 ---
 
 ## 📸 Interface
