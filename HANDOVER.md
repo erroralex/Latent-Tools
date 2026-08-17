@@ -185,32 +185,40 @@ reproducible) or be dropped; it was never load-bearing for size.
 **~200MB is not a reachable target for this dependency set.** ~400–700MB compressed is realistic
 if the following pruning is done — this is scoped, incremental work, not a bug hunt:
 
-1. **Measure correctly first.** "~1.23GB total" is the *combined* NSIS installer + portable `.exe`
-   from a single `electron-builder` invocation, each ~616MB — not one bloated file. Measure
-   `dist/sidecar/` unpacked and each packaged `.exe` alone as separate numbers before further work,
-   so effort targets the real number (~616MB per artifact) instead of the misleading combined one.
-2. **Stop installing dev extras in the packaging job.** `build.yml`'s "Install Python Sidecar
-   Dependencies & PyInstaller" step runs `pip install -e ".[dev]"`, which puts `pytest` and other
-   dev-only tooling in the same environment PyInstaller's Analysis walks. Split into two jobs/steps:
-   one with `[dev]` that runs pytest, one with plain `-e .` that runs PyInstaller.
-3. **`iopaint.model_manager` eagerly imports every model backend it supports, not just the one we
-   use.** `app/inpainting.py` only imports `iopaint.model.lama.LaMa`, `iopaint.model_manager
-   .ModelManager`, and `iopaint.schema.InpaintRequest` — but `model_manager.py` itself does
-   `from iopaint.model import models, ControlNet, SD, SDXL` at module level, pulling in Stable
-   Diffusion, SDXL, ControlNet, BrushNet, and PowerPaint backends (and their `diffusers`
-   dependencies) that this app never uses; only LaMa is ever selected. This is a more certain and
-   probably larger cut than excluding `gradio` directly — our own three iopaint imports don't
-   reference `gradio` (confirmed via `grep`; only `iopaint/web_config.py`, an unused web-UI helper,
-   imports it), so once the unused model backends are trimmed, `gradio` may drop out of the
-   dependency graph on its own. Same reasoning likely applies to `matplotlib` (pulled in via
-   `controlnet-aux`, itself only needed by the ControlNet backend we don't use).
-4. **Trim torch's non-runtime payload.** `torch/include/` (C++ headers, only needed to compile
-   extensions) and `torch/lib/*.lib` import libraries are dead weight in a packaged app. Beyond
-   that, `cufft`/`cusparse`/`cusolver`/`curand`/NCCL are plausible drops for a Florence-2 + LaMa
-   workload (no distributed training, no FFT-heavy or iterative-solver code paths here) — but
-   `cuDNN` and `cuBLAS` must stay, both models are convolution-heavy. Cut candidates one at a time
-   and run the sidecar's `-m gpu` pytest marker after each change; failures from cutting a needed
-   CUDA library are lazy-load failures that only surface at inference time, not at import time.
+1. ~~Measure correctly first~~ **Done.** "~1.23GB total" was the *combined* NSIS installer +
+   portable `.exe`, each ~616MB, not one bloated file — measure per-artifact, not combined.
+2. ~~Stop installing dev extras in the packaging job~~ **Done.** `pytest`/`httpx` (the `[dev]`
+   extra) are pure test tooling — neither is imported anywhere under `app/`. `build.yml` now
+   installs plain `-e .` before the PyInstaller build and `-e ".[dev]"` afterward, right before the
+   pytest step, so PyInstaller's Analysis phase never sees them. (This turned out to be a
+   negligible size win in practice — `pytest`/`httpx` are tiny next to `torch` — but it's correct
+   hygiene regardless: the packaging environment shouldn't contain packages the shipped app
+   doesn't use.)
+3. ~~`iopaint.model_manager` eagerly imports every model backend~~ **Investigated, turned out to be
+   a dead end — don't repeat this.** A local (torch-2.11.0) onedir build was inspected directly:
+   `gradio` is not collected at all (confirmed absent from `dist/sidecar/_internal/`), and
+   `diffusers` contributes only an empty `.dist-info` metadata folder, no actual package code. The
+   `from iopaint.model import ... SD, SDXL` import in `model_manager.py` does not appear to pull
+   meaningful bundled weight in practice, whatever it does at the Python level. Nothing to cut here.
+4. **The actual finding: it's almost entirely `torch/lib/`'s CUDA runtime DLLs, and that's the
+   real remaining lever.** A clean local onedir build (contaminated leftover `~ib`/`~orchvision`
+   temp directories from an earlier failed `pip --force-reinstall` were cleaned from the dev venv
+   first — see the "local testing unreliable" note above, this was a second instance of the same
+   class of problem) measured `torch/` at 4.0GB uncompressed, everything else combined under 400MB.
+   Largest individual DLLs: `torch_cuda.dll` 774M, `cublasLt64_12.dll` 644M, four `cudnn_*.dll`
+   files ~844M combined, `cusparse64_12.dll` 362M, `cufft64_11.dll` 264M, `torch_cpu.dll` 254M,
+   `cusolver64_11.dll` + `cusolverMg64_11.dll` 366M, `cublas64_12.dll` 109M, `nvrtc64_120_0.dll` (+
+   an `.alt.dll` twin) 166M combined, `curand64_10.dll` 69M, `nvperf_host.dll` 21M (profiling only,
+   the safest single cut). `cusparse`/`cufft`/`cusolver`/`nvperf_host` together are a plausible
+   ~1GB cut for a Florence-2 + LaMa + Qwen2-VL workload (no sparse ops, no FFT ops, no linear
+   solvers, no profiling needed at runtime) — but `cuDNN` and `cuBLAS` must stay (convolution-heavy
+   models), and `curand`/`nvrtc` are unclear (dropout kernels; `torch.compile`/dynamo respectively)
+   without testing. **This needs real GPU inference testing per cut** (`--exclude-module` or a
+   post-build `Remove-Item`, cut one DLL at a time, run the sidecar's `-m gpu` pytest marker plus
+   an actual Detect/Inpaint/Caption pass against the packaged `.exe` after each) — a wrong cut is a
+   lazy-load failure that only surfaces at inference time, not at import or startup time. Deferred
+   as of this writing; picking it up needs someone at the keyboard with the GPU free to validate
+   each cut, not something to batch blindly.
 5. **A pinned dependency lockfile** (`pip freeze` / `pip-compile`-style) is still worth doing for
    build reproducibility, independent of size — just not a size fix in itself.
 
