@@ -117,6 +117,33 @@ resolution; the others now match it.
   `app.isPackaged`.
 - **A stale icon in Windows Explorer or the Start Menu is not a packaging bug.** The shell icon
   cache holds the old icon after a rebuild even when the exe's resource is correct. Do not chase it.
+- **Every standalone release through v1.1.1 shipped a sidecar that crashes on startup.** Nobody had
+  actually run the packaged `.exe` and checked the GPU status since v1.0.0 first shipped — CI only
+  ran the unpackaged pytest suite, which never exercises the frozen binary. Two independent bugs,
+  fixed together in v1.1.2:
+  - `run.py` called `uvicorn.run("app.main:app", ...)` — the `"module:attr"` string form. PyInstaller's
+    static analysis can't see an import inside a string, so it silently dropped the `app` package
+    from the bundle and the packaged sidecar crashed instantly with
+    `ModuleNotFoundError: No module named 'app'`. Fixed by importing `app.main` directly and passing
+    the app object to `uvicorn.run()` — safe since nothing here uses `--reload`, which is the only
+    reason the string form exists.
+  - Even past that, the packaged sidecar crashed with `OSError: [WinError 1114] ... c10.dll`. The
+    real error (only visible via Windows Event Viewer — `Get-WinEvent -FilterHashtable
+    @{LogName='Application'; Id=1000}` — the Python traceback just reports the symptom) was an
+    access violation *inside* `msvcp140.dll`: PyInstaller auto-collects its own copy of
+    `msvcp140.dll`/`vcruntime140.dll`/`vcruntime140_1.dll` into `_internal/`, and the onedir
+    bootloader searches `_internal/` before `System32`. The bundled copy (v14.31.31103.0 on the dev
+    machine) is far older than the real system one (`C:\Windows\System32\msvcp140.dll`,
+    v14.51.36247.0), and torch's `c10.dll` — built against a newer CRT — crashes calling into the
+    stale ABI. Fixed with a checked-in `sidecar/sidecar.spec` that filters those three DLLs out of
+    `a.binaries`, so the loader falls through to the correct system copies (part of the Windows
+    10/11 Universal CRT, safe to assume present). `build.yml` now runs
+    `pyinstaller --noconfirm sidecar.spec` instead of a raw `--onedir --name sidecar run.py`
+    invocation, so CI actually uses the filtered spec.
+  - **Lesson for next time**: run the actual packaged `.exe` (not just `npm test`/pytest) before
+    trusting a release. `nvidia-smi --query-compute-apps` showing no `sidecar.exe`/`python.exe`
+    process after launching the app is the tell that the sidecar crashed rather than being merely
+    slow to start.
 
 ### The app icon exists in two separate locations
 
