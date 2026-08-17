@@ -33,7 +33,11 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install -e ".[dev]"
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-          pip install pyinstaller
+          # Pinned: 6.22.2 collects roughly 6x more data for the sidecar bundle
+          # than 6.22.1 (confirmed by an otherwise-identical CLI-invocation build,
+          # ~200MB installer vs ~1.2GB) — likely a regression in that patch
+          # release. Re-check this pin next time PyInstaller ships a new version.
+          pip install pyinstaller==6.22.1
 
       - name: Build PyInstaller Standalone Sidecar
         run: |

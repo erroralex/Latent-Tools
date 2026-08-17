@@ -138,17 +138,28 @@ resolution; the others now match it.
     stale ABI. Fixed by deleting those three DLLs from `dist/sidecar/_internal/` in a `build.yml`
     step immediately after the PyInstaller build, so the loader falls through to the correct system
     copies (part of the Windows 10/11 Universal CRT, safe to assume present).
-  - **Don't filter `a.binaries` via a checked-in `.spec` file — invoke PyInstaller via the plain
-    CLI form and post-process `dist/` instead.** A `sidecar.spec` that filtered the same three DLLs
-    out of `Analysis().binaries` was tried first and does exclude them correctly, but invoking
-    PyInstaller via `pyinstaller sidecar.spec` instead of `pyinstaller --onedir --name sidecar
-    run.py` made its Analysis phase collect roughly 6x more data (a ~200MB onedir output became
-    ~1.2GB, confirmed reproducible across two separate CI runs with otherwise byte-identical pip
-    dependency resolutions) for reasons that never reproduced locally and weren't worth chasing
-    further given the size, not correctness, was at stake. Whatever the cause, it's specific to
-    spec-file invocation — the CLI form has been reliable across every release. If a `.spec` file
-    ever seems necessary again, verify the onedir output size against a plain-CLI build before
-    trusting it.
+  - **Two independent, unrelated causes turned out to inflate the onedir bundle ~6x (~200MB ->
+    ~1.2GB), both discovered the hard way across v1.1.2 and v1.1.3:**
+    1. **Don't filter `a.binaries` via a checked-in `.spec` file — invoke PyInstaller via the plain
+       CLI form and post-process `dist/` instead.** A `sidecar.spec` that filtered the same three
+       DLLs out of `Analysis().binaries` excludes them correctly, but invoking PyInstaller via
+       `pyinstaller sidecar.spec` instead of `pyinstaller --onedir --name sidecar run.py` made its
+       Analysis phase collect roughly 6x more data, holding the PyInstaller version constant
+       (confirmed: same `pyinstaller==6.22.1`, CLI healthy at ~208MB total, spec bloated to
+       ~1.23GB, byte-identical pip dependency resolutions otherwise). Root cause not identified;
+       not worth chasing further since it's avoidable. `sidecar.spec` was deleted; DLL removal now
+       happens via a plain `Remove-Item` step in `build.yml` after a CLI-invoked build.
+    2. **PyInstaller 6.22.2 regresses independently of the above.** After switching back to the
+       CLI form, v1.1.3 was *still* ~1.2GB — an unpinned `pip install pyinstaller` had picked up
+       6.22.2 (released between the v1.1.2 and v1.1.3 builds) instead of the 6.22.1 every healthy
+       build had used. Holding the CLI invocation constant and only varying the PyInstaller
+       version reproduced the same ~6x bloat. `build.yml` now pins `pyinstaller==6.22.1`
+       explicitly. Re-evaluate this pin (and re-measure onedir size before trusting a new version)
+       next time PyInstaller ships a release.
+    Lesson: with no dependency in this pipeline pinned beyond `>=`, an ordinary `pip install`
+    silently drifting to a newer package version is a live risk for this project, not a one-off —
+    check `Successfully installed` lines in CI logs when a build's behavior changes unexpectedly
+    with no corresponding code change.
   - **Lesson for next time**: run the actual packaged `.exe` (not just `npm test`/pytest) before
     trusting a release. `nvidia-smi --query-compute-apps` showing no `sidecar.exe`/`python.exe`
     process after launching the app is the tell that the sidecar crashed rather than being merely
