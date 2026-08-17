@@ -143,105 +143,76 @@ resolution; the others now match it.
     process after launching the app is the tell that the sidecar crashed rather than being merely
     slow to start.
 
-### OPEN, UNSOLVED: the onedir bundle randomly inflates ~6x (~200MB -> ~1.2GB) — needs a fresh pass
+### The ~208MB "healthy" v1.1.1 baseline was never real — it never packaged torch at all
 
-**Status as of v1.1.3 (2026-08-17): the crash bugs above are fixed and verified (GPU works in the
-packaged `.exe`). The size regression below is NOT fixed and v1.1.3 ships with a ~1.2GB installer
-that should be ~200MB.** This section exists so the next person (or model) doesn't repeat four
-already-disproven theories. Read this before touching `build.yml`'s PyInstaller step again.
+A prior investigation here spent four rebuild cycles chasing a "6x size regression" between
+`v1.1.1` (~208MB, treated as the healthy baseline) and every build since (~1.2GB). That framing
+was wrong, and the two symptoms were never separate: **`v1.1.1`'s `run.py` still had the
+`uvicorn.run("app.main:app", ...)` string-import bug** (see the crash writeup above) — PyInstaller
+never resolved the `app` package, and `app.main` is the only import path from the entry script to
+`app.detection` / `app.inpainting` / `app.captioning`, i.e. to `torch`, `transformers`, `iopaint`,
+`diffusers`, and the whole CUDA runtime. Confirmed directly: `grep -i torch` restricted to
+`v1.1.1`'s `Build PyInstaller Standalone Sidecar` CI step returns zero matches (all mentions of
+`torch`/`iopaint` in that run's log are from the earlier `pip install` step, not PyInstaller's
+Analysis phase). Its ~5-second Analysis phase and ~208MB artifact were the correct measurement of
+a build that packaged Python, uvicorn, and nothing else — the crash was going to happen (silently,
+via `ModuleNotFoundError`) regardless of DLL bloat.
 
-**Symptom**: `sidecar.exe`'s onedir output (`sidecar/dist/sidecar/`) is sometimes ~200MB
-(compressed installer) and sometimes ~1.2GB, from what should be a deterministic build. The
-PyInstaller *Analysis* phase (the module-dependency-graph walk, well before any packaging or
-compression) takes ~5 seconds in a healthy build and ~170–210 seconds in a bloated one — the
-extra time is spent discovering/processing genuinely more stuff, not compression. This is a size
-problem, not a correctness problem: the resulting `.exe` runs fine either way, it's just needlessly
-huge to download.
+`v1.1.2` fixed `run.py` to import `app.main` directly, which was the *first* build where
+PyInstaller ever walked the real dependency graph. ~170–210s to trace `torch`'s module tree and
+run binary-dependency analysis over several hundred DLLs, landing around ~600MB per packaged
+`.exe`, is unremarkable — that's what actually packaging torch + CUDA + iopaint costs. The
+"decisive" control run (`32072694098`, plain CLI + `pyinstaller==6.22.1` pinned, same runner
+image as `v1.1.1`) that seemed to disprove every fix attempt wasn't actually controlling for
+the one thing that mattered: it ran post-`run.py`-fix, same as every other "bloated" build, while
+`v1.1.1` is the only pre-fix data point. Every bloated run in the table below is post-fix; the one
+healthy run is pre-fix and broken. One variable, perfect correlation, no non-determinism —
+five runs, five internally-consistent results, not a random regression.
 
-**One healthy data point exists**: CI run `32064073840` (the `v1.1.1` tag build, 2026-08-17
-~20:07–20:12 UTC). Total uploaded build artifacts ≈ 208MB. PyInstaller Analysis gap ≈ 5s
-(`Analyzing run.py` at 7206ms → `Analyzing run-time hooks` at 12121ms). **Every other build since,
-across five separate CI runs, has been bloated** (~1.23GB total, ~170–210s Analysis gap), including
-ones deliberately constructed to be as close to `32064073840`'s exact recipe as possible:
+| Run (id) | `run.py` state | Result | Correct explanation |
+|---|---|---|---|
+| v1.1.1 tag build (`32064073840`) | string-import bug (pre-fix) | "Healthy", ~208MB, ~5s Analysis | Never packaged `app`/torch/iopaint at all — the crash bug prevented Analysis from ever reaching them |
+| v1.1.2 tag build (`32067102667`) | fixed | ~1.23GB (installer+portable, ~616MB each) | First build to actually walk the real graph |
+| v1.1.3 tag build (`32071440583`) and later validation runs | fixed | Same ~616MB per `.exe` regardless of `.spec`-vs-CLI or PyInstaller 6.22.1-vs-6.22.2 | Consistent — none of those variables ever mattered |
 
-| Run (id) | Invocation | PyInstaller | Runner image | Result |
-|---|---|---|---|---|
-| v1.1.1 tag build (`32064073840`) | plain CLI (`pyinstaller --onedir --name sidecar run.py`) | 6.22.1 | `windows-2025-vs2026` `20260810.198.2` | **Healthy, ~208MB, ~5s Analysis** |
-| v1.1.2 tag build (`32067102667`) | checked-in `sidecar.spec` | 6.22.1 | same image | Bloated, ~1.23GB, ~207s |
-| workflow_dispatch validation (`32069468950`) | `sidecar.spec` (TOC.remove() variant) | 6.22.2 (unpinned drift) | same image | Bloated, ~1.23GB, ~209s |
-| v1.1.3 tag build (`32071440583`) | plain CLI (reverted spec away) | 6.22.2 (unpinned drift) | same image | Bloated, ~1.23GB, ~171s |
-| workflow_dispatch validation (`32072694098`) | plain CLI, `pyinstaller==6.22.1` pinned | 6.22.1 (pinned, confirmed in log) | same image | **Still bloated, ~1.23GB, ~171s** |
+**What this means for the `pyinstaller==6.22.1` pin, the dropped `sidecar.spec`, and the
+`TOC.remove()` fix**: none of those changes were wrong to make (the `.spec`-file and PyInstaller
+6.22.2 avenues are still reasonable things to have ruled out in principle), but none of them were
+*fixing* anything — the size was never a regression to fix, it's the real, correct cost of
+packaging this dependency set. The `pyinstaller==6.22.1` pin can stay (harmless, keeps the build
+reproducible) or be dropped; it was never load-bearing for size.
 
-The last row is the important one: it reproduces `v1.1.1`'s exact recipe (plain CLI, PyInstaller
-6.22.1) on the exact same runner image version, and is still bloated. That disproves every theory
-below that came before it.
+**~200MB is not a reachable target for this dependency set.** ~400–700MB compressed is realistic
+if the following pruning is done — this is scoped, incremental work, not a bug hunt:
 
-**Theories tried and disproven, in order, each with a controlled A/B pair:**
-1. *"Rebinding `a.binaries` to a plain list breaks PyInstaller's `TOC` dedup type."* Fixed by
-   mutating the `TOC` in place with `.remove()` instead. **Disproven**: both the plain-list and
-   `TOC.remove()` variants of `sidecar.spec` produced identical bloat (~1.23GB, ~209s), so the
-   list-vs-TOC distinction changes nothing.
-2. *"Invoking PyInstaller via a `.spec` file (vs. the plain CLI form) causes it to collect more."*
-   Seemed well-supported by `v1.1.1`(CLI, healthy) vs `v1.1.2`(spec, bloated), same PyInstaller
-   version. Reverted to plain CLI in `build.yml` for v1.1.3. **Disproven**: v1.1.3 (CLI form) was
-   still bloated.
-3. *"PyInstaller 6.22.2 (which `pip install pyinstaller` drifted to, unpinned) independently
-   regresses vs. 6.22.1."* Seemed well-supported by `v1.1.1`(6.22.1, healthy) vs `v1.1.3`(6.22.2,
-   bloated), same CLI invocation. Pinned `pyinstaller==6.22.1` explicitly in `build.yml`.
-   **Disproven**: the pinned-6.22.1 validation run was still bloated.
-4. Runner image drift was checked and ruled out directly: both the healthy `v1.1.1` run and the
-   final bloated validation run report `windows-2025-vs2026` version `20260810.198.2` — identical.
-5. The full `pip install -e ".[dev]"` dependency resolution (the ~100-package `Successfully
-   installed accelerate-... zipp-...` line) was diffed byte-for-byte across `v1.1.1`,
-   `v1.1.2`-original, and the first `workflow_dispatch` validation run — **identical every time**.
-   This wasn't re-checked for the final (`32072694098`) run; that's a gap, not a ruled-out theory
-   — see "Next things to try" below.
-6. The `torch`/`torchvision` wheel resolution (via the unpinned `pip install torch torchvision
-   --index-url .../cu128` command) was checked across `v1.1.1`, `v1.1.2`-original, and the first
-   validation run — identical `torch-2.13.0`/`torchvision-0.28.0`, same 122.0MB wheel download.
-   Also not re-checked for the final run.
-
-**What this means**: with runner image, PyInstaller version, and invocation method all now
-controlled-for and ruled out, and the one clean healthy/bloated pair (`v1.1.1` vs the final
-validation run) differing in literally nothing I could find, this looks like either (a) genuine
-non-determinism in PyInstaller's own Analysis phase (a race, a cache/temp-dir collision, or
-something timing-dependent — the bloated runs' Analysis phase isn't just bigger, it's ~35-40x
-*slower*, which smells more like "doing redundant work" than "correctly collecting more files"),
-or (b) a variable that hasn't been isolated yet. Local reproduction was attempted and abandoned:
-the dev machine's local venv doesn't cleanly track CI's unpinned dependency resolution (a
-force-reinstall attempt to match CI's torch version broke pinned `numpy`/`pillow` and had to be
-reverted), and local `du -sh` measurements were inconsistent between two otherwise-identical local
-builds (4.6GB vs 8.5GB) for reasons not understood — probably NTFS hardlink-sharing artifacts
-between sibling build folders, but not confirmed. **Local testing was not a reliable way to
-investigate this; use CI (`workflow_dispatch` on `main`, which doesn't touch any release) instead.**
-
-**Next things to try, roughly in order of cheapness:**
-- Diff the full `pip freeze` (not just the `-e ".[dev]"` install line) between the healthy
-  `v1.1.1` run and a fresh bloated run — specifically check `iopaint`, `gradio`, `matplotlib`,
-  `transformers`, `accelerate`, `diffusers`, `controlnet-aux`, `scipy`, since these are large,
-  unpinned (`>=` only, see `sidecar/pyproject.toml`), and drive a lot of what PyInstaller has to
-  walk. This is the one gap in the "identical dependencies" evidence above — worth closing first.
-- Compare the actual *set* of files/binaries collected between a healthy and bloated onedir
-  output directly (not just total size) — e.g. `Get-ChildItem -Recurse | Group-Object Extension |
-  sort Count -desc` or a full file listing diff, run inside the CI job itself (add a debug step to
-  `build.yml` temporarily) since local builds don't reproduce this reliably. This tells you *what*
-  is different, which the timing/size numbers alone don't.
-- Check whether PyInstaller's `build/` cache directory (not `dist/`) has any interaction here —
-  even though CI runners are ephemeral (no cross-run cache), verify nothing in the workflow (e.g.
-  `actions/cache`, `setup-python`'s pip cache) is causing a stale or partially-populated
-  `build/sidecar/` to be reused within a single job across the two separate PyInstaller-adjacent
-  steps now in the workflow.
-- Consider whether `pip`'s own dependency resolver backtracking (the "This is taking longer than
-  usual... stricter constraints" warning shows up in *every* run's log, healthy and bloated alike)
-  is occasionally resolving a different transitive version for something not captured in the
-  final "Successfully installed" summary line — e.g. an already-satisfied transitive dependency
-  that pip silently leaves at a pre-existing (and possibly different) version depending on install
-  order, which wouldn't show up in either "Successfully installed" line.
-- If none of the above finds it: pin the *entire* dependency tree with a generated `pip freeze` /
-  `pip-compile`-style lockfile committed to the repo, rather than continuing to spot-check
-  individual packages. This is the blunt-but-reliable fix if the root cause keeps evading targeted
-  investigation — it trades "understand the bug" for "make the build fully reproducible so the bug
-  can't recur," which may be the pragmatic choice given four targeted fixes have already failed.
+1. **Measure correctly first.** "~1.23GB total" is the *combined* NSIS installer + portable `.exe`
+   from a single `electron-builder` invocation, each ~616MB — not one bloated file. Measure
+   `dist/sidecar/` unpacked and each packaged `.exe` alone as separate numbers before further work,
+   so effort targets the real number (~616MB per artifact) instead of the misleading combined one.
+2. **Stop installing dev extras in the packaging job.** `build.yml`'s "Install Python Sidecar
+   Dependencies & PyInstaller" step runs `pip install -e ".[dev]"`, which puts `pytest` and other
+   dev-only tooling in the same environment PyInstaller's Analysis walks. Split into two jobs/steps:
+   one with `[dev]` that runs pytest, one with plain `-e .` that runs PyInstaller.
+3. **`iopaint.model_manager` eagerly imports every model backend it supports, not just the one we
+   use.** `app/inpainting.py` only imports `iopaint.model.lama.LaMa`, `iopaint.model_manager
+   .ModelManager`, and `iopaint.schema.InpaintRequest` — but `model_manager.py` itself does
+   `from iopaint.model import models, ControlNet, SD, SDXL` at module level, pulling in Stable
+   Diffusion, SDXL, ControlNet, BrushNet, and PowerPaint backends (and their `diffusers`
+   dependencies) that this app never uses; only LaMa is ever selected. This is a more certain and
+   probably larger cut than excluding `gradio` directly — our own three iopaint imports don't
+   reference `gradio` (confirmed via `grep`; only `iopaint/web_config.py`, an unused web-UI helper,
+   imports it), so once the unused model backends are trimmed, `gradio` may drop out of the
+   dependency graph on its own. Same reasoning likely applies to `matplotlib` (pulled in via
+   `controlnet-aux`, itself only needed by the ControlNet backend we don't use).
+4. **Trim torch's non-runtime payload.** `torch/include/` (C++ headers, only needed to compile
+   extensions) and `torch/lib/*.lib` import libraries are dead weight in a packaged app. Beyond
+   that, `cufft`/`cusparse`/`cusolver`/`curand`/NCCL are plausible drops for a Florence-2 + LaMa
+   workload (no distributed training, no FFT-heavy or iterative-solver code paths here) — but
+   `cuDNN` and `cuBLAS` must stay, both models are convolution-heavy. Cut candidates one at a time
+   and run the sidecar's `-m gpu` pytest marker after each change; failures from cutting a needed
+   CUDA library are lazy-load failures that only surface at inference time, not at import time.
+5. **A pinned dependency lockfile** (`pip freeze` / `pip-compile`-style) is still worth doing for
+   build reproducibility, independent of size — just not a size fix in itself.
 
 ### The app icon exists in two separate locations
 
