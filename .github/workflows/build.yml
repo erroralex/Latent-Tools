@@ -38,7 +38,25 @@ jobs:
       - name: Build PyInstaller Standalone Sidecar
         run: |
           cd sidecar
-          pyinstaller --noconfirm sidecar.spec
+          pyinstaller --noconfirm --onedir --name sidecar run.py
+
+      - name: Remove stale bundled CRT DLLs shadowing the system ones
+        shell: pwsh
+        run: |
+          # PyInstaller auto-collects its own msvcp140.dll/vcruntime140*.dll, older
+          # than the CRT torch's c10.dll was built against. Its onedir bootloader
+          # searches _internal/ before System32, so the stale bundled copy shadows
+          # the correct one and c10.dll crashes with an access violation on load.
+          # Deleting them here (rather than filtering via a PyInstaller .spec file)
+          # avoids a PyInstaller Analysis-phase regression: invoking PyInstaller via
+          # a checked-in .spec instead of the plain CLI form above made it collect
+          # roughly 6x more data for reasons that didn't reproduce locally and
+          # weren't worth chasing further. Universal CRT DLLs ship with Windows
+          # 10/11 by default, so it's safe to rely on the system copies instead.
+          Remove-Item -Force -ErrorAction SilentlyContinue `
+            sidecar/dist/sidecar/_internal/msvcp140.dll, `
+            sidecar/dist/sidecar/_internal/vcruntime140.dll, `
+            sidecar/dist/sidecar/_internal/vcruntime140_1.dll
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

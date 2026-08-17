@@ -135,11 +135,20 @@ resolution; the others now match it.
     bootloader searches `_internal/` before `System32`. The bundled copy (v14.31.31103.0 on the dev
     machine) is far older than the real system one (`C:\Windows\System32\msvcp140.dll`,
     v14.51.36247.0), and torch's `c10.dll` — built against a newer CRT — crashes calling into the
-    stale ABI. Fixed with a checked-in `sidecar/sidecar.spec` that filters those three DLLs out of
-    `a.binaries`, so the loader falls through to the correct system copies (part of the Windows
-    10/11 Universal CRT, safe to assume present). `build.yml` now runs
-    `pyinstaller --noconfirm sidecar.spec` instead of a raw `--onedir --name sidecar run.py`
-    invocation, so CI actually uses the filtered spec.
+    stale ABI. Fixed by deleting those three DLLs from `dist/sidecar/_internal/` in a `build.yml`
+    step immediately after the PyInstaller build, so the loader falls through to the correct system
+    copies (part of the Windows 10/11 Universal CRT, safe to assume present).
+  - **Don't filter `a.binaries` via a checked-in `.spec` file — invoke PyInstaller via the plain
+    CLI form and post-process `dist/` instead.** A `sidecar.spec` that filtered the same three DLLs
+    out of `Analysis().binaries` was tried first and does exclude them correctly, but invoking
+    PyInstaller via `pyinstaller sidecar.spec` instead of `pyinstaller --onedir --name sidecar
+    run.py` made its Analysis phase collect roughly 6x more data (a ~200MB onedir output became
+    ~1.2GB, confirmed reproducible across two separate CI runs with otherwise byte-identical pip
+    dependency resolutions) for reasons that never reproduced locally and weren't worth chasing
+    further given the size, not correctness, was at stake. Whatever the cause, it's specific to
+    spec-file invocation — the CLI form has been reliable across every release. If a `.spec` file
+    ever seems necessary again, verify the onedir output size against a plain-CLI build before
+    trusting it.
   - **Lesson for next time**: run the actual packaged `.exe` (not just `npm test`/pytest) before
     trusting a release. `nvidia-smi --query-compute-apps` showing no `sidecar.exe`/`python.exe`
     process after launching the app is the tell that the sidecar crashed rather than being merely
