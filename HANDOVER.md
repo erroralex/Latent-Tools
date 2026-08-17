@@ -118,6 +118,14 @@ resolution; the others now match it.
 - **A stale icon in Windows Explorer or the Start Menu is not a packaging bug.** The shell icon
   cache holds the old icon after a rebuild even when the exe's resource is correct. Do not chase it.
 
+### The app icon exists in two separate locations
+
+`lt_icon.png` and `latent-mark.svg` are duplicated at repo root (`assets/`) and again under
+`src/renderer/assets/`. electron-builder's `win.icon` (`package.json`) reads the **root** copy;
+`getAppIconPath()` in `src/main/index.ts` (BrowserWindow/Tray icon) and the renderer's favicon and
+titlebar `<img>` all resolve to the **`src/renderer/assets/`** copy instead. A brand-mark update
+that only touches one location ships an installer icon and an in-app mark that disagree.
+
 ### Renderer UI gotchas
 
 - **`display: none` kills pointer events.** The mask overlay canvas owns every brush
