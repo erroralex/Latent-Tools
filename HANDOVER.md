@@ -138,32 +138,110 @@ resolution; the others now match it.
     stale ABI. Fixed by deleting those three DLLs from `dist/sidecar/_internal/` in a `build.yml`
     step immediately after the PyInstaller build, so the loader falls through to the correct system
     copies (part of the Windows 10/11 Universal CRT, safe to assume present).
-  - **Two independent, unrelated causes turned out to inflate the onedir bundle ~6x (~200MB ->
-    ~1.2GB), both discovered the hard way across v1.1.2 and v1.1.3:**
-    1. **Don't filter `a.binaries` via a checked-in `.spec` file — invoke PyInstaller via the plain
-       CLI form and post-process `dist/` instead.** A `sidecar.spec` that filtered the same three
-       DLLs out of `Analysis().binaries` excludes them correctly, but invoking PyInstaller via
-       `pyinstaller sidecar.spec` instead of `pyinstaller --onedir --name sidecar run.py` made its
-       Analysis phase collect roughly 6x more data, holding the PyInstaller version constant
-       (confirmed: same `pyinstaller==6.22.1`, CLI healthy at ~208MB total, spec bloated to
-       ~1.23GB, byte-identical pip dependency resolutions otherwise). Root cause not identified;
-       not worth chasing further since it's avoidable. `sidecar.spec` was deleted; DLL removal now
-       happens via a plain `Remove-Item` step in `build.yml` after a CLI-invoked build.
-    2. **PyInstaller 6.22.2 regresses independently of the above.** After switching back to the
-       CLI form, v1.1.3 was *still* ~1.2GB — an unpinned `pip install pyinstaller` had picked up
-       6.22.2 (released between the v1.1.2 and v1.1.3 builds) instead of the 6.22.1 every healthy
-       build had used. Holding the CLI invocation constant and only varying the PyInstaller
-       version reproduced the same ~6x bloat. `build.yml` now pins `pyinstaller==6.22.1`
-       explicitly. Re-evaluate this pin (and re-measure onedir size before trusting a new version)
-       next time PyInstaller ships a release.
-    Lesson: with no dependency in this pipeline pinned beyond `>=`, an ordinary `pip install`
-    silently drifting to a newer package version is a live risk for this project, not a one-off —
-    check `Successfully installed` lines in CI logs when a build's behavior changes unexpectedly
-    with no corresponding code change.
   - **Lesson for next time**: run the actual packaged `.exe` (not just `npm test`/pytest) before
     trusting a release. `nvidia-smi --query-compute-apps` showing no `sidecar.exe`/`python.exe`
     process after launching the app is the tell that the sidecar crashed rather than being merely
     slow to start.
+
+### OPEN, UNSOLVED: the onedir bundle randomly inflates ~6x (~200MB -> ~1.2GB) — needs a fresh pass
+
+**Status as of v1.1.3 (2026-08-17): the crash bugs above are fixed and verified (GPU works in the
+packaged `.exe`). The size regression below is NOT fixed and v1.1.3 ships with a ~1.2GB installer
+that should be ~200MB.** This section exists so the next person (or model) doesn't repeat four
+already-disproven theories. Read this before touching `build.yml`'s PyInstaller step again.
+
+**Symptom**: `sidecar.exe`'s onedir output (`sidecar/dist/sidecar/`) is sometimes ~200MB
+(compressed installer) and sometimes ~1.2GB, from what should be a deterministic build. The
+PyInstaller *Analysis* phase (the module-dependency-graph walk, well before any packaging or
+compression) takes ~5 seconds in a healthy build and ~170–210 seconds in a bloated one — the
+extra time is spent discovering/processing genuinely more stuff, not compression. This is a size
+problem, not a correctness problem: the resulting `.exe` runs fine either way, it's just needlessly
+huge to download.
+
+**One healthy data point exists**: CI run `32064073840` (the `v1.1.1` tag build, 2026-08-17
+~20:07–20:12 UTC). Total uploaded build artifacts ≈ 208MB. PyInstaller Analysis gap ≈ 5s
+(`Analyzing run.py` at 7206ms → `Analyzing run-time hooks` at 12121ms). **Every other build since,
+across five separate CI runs, has been bloated** (~1.23GB total, ~170–210s Analysis gap), including
+ones deliberately constructed to be as close to `32064073840`'s exact recipe as possible:
+
+| Run (id) | Invocation | PyInstaller | Runner image | Result |
+|---|---|---|---|---|
+| v1.1.1 tag build (`32064073840`) | plain CLI (`pyinstaller --onedir --name sidecar run.py`) | 6.22.1 | `windows-2025-vs2026` `20260810.198.2` | **Healthy, ~208MB, ~5s Analysis** |
+| v1.1.2 tag build (`32067102667`) | checked-in `sidecar.spec` | 6.22.1 | same image | Bloated, ~1.23GB, ~207s |
+| workflow_dispatch validation (`32069468950`) | `sidecar.spec` (TOC.remove() variant) | 6.22.2 (unpinned drift) | same image | Bloated, ~1.23GB, ~209s |
+| v1.1.3 tag build (`32071440583`) | plain CLI (reverted spec away) | 6.22.2 (unpinned drift) | same image | Bloated, ~1.23GB, ~171s |
+| workflow_dispatch validation (`32072694098`) | plain CLI, `pyinstaller==6.22.1` pinned | 6.22.1 (pinned, confirmed in log) | same image | **Still bloated, ~1.23GB, ~171s** |
+
+The last row is the important one: it reproduces `v1.1.1`'s exact recipe (plain CLI, PyInstaller
+6.22.1) on the exact same runner image version, and is still bloated. That disproves every theory
+below that came before it.
+
+**Theories tried and disproven, in order, each with a controlled A/B pair:**
+1. *"Rebinding `a.binaries` to a plain list breaks PyInstaller's `TOC` dedup type."* Fixed by
+   mutating the `TOC` in place with `.remove()` instead. **Disproven**: both the plain-list and
+   `TOC.remove()` variants of `sidecar.spec` produced identical bloat (~1.23GB, ~209s), so the
+   list-vs-TOC distinction changes nothing.
+2. *"Invoking PyInstaller via a `.spec` file (vs. the plain CLI form) causes it to collect more."*
+   Seemed well-supported by `v1.1.1`(CLI, healthy) vs `v1.1.2`(spec, bloated), same PyInstaller
+   version. Reverted to plain CLI in `build.yml` for v1.1.3. **Disproven**: v1.1.3 (CLI form) was
+   still bloated.
+3. *"PyInstaller 6.22.2 (which `pip install pyinstaller` drifted to, unpinned) independently
+   regresses vs. 6.22.1."* Seemed well-supported by `v1.1.1`(6.22.1, healthy) vs `v1.1.3`(6.22.2,
+   bloated), same CLI invocation. Pinned `pyinstaller==6.22.1` explicitly in `build.yml`.
+   **Disproven**: the pinned-6.22.1 validation run was still bloated.
+4. Runner image drift was checked and ruled out directly: both the healthy `v1.1.1` run and the
+   final bloated validation run report `windows-2025-vs2026` version `20260810.198.2` — identical.
+5. The full `pip install -e ".[dev]"` dependency resolution (the ~100-package `Successfully
+   installed accelerate-... zipp-...` line) was diffed byte-for-byte across `v1.1.1`,
+   `v1.1.2`-original, and the first `workflow_dispatch` validation run — **identical every time**.
+   This wasn't re-checked for the final (`32072694098`) run; that's a gap, not a ruled-out theory
+   — see "Next things to try" below.
+6. The `torch`/`torchvision` wheel resolution (via the unpinned `pip install torch torchvision
+   --index-url .../cu128` command) was checked across `v1.1.1`, `v1.1.2`-original, and the first
+   validation run — identical `torch-2.13.0`/`torchvision-0.28.0`, same 122.0MB wheel download.
+   Also not re-checked for the final run.
+
+**What this means**: with runner image, PyInstaller version, and invocation method all now
+controlled-for and ruled out, and the one clean healthy/bloated pair (`v1.1.1` vs the final
+validation run) differing in literally nothing I could find, this looks like either (a) genuine
+non-determinism in PyInstaller's own Analysis phase (a race, a cache/temp-dir collision, or
+something timing-dependent — the bloated runs' Analysis phase isn't just bigger, it's ~35-40x
+*slower*, which smells more like "doing redundant work" than "correctly collecting more files"),
+or (b) a variable that hasn't been isolated yet. Local reproduction was attempted and abandoned:
+the dev machine's local venv doesn't cleanly track CI's unpinned dependency resolution (a
+force-reinstall attempt to match CI's torch version broke pinned `numpy`/`pillow` and had to be
+reverted), and local `du -sh` measurements were inconsistent between two otherwise-identical local
+builds (4.6GB vs 8.5GB) for reasons not understood — probably NTFS hardlink-sharing artifacts
+between sibling build folders, but not confirmed. **Local testing was not a reliable way to
+investigate this; use CI (`workflow_dispatch` on `main`, which doesn't touch any release) instead.**
+
+**Next things to try, roughly in order of cheapness:**
+- Diff the full `pip freeze` (not just the `-e ".[dev]"` install line) between the healthy
+  `v1.1.1` run and a fresh bloated run — specifically check `iopaint`, `gradio`, `matplotlib`,
+  `transformers`, `accelerate`, `diffusers`, `controlnet-aux`, `scipy`, since these are large,
+  unpinned (`>=` only, see `sidecar/pyproject.toml`), and drive a lot of what PyInstaller has to
+  walk. This is the one gap in the "identical dependencies" evidence above — worth closing first.
+- Compare the actual *set* of files/binaries collected between a healthy and bloated onedir
+  output directly (not just total size) — e.g. `Get-ChildItem -Recurse | Group-Object Extension |
+  sort Count -desc` or a full file listing diff, run inside the CI job itself (add a debug step to
+  `build.yml` temporarily) since local builds don't reproduce this reliably. This tells you *what*
+  is different, which the timing/size numbers alone don't.
+- Check whether PyInstaller's `build/` cache directory (not `dist/`) has any interaction here —
+  even though CI runners are ephemeral (no cross-run cache), verify nothing in the workflow (e.g.
+  `actions/cache`, `setup-python`'s pip cache) is causing a stale or partially-populated
+  `build/sidecar/` to be reused within a single job across the two separate PyInstaller-adjacent
+  steps now in the workflow.
+- Consider whether `pip`'s own dependency resolver backtracking (the "This is taking longer than
+  usual... stricter constraints" warning shows up in *every* run's log, healthy and bloated alike)
+  is occasionally resolving a different transitive version for something not captured in the
+  final "Successfully installed" summary line — e.g. an already-satisfied transitive dependency
+  that pip silently leaves at a pre-existing (and possibly different) version depending on install
+  order, which wouldn't show up in either "Successfully installed" line.
+- If none of the above finds it: pin the *entire* dependency tree with a generated `pip freeze` /
+  `pip-compile`-style lockfile committed to the repo, rather than continuing to spot-check
+  individual packages. This is the blunt-but-reliable fix if the root cause keeps evading targeted
+  investigation — it trades "understand the bug" for "make the build fully reproducible so the bug
+  can't recur," which may be the pragmatic choice given four targeted fixes have already failed.
 
 ### The app icon exists in two separate locations
 
