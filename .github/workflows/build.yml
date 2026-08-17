@@ -38,7 +38,7 @@ jobs:
       - name: Build PyInstaller Standalone Sidecar
         run: |
           cd sidecar
-          pyinstaller --noconfirm --onedir --name sidecar run.py
+          pyinstaller --noconfirm sidecar.spec
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
