@@ -21,8 +21,17 @@ a = Analysis(
 # one and c10.dll crashes with an access violation inside msvcp140.dll on load.
 # Universal CRT DLLs ship with Windows 10/11 by default, so exclude the bundled
 # copies and let the loader fall through to the system ones.
+#
+# a.binaries is a TOC, not a plain list — it dedupes DLLs pulled in redundantly
+# by multiple hooks (torch/scipy/iopaint all reference shared CUDA libs). Filter
+# it in place with TOC's own methods so that dedup behavior survives; rebinding
+# a.binaries to a bare list comprehension silently drops it, which let every
+# hook's duplicate contributions through uncollapsed and ballooned the onedir
+# output roughly 6x (208MB -> 1.2GB) in the build that first tried this.
 _stale_crt_dlls = {"msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"}
-a.binaries = [b for b in a.binaries if b[0].lower() not in _stale_crt_dlls]
+for _entry in list(a.binaries):
+    if _entry[0].lower() in _stale_crt_dlls:
+        a.binaries.remove(_entry)
 
 pyz = PYZ(a.pure)
 
