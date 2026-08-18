@@ -107,7 +107,7 @@ describe("SidecarProcess", () => {
     );
   });
 
-  it("reaches 'error' if the health check never succeeds within the retry budget", async () => {
+  it("reaches 'error' with a generic timeout reason if the health check never succeeds within the retry budget", async () => {
     const child = fakeChildProcess();
     const spawnFn = vi.fn().mockReturnValue(child);
     const client = {
@@ -123,10 +123,14 @@ describe("SidecarProcess", () => {
       maxHealthPollAttempts: 3,
     });
 
+    const reasons: Array<string | undefined> = [];
+    process.onStateChange((_state, reason) => reasons.push(reason));
+
     await process.start();
 
     expect(process.getState()).toBe("error");
     expect(client.health).toHaveBeenCalledTimes(3);
+    expect(reasons.at(-1)).toMatch(/did not respond to health checks/i);
   });
 
   it("moves to 'error' as soon as spawning the child fails, without exhausting the retry budget", async () => {
@@ -148,10 +152,79 @@ describe("SidecarProcess", () => {
       maxHealthPollAttempts: 40,
     });
 
+    const reasons: Array<string | undefined> = [];
+    process.onStateChange((_state, reason) => reasons.push(reason));
+
     await process.start();
 
     expect(process.getState()).toBe("error");
     expect(client.health).toHaveBeenCalledTimes(1);
+    expect(reasons.at(-1)).toMatch(/spawn python ENOENT/);
+  });
+
+  it("moves to 'error' as soon as the child exits before ever becoming healthy", async () => {
+    const spawnFn = vi.fn().mockImplementation(() => {
+      const child = fakeChildProcess();
+      queueMicrotask(() => child.emit("exit", 1, null));
+      return child;
+    });
+    const client = {
+      health: vi.fn().mockRejectedValue(new Error("connection refused")),
+    } as unknown as SidecarClient;
+
+    const process = new SidecarProcess({
+      spawnFn,
+      client,
+      pythonExecutable: "python",
+      scriptArgs: [],
+      healthPollIntervalMs: 1,
+      maxHealthPollAttempts: 40,
+    });
+
+    const reasons: Array<string | undefined> = [];
+    process.onStateChange((_state, reason) => reasons.push(reason));
+
+    await process.start();
+
+    expect(process.getState()).toBe("error");
+    expect(client.health).toHaveBeenCalledTimes(1);
+    expect(reasons.at(-1)).toMatch(/exited/i);
+    expect(reasons.at(-1)).toMatch(/code=1/);
+  });
+
+  it("includes recent stderr output in the exit failure reason", async () => {
+    const nodeProcess = process;
+    const stderrSpy = vi.spyOn(nodeProcess.stderr, "write").mockImplementation(() => true);
+
+    const spawnFn = vi.fn().mockImplementation(() => {
+      const child = fakeChildProcess();
+      queueMicrotask(() => {
+        child.stderr.emit("data", Buffer.from("ModuleNotFoundError: No module named 'fastapi'"));
+        child.emit("exit", 1, null);
+      });
+      return child;
+    });
+    const client = {
+      health: vi.fn().mockRejectedValue(new Error("connection refused")),
+    } as unknown as SidecarClient;
+
+    const sidecarProcess = new SidecarProcess({
+      spawnFn,
+      client,
+      pythonExecutable: "python",
+      scriptArgs: [],
+      healthPollIntervalMs: 1,
+      maxHealthPollAttempts: 40,
+    });
+
+    const reasons: Array<string | undefined> = [];
+    sidecarProcess.onStateChange((_state, reason) => reasons.push(reason));
+
+    await sidecarProcess.start();
+
+    stderrSpy.mockRestore();
+
+    expect(reasons.at(-1)).toContain("ModuleNotFoundError: No module named 'fastapi'");
   });
 
   it("stop() shuts down via HTTP and kills the child process it spawned", async () => {

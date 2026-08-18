@@ -15,7 +15,7 @@ interface Window {
 
     // Sidecar Listener
 
-    onSidecarStateChange: (callback: (state: string) => void) => void;
+    onSidecarStateChange: (callback: (state: string, reason?: string) => void) => void;
 
     // UI Zoom Factor Controls
     setZoomFactor: (factor: number) => void;

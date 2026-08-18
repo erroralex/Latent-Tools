@@ -37,5 +37,6 @@ export function resolveSidecarLaunchTarget(
       ? path.join(cwd, ".venv", "Scripts", "python.exe")
       : path.join(cwd, ".venv", "bin", "python");
   const pythonExec = existsSync(venvPython) ? venvPython : "python";
+
   return { cwd, executable: pythonExec, scriptArgs: ["run.py", "--port", options.port] };
 }

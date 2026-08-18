@@ -18,6 +18,8 @@ export type SidecarProcessOptions = {
   maxHealthPollAttempts?: number;
 };
 
+const STDERR_TAIL_MAX_CHARS = 2000;
+
 export class SidecarProcess {
   private readonly spawnFn: SpawnFn;
   private readonly client: SidecarClient;
@@ -27,7 +29,8 @@ export class SidecarProcess {
   private readonly maxHealthPollAttempts: number;
   private state: SidecarState = "starting";
   private child: ChildProcess | undefined;
-  private listeners: Array<(state: SidecarState) => void> = [];
+  private listeners: Array<(state: SidecarState, reason?: string) => void> = [];
+  private stderrTail = "";
 
   constructor(options: SidecarProcessOptions) {
     this.spawnFn = options.spawnFn;
@@ -42,23 +45,23 @@ export class SidecarProcess {
     return this.state;
   }
 
-  onStateChange(listener: (state: SidecarState) => void): void {
+  onStateChange(listener: (state: SidecarState, reason?: string) => void): void {
     this.listeners.push(listener);
   }
 
-  private setState(state: SidecarState): void {
+  private setState(state: SidecarState, reason?: string): void {
     this.state = state;
     for (const listener of this.listeners) {
-      listener(state);
+      listener(state, reason);
     }
   }
 
   async start(): Promise<void> {
     this.setState("starting");
     let spawned = false;
-    let spawnFailed = false;
+    let failureReason: string | undefined;
 
-    for (let attempt = 0; attempt < this.maxHealthPollAttempts && !spawnFailed; attempt++) {
+    for (let attempt = 0; attempt < this.maxHealthPollAttempts && !failureReason; attempt++) {
       try {
         await this.client.health();
         this.setState("ready");
@@ -74,20 +77,34 @@ export class SidecarProcess {
           });
           this.child.stderr?.on("data", (chunk: Buffer | string) => {
             process.stderr.write(chunk);
+            this.stderrTail = (this.stderrTail + chunk.toString()).slice(-STDERR_TAIL_MAX_CHARS);
           });
           // Without this listener, a spawn failure (e.g. ENOENT because the
           // resolved executable doesn't exist) throws an uncaught exception
           // instead of surfacing as a health-poll timeout.
-          this.child.on("error", () => {
-            spawnFailed = true;
+          this.child.on("error", (err) => {
+            failureReason = `Failed to start sidecar process: ${err.message}`;
+          });
+          // A spawn can succeed but the process still exit immediately (e.g. the
+          // resolved interpreter is missing a dependency) — without this, that
+          // looks identical to "still starting" until the poll budget runs out.
+          this.child.on("exit", (code, signal) => {
+            if (this.state === "ready") return;
+            const detail = this.stderrTail.trim();
+            failureReason =
+              `Sidecar process exited before becoming healthy (code=${code}, signal=${signal})` +
+              (detail ? `: ${detail}` : "");
           });
           spawned = true;
         }
-        if (spawnFailed) break;
+        if (failureReason) break;
         await new Promise((resolve) => setTimeout(resolve, this.healthPollIntervalMs));
       }
     }
-    this.setState("error");
+    this.setState(
+      "error",
+      failureReason ?? "Sidecar did not respond to health checks within the startup timeout",
+    );
   }
 
   async stop(): Promise<void> {

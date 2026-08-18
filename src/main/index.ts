@@ -67,9 +67,9 @@ async function createWindow(): Promise<void> {
     scriptArgs,
   });
 
-  sidecarProcess.onStateChange((state) => {
+  sidecarProcess.onStateChange((state, reason) => {
     for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send("sidecar:state", { state });
+      window.webContents.send("sidecar:state", { state, reason });
     }
   });
 

@@ -9,8 +9,10 @@ contextBridge.exposeInMainWorld("api", {
 
   // Sidecar State Listener
 
-  onSidecarStateChange: (callback: (state: string) => void) => {
-    ipcRenderer.on("sidecar:state", (_event, data: { state: string }) => callback(data.state));
+  onSidecarStateChange: (callback: (state: string, reason?: string) => void) => {
+    ipcRenderer.on("sidecar:state", (_event, data: { state: string; reason?: string }) =>
+      callback(data.state, data.reason),
+    );
   },
 
   // UI Zoom Factor Controls

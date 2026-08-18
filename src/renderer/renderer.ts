@@ -8,8 +8,9 @@ const sidecarStatusPill = document.getElementById("sidecar-status-pill") as HTML
 const sidecarStatusText = document.getElementById("sidecar-status-text") as HTMLSpanElement;
 
 if (window.api && window.api.onSidecarStateChange) {
-  window.api.onSidecarStateChange((state: string) => {
+  window.api.onSidecarStateChange((state: string, reason?: string) => {
     sidecarStatusPill.className = "status-pill";
+    sidecarStatusPill.removeAttribute("title");
     if (state === "ready" || state === "online") {
       sidecarStatusPill.classList.add("status-online");
       sidecarStatusText.textContent = "GPU Sidecar: Online";
@@ -19,6 +20,9 @@ if (window.api && window.api.onSidecarStateChange) {
     } else {
       sidecarStatusPill.classList.add("status-offline");
       sidecarStatusText.textContent = `GPU Sidecar: ${state.charAt(0).toUpperCase() + state.slice(1)}`;
+      if (reason) {
+        sidecarStatusPill.title = reason;
+      }
     }
   });
 }
