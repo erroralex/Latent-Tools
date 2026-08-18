@@ -129,6 +129,31 @@ describe("SidecarProcess", () => {
     expect(client.health).toHaveBeenCalledTimes(3);
   });
 
+  it("moves to 'error' as soon as spawning the child fails, without exhausting the retry budget", async () => {
+    const spawnFn = vi.fn().mockImplementation(() => {
+      const child = fakeChildProcess();
+      queueMicrotask(() => child.emit("error", new Error("spawn python ENOENT")));
+      return child;
+    });
+    const client = {
+      health: vi.fn().mockRejectedValue(new Error("connection refused")),
+    } as unknown as SidecarClient;
+
+    const process = new SidecarProcess({
+      spawnFn,
+      client,
+      pythonExecutable: "python",
+      scriptArgs: [],
+      healthPollIntervalMs: 1,
+      maxHealthPollAttempts: 40,
+    });
+
+    await process.start();
+
+    expect(process.getState()).toBe("error");
+    expect(client.health).toHaveBeenCalledTimes(1);
+  });
+
   it("stop() shuts down via HTTP and kills the child process it spawned", async () => {
     const child = fakeChildProcess();
     const spawnFn = vi.fn().mockReturnValue(child);

@@ -135,13 +135,51 @@ resolution; the others now match it.
     bootloader searches `_internal/` before `System32`. The bundled copy (v14.31.31103.0 on the dev
     machine) is far older than the real system one (`C:\Windows\System32\msvcp140.dll`,
     v14.51.36247.0), and torch's `c10.dll` — built against a newer CRT — crashes calling into the
-    stale ABI. Fixed by deleting those three DLLs from `dist/sidecar/_internal/` in a `build.yml`
-    step immediately after the PyInstaller build, so the loader falls through to the correct system
-    copies (part of the Windows 10/11 Universal CRT, safe to assume present).
+    stale ABI. Fixed by deleting those three DLLs from `dist/sidecar/_internal/` via
+    `sidecar/scripts/remove-stale-crt-dlls.ps1`, run immediately after the PyInstaller build (both
+    in `build.yml` and manually after any local build), so the loader falls through to the correct
+    system copies (part of the Windows 10/11 Universal CRT, safe to assume present). **A local
+    `pyinstaller --onedir --name sidecar run.py` without running this script afterward reproduces
+    the crash every time** — it's not CI-only behavior, just easy to forget outside CI.
   - **Lesson for next time**: run the actual packaged `.exe` (not just `npm test`/pytest) before
     trusting a release. `nvidia-smi --query-compute-apps` showing no `sidecar.exe`/`python.exe`
     process after launching the app is the tell that the sidecar crashed rather than being merely
     slow to start.
+
+### Every release through v1.1.3 also silently never ran the compiled sidecar at all
+
+A third, independent bug from the two above, found after v1.1.3 shipped: `resolvePythonExecutable()`
+in `src/main/index.ts` checked for the packaged binary at `resourcesPath/sidecar/sidecar.exe` and
+`resourcesPath/sidecar/sidecar/sidecar.exe`. **Neither path is where PyInstaller's onedir build
+lands.** `package.json`'s `extraResources` copies the whole `sidecar/` source tree verbatim
+(`"from": "sidecar", "to": "sidecar"`), so the real binary sits at
+`resourcesPath/sidecar/dist/sidecar/sidecar.exe`. Both checks always missed, so every packaged
+release fell through to a bare `"python"` command resolved via `PATH` — on a machine with no Python
+installed this is a `spawn ENOENT`; on a machine that happens to have a system Python (as the dev
+machine does) it silently launches the wrong interpreter, missing every dependency, and exits
+immediately with an import error.
+
+Neither failure mode was visible: `SidecarProcess.start()` in `src/main/sidecar-process.ts` never
+registered an `.on("error", ...)` listener on the spawned child, so a `spawn` failure either threw
+an unobserved exception or was invisible entirely, and the health poll just ran out its budget
+(~20s by default) before flipping the GPU indicator to "Error" — matching exactly what a user sees
+on a stuck "GPU Sidecar: Connecting" pill with no crash dialog and no `sidecar.exe` process ever
+appearing. This is why the v1.1.2 crash fix above didn't actually fix GPU support end-to-end: it
+fixed the compiled binary so that it *would* run correctly once invoked, but the packaged app was
+never invoking it.
+
+Fixed by extracting path resolution into `src/main/sidecar-launch-target.ts` (a pure,
+electron-free module, testable the same way `sidecar-client.ts`/`sidecar-process.ts` are) that
+checks the correct `dist/sidecar/sidecar.exe` location, and by adding the missing child `"error"`
+listener so a future spawn failure surfaces as an immediate `"error"` state instead of a silent
+~20s timeout. Verified against a real rebuild (`npm run dist`): launching
+`release/win-unpacked/Latent Tools.exe` now spawns `sidecar.exe` as an actual child process, and
+`/health` and `/gpu` both respond correctly.
+
+**This was never caught because "run the actual packaged `.exe`" (the lesson from the section
+above) was followed by testing `dist/sidecar/sidecar.exe` directly rather than launching the
+Electron app itself** — the compiled binary genuinely works when invoked directly, which is exactly
+why this bug hid behind the DLL-crash fix for three releases.
 
 ### The ~208MB "healthy" v1.1.1 baseline was never real — it never packaged torch at all
 

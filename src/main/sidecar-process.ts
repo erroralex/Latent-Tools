@@ -56,8 +56,9 @@ export class SidecarProcess {
   async start(): Promise<void> {
     this.setState("starting");
     let spawned = false;
+    let spawnFailed = false;
 
-    for (let attempt = 0; attempt < this.maxHealthPollAttempts; attempt++) {
+    for (let attempt = 0; attempt < this.maxHealthPollAttempts && !spawnFailed; attempt++) {
       try {
         await this.client.health();
         this.setState("ready");
@@ -74,8 +75,15 @@ export class SidecarProcess {
           this.child.stderr?.on("data", (chunk: Buffer | string) => {
             process.stderr.write(chunk);
           });
+          // Without this listener, a spawn failure (e.g. ENOENT because the
+          // resolved executable doesn't exist) throws an uncaught exception
+          // instead of surfacing as a health-poll timeout.
+          this.child.on("error", () => {
+            spawnFailed = true;
+          });
           spawned = true;
         }
+        if (spawnFailed) break;
         await new Promise((resolve) => setTimeout(resolve, this.healthPollIntervalMs));
       }
     }
