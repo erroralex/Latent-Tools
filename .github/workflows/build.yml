@@ -31,13 +31,25 @@ jobs:
         run: |
           cd sidecar
           python -m pip install --upgrade pip setuptools wheel
+          # CUDA torch MUST install before -e . — installing it after is a
+          # silent no-op whenever the CPU wheel -e . pulls in transitively
+          # (via iopaint/transformers) happens to match the version number
+          # available at the cu128 index: pip sees "already satisfied" and
+          # never even downloads the cu128 build. Verified: with this step
+          # first, -e . leaves torch/torchvision alone (already satisfies
+          # its own unpinned transitive requirement); reversed, every
+          # packaged release silently ships CPU-only torch and watermark
+          # removal/captioning fail instantly on "Torch not compiled with
+          # CUDA enabled". See tests/test_environment.py for the guard.
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+          python -c "import torch; assert torch.version.cuda is not None, f'CPU-only torch installed: {torch.__version__}'; print(f'torch {torch.__version__} (cuda {torch.version.cuda}) OK')"
           # Deliberately -e . here, not -e ".[dev]" — pytest/httpx are test-only
           # tooling (neither is imported anywhere under app/), and PyInstaller's
           # Analysis phase walks whatever is importable in this environment. Dev
           # extras are installed separately, after packaging, right before the
           # test step that needs them.
           pip install -e .
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+          python -c "import torch; assert torch.version.cuda is not None, f'CPU-only torch installed: {torch.__version__}'; print(f'torch {torch.__version__} (cuda {torch.version.cuda}) OK after -e .')"
           # Pinned: 6.22.2 collects roughly 6x more data for the sidecar bundle
           # than 6.22.1 (confirmed by an otherwise-identical CLI-invocation build,
           # ~200MB installer vs ~1.2GB) — likely a regression in that patch

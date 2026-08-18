@@ -181,6 +181,48 @@ above) was followed by testing `dist/sidecar/sidecar.exe` directly rather than l
 Electron app itself** — the compiled binary genuinely works when invoked directly, which is exactly
 why this bug hid behind the DLL-crash fix for three releases.
 
+### Every packaged release through v1.1.4 shipped a CPU-only torch — captioning and watermark removal never worked
+
+A fourth, independent bug from the three above, found after v1.1.4 shipped (which fixed the sidecar
+launch path but not this): the packaged sidecar's `torch` was a CPU-only build
+(`torch.__version__ == '2.13.0+cpu'`, `torch.version.cuda is None`, no `torch_cuda.dll`/`cublas*`/
+`cudnn*` anywhere in `_internal/`). Both `captioning.py` and `detection.py` hardcode `device="cuda"`,
+so the model loads fine (`device_map="auto"` silently falls back to CPU) but fails the instant it
+tries to move a tensor to a CUDA device that doesn't exist in this torch build:
+`Torch not compiled with CUDA enabled`. Both `/caption` and `/detect` wrap this in a broad
+`except Exception` that returns `None`/an empty result instead of surfacing the error, so the user
+just sees "Captioning failed or refused" and a watermark mask that never appears — exactly the
+symptom reported after v1.1.4.
+
+**Root cause, confirmed empirically** (not just reasoned about — reproduced in a scratch venv):
+`.github/workflows/build.yml` (and the documented local setup, same order) ran
+`pip install -e .` **before** `pip install torch torchvision --index-url .../cu128`. `-e .` pulls
+`torch` in transitively via `iopaint`/`transformers` — an unpinned requirement, so pip resolves it
+to the latest PyPI wheel (a plain CPU build, e.g. `2.13.0`). The later cu128 install line is *not*
+guaranteed to reinstall: `pip install torch` with no version pin checks whether the **currently
+installed** version already satisfies the (unpinned) requirement and, if so, prints
+"Requirement already satisfied" and does nothing — regardless of `--index-url`, and regardless of
+variant. Whether this bites depends entirely on whether the version number PyPI's default index
+resolves to (from `-e .`) happens to also exist at the cu128 index: it didn't in an isolated
+`pip install torch` test (index only had up to `2.11.0`, forcing a version-mismatch reinstall down
+to `2.11.0+cu128`), but it did with the *real* `sidecar/pyproject.toml` (`-e .` resolved to
+`torch-2.13.0`/`torchvision-0.28.0`, both of which are also available at the cu128 index) —
+reproduced exactly, "already satisfied" and all, in a clean scratch venv following the real install
+sequence. This is why the dev machine's own long-lived venv was unaffected — it happened to have
+cu128 torch installed before any `-e .` run in its history — while every *fresh* environment (every
+CI runner, every clean clone) hit it on every single build.
+
+**Fix:** swap the order — install cu128 torch first, then `-e .` (verified empirically: with cu128
+torch already installed, `-e .`'s resolution of `iopaint`/`transformers`' unpinned `torch`
+requirement is satisfied by the existing install and leaves it untouched). Also added a same-line
+assertion in `build.yml` right after each `pip install` step
+(`python -c "import torch; assert torch.version.cuda is not None, ..."`) so a regression fails the
+build loudly instead of shipping silently — this can't check `torch.cuda.is_available()` since CI
+runners have no physical GPU, but the installed wheel's build variant (`torch.version.cuda`) is
+checkable regardless of hardware. `sidecar/tests/test_environment.py` carries the same assertion as
+a permanent pytest regression guard, unmarked (not `gpu`) since it doesn't need real hardware —
+just the correct package installed.
+
 ### The ~208MB "healthy" v1.1.1 baseline was never real — it never packaged torch at all
 
 A prior investigation here spent four rebuild cycles chasing a "6x size regression" between
@@ -364,8 +406,11 @@ speed.
 # Sidecar (one-time)
 cd sidecar
 python -m venv .venv
-.venv/Scripts/python -m pip install -e ".[dev]"
+# cu128 torch MUST come before -e ".[dev]" — see "Every packaged release
+# through v1.1.4 shipped a CPU-only torch" below for why the reverse order
+# silently ships a CPU build.
 .venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+.venv/Scripts/python -m pip install -e ".[dev]"
 
 # Electron app
 cd ..

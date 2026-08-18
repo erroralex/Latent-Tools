@@ -9,7 +9,7 @@
 
 - **Build:** `npm run build` (TypeScript, at repo root). Packaging standalone `.exe`: `npm run dist` (`electron-builder`). Sidecar has no build step — `cd sidecar && pip install -e ".[dev]"` into a venv (see Run locally). PyInstaller compilation: `pyinstaller --noconfirm --onedir --name sidecar --entrypoint run.py` (handled automatically by `.github/workflows/build.yml`).
 - **Test:** `npm test` (Vitest, repo root) for the Electron/TS side. `cd sidecar && <venv>/Scripts/python -m pytest tests/ -v` for the Python side (GPU-marked tests are excluded by default via `pyproject.toml`'s `addopts`).
-- **Run locally:** One-time sidecar setup: `cd sidecar && python -m venv .venv && .venv/Scripts/python -m pip install -e ".[dev]" && .venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128` (plain `pip install torch` gives a CPU-only wheel — GPU needs the cu128 index explicitly). Then from repo root: `npm install && npm start`.
+- **Run locally:** One-time sidecar setup: `cd sidecar && python -m venv .venv && .venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128 && .venv/Scripts/python -m pip install -e ".[dev]"` — **cu128 torch must install before `-e ".[dev]"`, not after**: `-e .` pulls in a CPU-only torch transitively (via iopaint/transformers), and if that version happens to match what's available at the cu128 index, a later `pip install torch --index-url ...` reports "already satisfied" and silently keeps the CPU build. Then from repo root: `npm install && npm start`.
 
 ## Workflow
 
