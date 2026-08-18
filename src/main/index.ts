@@ -1,10 +1,10 @@
 import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process";
-import * as fs from "node:fs";
 import * as fsPromises from "node:fs/promises";
 import * as path from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage, shell } from "electron";
 import { SidecarClient } from "./sidecar-client";
 import { SidecarProcess } from "./sidecar-process";
+import { resolveSidecarLaunchTarget } from "./sidecar-launch-target";
 import { registerIpcHandlers } from "./ipc-handlers";
 
 const SIDECAR_PORT = process.env.LATENT_SIDECAR_PORT || process.env.PORT || "8756";
@@ -39,30 +39,14 @@ function createTray(window: BrowserWindow): void {
   });
 }
 
-function getSidecarCwd(): string {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, "sidecar")
-    : path.join(__dirname, "../../sidecar");
-}
-
-function resolvePythonExecutable(): { executable: string; scriptArgs: string[] } {
-  const cwd = getSidecarCwd();
-  const standaloneExe = path.join(cwd, "sidecar.exe");
-  const standaloneExeSub = path.join(cwd, "sidecar", "sidecar.exe");
-
-  if (fs.existsSync(standaloneExe)) {
-    return { executable: standaloneExe, scriptArgs: ["--port", SIDECAR_PORT] };
-  }
-  if (fs.existsSync(standaloneExeSub)) {
-    return { executable: standaloneExeSub, scriptArgs: ["--port", SIDECAR_PORT] };
-  }
-
-  const venvPython =
-    process.platform === "win32"
-      ? path.join(cwd, ".venv", "Scripts", "python.exe")
-      : path.join(cwd, ".venv", "bin", "python");
-  const pythonExec = fs.existsSync(venvPython) ? venvPython : "python";
-  return { executable: pythonExec, scriptArgs: ["run.py", "--port", SIDECAR_PORT] };
+function getSidecarLaunchTarget() {
+  return resolveSidecarLaunchTarget({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    sourceRootDir: path.join(__dirname, "../.."),
+    port: SIDECAR_PORT,
+    platform: process.platform,
+  });
 }
 
 function spawnSidecarProcess(
@@ -70,11 +54,11 @@ function spawnSidecarProcess(
   args: readonly string[],
   options: SpawnOptions,
 ): ChildProcess {
-  return spawn(command, args, { ...options, cwd: getSidecarCwd() });
+  return spawn(command, args, { ...options, cwd: getSidecarLaunchTarget().cwd });
 }
 
 async function createWindow(): Promise<void> {
-  const { executable, scriptArgs } = resolvePythonExecutable();
+  const { executable, scriptArgs } = getSidecarLaunchTarget();
   const client = new SidecarClient(SIDECAR_URL);
   const sidecarProcess = new SidecarProcess({
     spawnFn: spawnSidecarProcess,
