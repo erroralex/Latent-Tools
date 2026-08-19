@@ -307,7 +307,11 @@ if the following pruning is done — this is scoped, incremental work, not a bug
    an actual Detect/Inpaint/Caption pass against the packaged `.exe` after each) — a wrong cut is a
    lazy-load failure that only surfaces at inference time, not at import or startup time. Deferred
    as of this writing; picking it up needs someone at the keyboard with the GPU free to validate
-   each cut, not something to batch blindly.
+   each cut, not something to batch blindly. **Superseded — not the active plan.** See "MSI/zip
+   fixed the mmap crash but hit a second wall" further down: the sidecar isn't going to be bundled
+   (pruned or not) at all going forward, it's downloaded on demand. This DLL breakdown stays here
+   because the measurements are still accurate and useful background, not because pruning is still
+   the plan.
 5. **A pinned dependency lockfile** (`pip freeze` / `pip-compile`-style) is still worth doing for
    build reproducibility, independent of size — just not a size fix in itself.
 
@@ -384,6 +388,50 @@ release-history-reset note near the top of this document), but if an NSIS target
 reintroduced alongside MSI later, a user with an MSI install won't get it auto-replaced by an NSIS
 one, or vice versa.
 
+### MSI/zip fixed the mmap crash but hit a second wall: GitHub's 2GB-per-asset limit — planned fix is on-demand download, not pruning
+
+Switching to MSI/zip (above) did avoid the NSIS mmap crash, but the real, correctly-CUDA-enabled
+artifacts it produces are **2.39GB (MSI) and 3.07GB (zip)**, both measured from a clean CI build.
+GitHub Releases hard-caps individual assets at 2GB (`2147483648` bytes) — confirmed by an actual
+failed upload: `422 Unprocessable Entity ... "size must be less than 2147483648"`. Both formats
+exceed it. This isn't a compression-tuning problem to solve within the current architecture; MSI
+and zip both compress this dependency set far worse than NSIS's LZMA did (NSIS's broken CPU-only
+build was ~600MB for comparison), and even NSIS's better compression is not confirmed to land
+under 2GB for a genuinely CUDA-enabled build — untested, and moot given the direction below.
+
+**Decision (with the project owner, 2026-08-19): stop trying to fit the CUDA payload inside the
+installer at all.** Rather than CUDA-DLL pruning (cutting `cusparse`/`cufft`/`cusolver`/
+`nvperf_host`, previously tracked as backlog) or reviving NSIS, the sidecar will be **downloaded
+on demand** instead of bundled:
+
+- The Electron package stops bundling `sidecar/` via `extraResources` entirely — nothing
+  Python/torch/CUDA-related ships in the installer, which becomes a thin (tens of MB) MSI/zip with
+  no size ceiling anywhere near reach.
+- CI still builds the PyInstaller sidecar exactly as today, but instead of bundling it, zips it and
+  uploads it to a **Hugging Face Hub dataset repo** (`erroralex/latent-tools-sidecar`), one file per
+  tagged version (`sidecar-cuda-win-x64-{version}.zip` + a `.sha256` sibling). Hugging Face has no
+  2GB file-size limit — the app already depends on `huggingface_hub`/`hf-transfer` and downloads
+  model weights from there on first run today, so this reuses an already-trusted host rather than
+  adding new infrastructure.
+- On startup, the packaged app checks `app.getPath("userData")/sidecar-runtime/` for a previously
+  downloaded copy. If absent, the GPU status pill shows "Click to Download AI Components" instead
+  of an error — **user-triggered, not automatic on launch** (explicit choice, matches how the user
+  wants a large first-run download to be visible and consensual rather than silently eating
+  bandwidth in the background). Clicking it streams the version-matched zip, verifies its SHA256,
+  extracts it into place, then starts the sidecar for the first time.
+- This fully replaces the pruning/NSIS-retry investigation — not a "do both" situation. A thin
+  installer sidesteps the NSIS 32-bit mmap ceiling *and* GitHub's 2GB limit simultaneously, without
+  needing to cut any CUDA dependencies or re-litigate the installer format.
+
+**Not yet implemented as of this writing** — full task-by-task implementation plan (real code, not
+placeholders, per-task tests) is at
+`docs/superpowers/plans/2026-08-19-sidecar-on-demand-download.md` (gitignored like the rest of
+`docs/`, same as `docs/implementation-plan.md` — see Open issues). Read that file, not this
+summary, before touching the code. **One manual prerequisite blocks Task 7 of that plan and cannot
+be done by an agent**: a Hugging Face account must own the `erroralex/latent-tools-sidecar` dataset
+repo, and a Hugging Face token with write access to it must be added as a GitHub Actions secret
+named `HF_TOKEN` before CI can upload anything.
+
 ---
 
 ## Performance baseline
@@ -435,6 +483,11 @@ speed.
   migration, the Settings modal, the security/memory fixes, and the coherency fixes all landed
   *after* that tag, unreleased, until `v1.1.0`. If you're diffing "what changed since v1.0.0",
   that's a much bigger diff than the version number implies.
+- **The current release's `.msi`/`.zip` exceed GitHub's 2GB asset limit and cannot actually be
+  published as-is** — see "MSI/zip fixed the mmap crash but hit a second wall" above. Planned fix
+  (on-demand sidecar download via Hugging Face Hub) is written up but not implemented; see
+  `docs/superpowers/plans/2026-08-19-sidecar-on-demand-download.md`. Until that lands, there is no
+  way to cut a working tagged release through the current CI pipeline.
 - **GitHub's repo homepage lists "claude" as a second contributor.** This is not an AI-attributed
   commit — verified exhaustively (`git log --all`, GitHub's commits/PRs/reviews/stats APIs) that
   every one of the repo's 127 commits is authored by Alexander Nilsson only, so the git history is
