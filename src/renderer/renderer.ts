@@ -6,17 +6,44 @@ if (typeof lucide !== "undefined") {
 // Sidecar Status Listener
 const sidecarStatusPill = document.getElementById("sidecar-status-pill") as HTMLDivElement;
 const sidecarStatusText = document.getElementById("sidecar-status-text") as HTMLSpanElement;
+const sidecarDownloadProgress = document.getElementById(
+  "sidecar-download-progress",
+) as HTMLDivElement;
+const sidecarDownloadProgressFill = document.getElementById(
+  "sidecar-download-progress-fill",
+) as HTMLDivElement;
+
+let sidecarDownloadInFlight = false;
+
+sidecarStatusPill.addEventListener("click", () => {
+  if (sidecarDownloadInFlight || !sidecarStatusPill.classList.contains("status-actionable")) {
+    return;
+  }
+  sidecarDownloadInFlight = true;
+  void window.api.downloadSidecarRuntime().finally(() => {
+    sidecarDownloadInFlight = false;
+  });
+});
 
 if (window.api && window.api.onSidecarStateChange) {
   window.api.onSidecarStateChange((state: string, reason?: string) => {
     sidecarStatusPill.className = "status-pill";
     sidecarStatusPill.removeAttribute("title");
+    sidecarDownloadProgress.hidden = true;
+
     if (state === "ready" || state === "online") {
       sidecarStatusPill.classList.add("status-online");
       sidecarStatusText.textContent = "GPU Sidecar: Online";
     } else if (state === "starting" || state === "restarting") {
       sidecarStatusPill.classList.add("status-starting");
       sidecarStatusText.textContent = `GPU Sidecar: ${state.charAt(0).toUpperCase() + state.slice(1)}...`;
+    } else if (state === "not_installed") {
+      sidecarStatusPill.classList.add("status-starting", "status-actionable");
+      sidecarStatusText.textContent = "GPU Sidecar: Click to Download AI Components";
+    } else if (state === "downloading") {
+      sidecarStatusPill.classList.add("status-starting");
+      sidecarStatusText.textContent = "GPU Sidecar: Downloading...";
+      sidecarDownloadProgress.hidden = false;
     } else {
       sidecarStatusPill.classList.add("status-offline");
       sidecarStatusText.textContent = `GPU Sidecar: ${state.charAt(0).toUpperCase() + state.slice(1)}`;
@@ -24,6 +51,24 @@ if (window.api && window.api.onSidecarStateChange) {
         sidecarStatusPill.title = reason;
       }
     }
+  });
+}
+
+if (window.api && window.api.onSidecarDownloadProgress) {
+  window.api.onSidecarDownloadProgress((progress) => {
+    if (progress.phase === "extracting") {
+      sidecarStatusText.textContent = "GPU Sidecar: Extracting...";
+      sidecarDownloadProgressFill.style.width = "100%";
+      return;
+    }
+    const pct =
+      progress.totalBytes > 0
+        ? Math.min(100, Math.round((progress.bytesDownloaded / progress.totalBytes) * 100))
+        : 0;
+    sidecarDownloadProgressFill.style.width = `${pct}%`;
+    const mbDownloaded = (progress.bytesDownloaded / (1024 * 1024)).toFixed(0);
+    const mbTotal = (progress.totalBytes / (1024 * 1024)).toFixed(0);
+    sidecarStatusText.textContent = `GPU Sidecar: Downloading... ${mbDownloaded}/${mbTotal} MB`;
   });
 }
 

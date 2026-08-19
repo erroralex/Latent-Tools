@@ -85,6 +85,30 @@ body {
   animation: ds-pulse 1s infinite ease-in-out;
 }
 
+.status-pill.status-actionable {
+  cursor: pointer;
+  border-color: var(--color-accent);
+}
+
+.status-pill.status-actionable:hover {
+  background: var(--color-surface-2);
+}
+
+.download-progress {
+  width: 120px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.download-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-accent);
+  transition: width 0.2s ease-out;
+}
+
 /* Tags & Badges */
 .tag {
   display: inline-flex;
