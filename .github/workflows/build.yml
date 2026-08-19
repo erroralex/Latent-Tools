@@ -71,6 +71,19 @@ jobs:
         # unsafe to keep. Also run this after any local/manual PyInstaller build.
         run: sidecar/scripts/remove-stale-crt-dlls.ps1
 
+      - name: Upload compiled sidecar to Hugging Face Hub
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          cd sidecar
+          python -m pip install huggingface_hub
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          Compress-Archive -Path dist\sidecar\* -DestinationPath "sidecar-cuda-win-x64-$version.zip"
+          $hash = (Get-FileHash "sidecar-cuda-win-x64-$version.zip" -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "sidecar-cuda-win-x64-$version.zip.sha256" -Value $hash -NoNewline
+          python -c "from huggingface_hub import HfApi; api = HfApi(); api.upload_file(path_or_fileobj='sidecar-cuda-win-x64-$version.zip', path_in_repo='sidecar-cuda-win-x64-$version.zip', repo_id='erroralex/latent-tools-sidecar', repo_type='dataset'); api.upload_file(path_or_fileobj='sidecar-cuda-win-x64-$version.zip.sha256', path_in_repo='sidecar-cuda-win-x64-$version.zip.sha256', repo_id='erroralex/latent-tools-sidecar', repo_type='dataset')"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
