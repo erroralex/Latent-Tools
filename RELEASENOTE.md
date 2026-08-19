@@ -1,80 +1,36 @@
-## Latent Tools — v0.2.0-beta
+## Latent Tools — v1.0.0
 
-Local-first Windows desktop app for bulk image-dataset prep: AI watermark
-removal, format conversion, and uncensored image captioning — all running
-entirely on-device on your own GPU.
+Local-first Windows desktop app for bulk image-dataset prep: AI watermark removal (Florence-2 + LaMa), multi-format image conversion (JPEG/PNG/WEBP), and uncensored training captioning (Qwen2-VL) — running entirely on-device on your NVIDIA GPU.
 
-### What's new in v0.2.0-beta
+### What's New in v1.0.0
 
-- **Modernized Deep Neon UI Design System** — Full visual refresh with
-  charcoal-navy ground (`#0a0b10`), ambient radial gradients, crisp solid
-  card surfaces (`#12141b`), restrained hover rings (`--glow-ring`), active
-  navigation gradient left accent bars, solid gradient `.btn-cta` primary
-  action buttons, 3px range sliders, and `JetBrains Mono` typography for VRAM,
-  temperature, and zoom readouts.
-- **Fix: brush unusable right after "Remove Watermark"** — Previously the
-  mask canvas was hidden after an inpaint pass, which silently disabled all
-  brush input until you ran Detect again and cleared it. The brush now
-  stays live immediately after removal so you can touch up any remaining
-  watermark without the Detect detour.
-- **Documented usage disclaimer** — The README and CONTRIBUTING guide now
-  state clearly that Latent Tools is intended for removing watermarks you
-  have the rights to remove (your own marks, or marks on assets you're
-  licensed to edit) — not for stripping copyright or ownership marks from
-  other people's work. Responsibility for lawful use rests with the user.
-- **LICENSE.md added** — The MIT license was published in the repo and
-  referenced from `package.json`.
-- **CONTRIBUTING.md added** — Setup steps, workflow expectations (GPU
-  exclusivity for performance work, test-first bugfixes), and commit/PR
-  conventions for anyone contributing to the project.
-- **README overhaul** — Documents bulk dataset processing, the
-  single-round-trip `/process` sidecar endpoint, the 2B/7B/custom
-  captioning model selector, export presets, the Deep Neon UI, and how to
-  grab a prebuilt release.
+- **On-Demand AI Runtime Downloads** — The installer and portable packages are now lightweight (tens of MB) instead of multi-gigabyte monolithic bundles. On first launch, click **"Click to Download AI Components"** in the top bar to stream the self-contained CUDA 12.8 / PyTorch runtime (~1-2GB) directly from Hugging Face Hub, with automatic SHA256 checksum verification and extraction into your user profile.
+- **Latent Design System** — Complete UI overhaul with the signature Latent dark graphite palette, crisp flat surface hierarchies, Latent Cyan/Violet accents, and real-time GPU telemetry (VRAM usage, temperature, and live sidecar health status).
+- **First-Class Bulk Folder Processing** — Batch watermark detection, inpainting, format conversion, and captioning across entire image folders with a single round-trip pipeline (`/process`), real-time progress bar, and live logs.
+- **Interactive Single-Image Editor** — Visual overlay canvas with live brush/eraser controls, zoom and pan, undo/redo history, and seamless watermark removal and caption export.
+- **Uncensored Training Dataset Captioning** — Powered by `Qwen2-VL-2B-Instruct` (fast) or `Qwen2-VL-7B-Instruct` (high quality), or custom local model folders with custom trigger words and system prompts.
+- **Multi-Format Conversion & Preset System** — High-performance image conversion (PNG/JPEG/WEBP) with custom compression, quality sliders, ICC/EXIF metadata handling, background flattening color picker, and built-in LoRA/Archive/Web presets.
 
-### Highlights (full feature set)
+---
 
-- **Watermark removal** — Florence-2 open-vocabulary detection finds
-  watermarks/logos/text, LaMa (IOPaint) inpaints them out. Manual mask
-  brush/eraser editing with undo/redo if the automatic detection needs a
-  nudge.
-- **Format conversion** — JPEG / PNG / WEBP export with quality, lossless,
-  compression-level, background-flatten color, and metadata-retention
-  controls. Export presets for LoRA / Archive / Web, plus custom
-  `localStorage`-backed presets.
-- **Uncensored image captioning** — Qwen2-VL-2B / Qwen2-VL-7B-Instruct, or
-  point it at your own local model folder. Custom system prompts and
-  trigger-word support.
-- **Bulk dataset processing** — folder-in, folder-out batch pipeline built
-  for preparing training datasets (e.g. LoRA), not just one-off cleanup.
-  Single round-trip `/process` pipeline (normalize → detect → inpaint →
-  caption → convert) for throughput.
-- **Single Image Editor** — Detect → Remove → Caption stepper with a
-  zoomable/pannable canvas mask overlay.
-- **Live GPU telemetry** — real-time GPU name, VRAM usage, and temperature
-  in the titlebar and sidebar.
-- **Deep Neon UI** — dark, glassy theme; `Ctrl` + scroll to zoom the whole
-  UI (50%–250%).
-- **Runs fully local** — no cloud calls; a Python (FastAPI) sidecar talks
-  to the Electron app over `127.0.0.1` only.
+### ⚠️ Important Notice: First-Run Downloads
 
-### Requirements
+Latent Tools requires dedicated local AI components and models to operate offline:
+1. **Sidecar AI Runtime (~1–2 GB):** When you launch Latent Tools for the first time, click **"Click to Download AI Components"** on the GPU status pill to fetch and unpack the CUDA Python runtime into your AppData directory.
+2. **Model Weights (Downloaded on first use):** When first running detection, inpainting, or captioning, the required open-weights models (`microsoft/Florence-2-base`, `IOPaint/LaMa`, `Qwen/Qwen2-VL`) are downloaded directly from Hugging Face Hub and cached locally.
 
-- Windows 10/11
-- A CUDA-capable discrete GPU (Florence-2, LaMa, and Qwen2-VL all run on
-  GPU; recommend 12 GB+ VRAM)
+*An active internet connection is only needed during these initial downloads. Once downloaded, all image processing and inference run 100% locally and offline on your GPU.*
 
-### Installation
+---
 
-Download and run either:
-- `Latent-Tools-Setup-*.exe` — NSIS installer
-- `Latent-Tools-*-portable.exe` — no-install portable build
+### 💻 System Requirements
 
-### Known limitations (beta)
+- **OS:** Windows 10 / 11 (64-bit)
+- **GPU:** Dedicated NVIDIA GPU with CUDA support (8GB+ VRAM recommended; 12GB+ for large 7B captioning models)
+- **Storage:** ~10GB free disk space for AI runtime and local model caches
 
-- Windows-only for now.
-- First run downloads model weights (Florence-2, LaMa, Qwen2-VL) from
-  Hugging Face — expect a delay and disk usage on first launch.
-- No auto-update mechanism yet — check the Releases page for new versions.
+---
 
-**Full Changelog**: https://github.com/erroralex/Latent-Tools/compare/v0.1.0-beta.2...v0.1.0-beta.3
+### ⚖️ Responsible Use & Legal Notice
+
+Latent Tools is designed for processing images you have the legal right to edit. Removing watermarks, credit lines, or Copyright Management Information (CMI) from works without authorization may violate 17 U.S.C. § 1202 and copyright law. You are solely responsible for ensuring lawful use of this tool. Third-party model weights carry their own respective licenses.
