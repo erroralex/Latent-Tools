@@ -4,7 +4,12 @@ import * as path from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, Menu, Tray, nativeImage, shell } from "electron";
 import { SidecarClient } from "./sidecar-client";
 import { SidecarProcess } from "./sidecar-process";
-import { resolveSidecarLaunchTarget } from "./sidecar-launch-target";
+import {
+  resolveSidecarLaunchTarget,
+  isSidecarRuntimeInstalled,
+  getSidecarRuntimeDir,
+} from "./sidecar-launch-target";
+import { downloadSidecarRuntime, type DownloadProgress } from "./sidecar-downloader";
 import { registerIpcHandlers } from "./ipc-handlers";
 
 const SIDECAR_PORT = process.env.LATENT_SIDECAR_PORT || process.env.PORT || "8756";
@@ -42,7 +47,7 @@ function createTray(window: BrowserWindow): void {
 function getSidecarLaunchTarget() {
   return resolveSidecarLaunchTarget({
     isPackaged: app.isPackaged,
-    resourcesPath: process.resourcesPath,
+    userDataDir: app.getPath("userData"),
     sourceRootDir: path.join(__dirname, "../.."),
     port: SIDECAR_PORT,
     platform: process.platform,
@@ -57,21 +62,27 @@ function spawnSidecarProcess(
   return spawn(command, args, { ...options, cwd: getSidecarLaunchTarget().cwd });
 }
 
-async function createWindow(): Promise<void> {
-  const { executable, scriptArgs } = getSidecarLaunchTarget();
-  const client = new SidecarClient(SIDECAR_URL);
-  const sidecarProcess = new SidecarProcess({
-    spawnFn: spawnSidecarProcess,
-    client,
-    pythonExecutable: executable,
-    scriptArgs,
-  });
+function broadcastSidecarState(state: string, reason?: string): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("sidecar:state", { state, reason });
+  }
+}
 
-  sidecarProcess.onStateChange((state, reason) => {
-    for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send("sidecar:state", { state, reason });
-    }
-  });
+async function createWindow(): Promise<void> {
+  const client = new SidecarClient(SIDECAR_URL);
+  let sidecarProcess: SidecarProcess | undefined;
+
+  async function startSidecar(): Promise<void> {
+    const { executable, scriptArgs } = getSidecarLaunchTarget();
+    sidecarProcess = new SidecarProcess({
+      spawnFn: spawnSidecarProcess,
+      client,
+      pythonExecutable: executable,
+      scriptArgs,
+    });
+    sidecarProcess.onStateChange((state, reason) => broadcastSidecarState(state, reason));
+    await sidecarProcess.start();
+  }
 
   const window = new BrowserWindow({
     width: 1440,
@@ -87,7 +98,6 @@ async function createWindow(): Promise<void> {
   });
 
   createTray(window);
-
 
   registerIpcHandlers(
     ipcMain,
@@ -109,17 +119,39 @@ async function createWindow(): Promise<void> {
     },
   );
 
+  ipcMain.handle("sidecar:download", async () => {
+    try {
+      broadcastSidecarState("downloading");
+      await downloadSidecarRuntime({
+        version: app.getVersion(),
+        destDir: getSidecarRuntimeDir(app.getPath("userData")),
+        onProgress: (progress: DownloadProgress) => {
+          window.webContents.send("sidecar:download-progress", progress);
+        },
+      });
+      await startSidecar();
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      broadcastSidecarState("error", message);
+      return { success: false, error: message };
+    }
+  });
+
   void window.loadFile(path.join(__dirname, "../renderer/index.html"));
 
-
-  await sidecarProcess.start();
+  if (app.isPackaged && !isSidecarRuntimeInstalled(app.getPath("userData"))) {
+    broadcastSidecarState("not_installed");
+  } else {
+    await startSidecar();
+  }
 
   let isQuitting = false;
   app.on("before-quit", (event) => {
     if (isQuitting) return;
     isQuitting = true;
     event.preventDefault();
-    void sidecarProcess.stop().finally(() => app.quit());
+    void (sidecarProcess?.stop() ?? Promise.resolve()).finally(() => app.quit());
   });
 }
 
