@@ -351,86 +351,15 @@ not on every push to `main`. The pipeline compiles the PyInstaller sidecar binar
 suites, and publishes the MSI installer plus a portable `.zip`. It is expensive and only
 meaningful when cutting a release.
 
-### Windows packaging is MSI + zip, not NSIS — NSIS's compiler is hard-capped at 32-bit
+### Packaging architecture: On-demand sidecar download via Hugging Face Hub
 
-Through v1.1.5's first build attempt, Windows packaging used electron-builder's `nsis` and
-`portable` targets (the latter is NSIS-based too — a self-extracting NSIS stub). Both broke the
-instant the sidecar's `torch` was fixed to genuinely include CUDA (see above): the packaged
-`sidecar/dist/sidecar` payload is ~4.5GB uncompressed, and `makensis.exe` — the NSIS compiler
-electron-builder shells out to — failed with `File: failed creating mmap of "...nsis.7z"` trying
-to memory-map the compressed archive.
+Rather than bundling the multi-gigabyte PyInstaller CUDA payload (~4.5GB uncompressed) inside the installer (which previously hit 32-bit `makensis` mmap limits and GitHub Releases' 2GB per-asset upload cap), the packaged app ships as a lightweight installer and downloads the sidecar runtime on demand:
 
-**Confirmed by reading the PE header directly (not assumed): `makensis.exe` is a 32-bit binary**,
-in both the legacy bundle (`nsis-3.0.4.1`, what our previously-pinned `electron-builder ^25.1.8`
-used) and the current bundle newer `electron-builder` 26.x defaults to (`nsis@1.2.1`,
-`nsis-bundle-3.12`). This is not an electron-builder version problem — NSIS's own compiler has
-never shipped an official 64-bit build, across any version. A 32-bit process has a hard virtual
-address space ceiling (~2–4GB), and mmap-ing a multi-GB archive into it can fail — inconsistently,
-since it depends on address-space fragmentation at runtime, which is why a local build with a
-similarly-sized (in fact larger, 4.6GB uncompressed) payload packaged fine while the CI runner's
-build of the same payload failed twice, reproducibly.
-
-**Every prior release avoided this by accident, not by design**: the sidecar was silently CPU-only
-in every release through v1.1.4 (see above), so the packaged payload was small enough to slip
-under NSIS's ceiling without anyone knowing it was close. Fixing the real bug made the app bigger
-in exactly the way it should always have been, which is what exposed this.
-
-**Fix: switched Windows targets from `nsis`/`portable` to `msi`/`zip`.** Neither goes through
-`makensis.exe` — `msi` uses WiX (no single-file mmap step), `zip` is a plain archive with no
-compiler involved at all, so there's no size ceiling to hit. `package.json`'s `build.win.target`
-and `build.nsis` (now `build.msi`) config, and `build.yml`'s artifact globs/upload paths, were
-updated accordingly.
-
-**For the future**: NSIS and MSI installers don't share upgrade/uninstall machinery — MSI tracks
-installs via its own `upgradeCode` (auto-derived from `appId` by electron-builder), independent of
-NSIS's registry-key approach. Not a concern for this reset (nothing to migrate from — see the
-release-history-reset note near the top of this document), but if an NSIS target is ever
-reintroduced alongside MSI later, a user with an MSI install won't get it auto-replaced by an NSIS
-one, or vice versa.
-
-### MSI/zip fixed the mmap crash but hit a second wall: GitHub's 2GB-per-asset limit — planned fix is on-demand download, not pruning
-
-Switching to MSI/zip (above) did avoid the NSIS mmap crash, but the real, correctly-CUDA-enabled
-artifacts it produces are **2.39GB (MSI) and 3.07GB (zip)**, both measured from a clean CI build.
-GitHub Releases hard-caps individual assets at 2GB (`2147483648` bytes) — confirmed by an actual
-failed upload: `422 Unprocessable Entity ... "size must be less than 2147483648"`. Both formats
-exceed it. This isn't a compression-tuning problem to solve within the current architecture; MSI
-and zip both compress this dependency set far worse than NSIS's LZMA did (NSIS's broken CPU-only
-build was ~600MB for comparison), and even NSIS's better compression is not confirmed to land
-under 2GB for a genuinely CUDA-enabled build — untested, and moot given the direction below.
-
-**Decision (with the project owner, 2026-08-19): stop trying to fit the CUDA payload inside the
-installer at all.** Rather than CUDA-DLL pruning (cutting `cusparse`/`cufft`/`cusolver`/
-`nvperf_host`, previously tracked as backlog) or reviving NSIS, the sidecar will be **downloaded
-on demand** instead of bundled:
-
-- The Electron package stops bundling `sidecar/` via `extraResources` entirely — nothing
-  Python/torch/CUDA-related ships in the installer, which becomes a thin (tens of MB) MSI/zip with
-  no size ceiling anywhere near reach.
-- CI still builds the PyInstaller sidecar exactly as today, but instead of bundling it, zips it and
-  uploads it to a **Hugging Face Hub dataset repo** (`erroralex/latent-tools-sidecar`), one file per
-  tagged version (`sidecar-cuda-win-x64-{version}.zip` + a `.sha256` sibling). Hugging Face has no
-  2GB file-size limit — the app already depends on `huggingface_hub`/`hf-transfer` and downloads
-  model weights from there on first run today, so this reuses an already-trusted host rather than
-  adding new infrastructure.
-- On startup, the packaged app checks `app.getPath("userData")/sidecar-runtime/` for a previously
-  downloaded copy. If absent, the GPU status pill shows "Click to Download AI Components" instead
-  of an error — **user-triggered, not automatic on launch** (explicit choice, matches how the user
-  wants a large first-run download to be visible and consensual rather than silently eating
-  bandwidth in the background). Clicking it streams the version-matched zip, verifies its SHA256,
-  extracts it into place, then starts the sidecar for the first time.
-- This fully replaces the pruning/NSIS-retry investigation — not a "do both" situation. A thin
-  installer sidesteps the NSIS 32-bit mmap ceiling *and* GitHub's 2GB limit simultaneously, without
-  needing to cut any CUDA dependencies or re-litigate the installer format.
-
-**Not yet implemented as of this writing** — full task-by-task implementation plan (real code, not
-placeholders, per-task tests) is at
-`docs/superpowers/plans/2026-08-19-sidecar-on-demand-download.md` (gitignored like the rest of
-`docs/`, same as `docs/implementation-plan.md` — see Open issues). Read that file, not this
-summary, before touching the code. **One manual prerequisite blocks Task 7 of that plan and cannot
-be done by an agent**: a Hugging Face account must own the `erroralex/latent-tools-sidecar` dataset
-repo, and a Hugging Face token with write access to it must be added as a GitHub Actions secret
-named `HF_TOKEN` before CI can upload anything.
+- **Thin Electron package:** `package.json` does not bundle `sidecar/` via `extraResources`. The MSI installer and portable `.zip` are lightweight packages (tens of MB).
+- **On-demand download:** On first launch, the packaged app checks for a runtime at `app.getPath("userData")/sidecar-runtime/dist/sidecar/sidecar.exe`. If missing, the status pill shows "Click to Download AI Components".
+- **Hugging Face Hub hosting:** When triggered by the user, the app streams `sidecar-cuda-win-x64-{version}.zip` from `https://huggingface.co/datasets/erroralex/latent-tools-sidecar/resolve/main/`, verifies its SHA256 against `sidecar-cuda-win-x64-{version}.zip.sha256`, and extracts it into `userData/sidecar-runtime/`. Once extracted, the main process launches `sidecar.exe` from `userData`.
+- **CI automation & `HF_TOKEN`:** On tagged releases (`v*`), `.github/workflows/build.yml` compiles the PyInstaller standalone sidecar, compresses it, generates the `.sha256` checksum, and uploads both to `erroralex/latent-tools-sidecar` using the `HF_TOKEN` GitHub Actions secret. Note that the dataset repo must exist and the `HF_TOKEN` write secret must be configured in GitHub repo settings.
+- **Local dev remains unchanged:** In unpackaged dev mode (`npm start`), `sidecar-launch-target.ts` resolves against the local source tree venv (`sidecar/.venv/Scripts/python.exe`), unaffected by `userData`.
 
 ---
 
@@ -483,11 +412,8 @@ speed.
   migration, the Settings modal, the security/memory fixes, and the coherency fixes all landed
   *after* that tag, unreleased, until `v1.1.0`. If you're diffing "what changed since v1.0.0",
   that's a much bigger diff than the version number implies.
-- **The current release's `.msi`/`.zip` exceed GitHub's 2GB asset limit and cannot actually be
-  published as-is** — see "MSI/zip fixed the mmap crash but hit a second wall" above. Planned fix
-  (on-demand sidecar download via Hugging Face Hub) is written up but not implemented; see
-  `docs/superpowers/plans/2026-08-19-sidecar-on-demand-download.md`. Until that lands, there is no
-  way to cut a working tagged release through the current CI pipeline.
+- **On-demand sidecar download is implemented; tagged releases require the `HF_TOKEN` secret:**
+  The packaged installer is now lightweight and downloads the compiled CUDA sidecar from Hugging Face Hub on first launch. For tagged release builds in CI to successfully upload `sidecar-cuda-win-x64-{version}.zip` and `.sha256`, the `erroralex/latent-tools-sidecar` dataset repo must exist on Hugging Face and a write token must be configured as `HF_TOKEN` in GitHub repository secrets.
 - **GitHub's repo homepage lists "claude" as a second contributor.** This is not an AI-attributed
   commit — verified exhaustively (`git log --all`, GitHub's commits/PRs/reviews/stats APIs) that
   every one of the repo's 127 commits is authored by Alexander Nilsson only, so the git history is

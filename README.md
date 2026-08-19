@@ -139,7 +139,7 @@ Prebuilt standalone Windows executables are published on the **[Releases Page](h
 * **Portable Standalone (`Latent-Tools-*.zip`):** **No installation required & no Python setup required.** Extract the zip and run `Latent Tools.exe` from inside it.
 * **Installer (`Latent-Tools-*.msi`):** Standard Windows MSI installer with Start Menu shortcuts and uninstaller if you prefer a traditional desktop installation.
 
-Both prebuilt downloads come fully self-contained with the compiled GPU sidecar bundled inside.
+The installer and portable zip are lightweight downloads (tens of MB). On first launch, click **"Click to Download AI Components"** in the top bar to fetch the self-contained CUDA sidecar runtime (~1-2GB) from Hugging Face Hub. Once downloaded and extracted into your user profile, the sidecar starts automatically. (Subsequent AI model weights such as Florence-2 / Qwen2-VL are also cached locally on first use).
 
 ---
 
