@@ -9,29 +9,49 @@ export type SidecarLaunchTarget = {
 
 export type ResolveSidecarLaunchTargetOptions = {
   isPackaged: boolean;
-  resourcesPath: string;
+  userDataDir: string;
   sourceRootDir: string;
   port: string;
   platform: NodeJS.Platform;
   existsSync?: (path: string) => boolean;
 };
 
+export function getSidecarRuntimeDir(userDataDir: string): string {
+  return path.join(userDataDir, "sidecar-runtime");
+}
+
+export function isSidecarRuntimeInstalled(
+  userDataDir: string,
+  existsSync: (path: string) => boolean = fs.existsSync,
+): boolean {
+  return existsSync(sidecarExePath(getSidecarRuntimeDir(userDataDir)));
+}
+
+function sidecarExePath(runtimeDir: string): string {
+  return path.join(runtimeDir, "dist", "sidecar", "sidecar.exe");
+}
+
 export function resolveSidecarLaunchTarget(
   options: ResolveSidecarLaunchTargetOptions,
 ): SidecarLaunchTarget {
   const existsSync = options.existsSync ?? fs.existsSync;
-  const cwd = options.isPackaged
-    ? path.join(options.resourcesPath, "sidecar")
-    : path.join(options.sourceRootDir, "sidecar");
 
-  // electron-builder's extraResources copies the whole sidecar/ directory verbatim,
-  // so PyInstaller's onedir output lands at dist/sidecar/sidecar.exe under cwd, not
-  // directly under cwd.
-  const standaloneExe = path.join(cwd, "dist", "sidecar", "sidecar.exe");
-  if (existsSync(standaloneExe)) {
-    return { cwd, executable: standaloneExe, scriptArgs: ["--port", options.port] };
+  if (options.isPackaged) {
+    // Packaged builds never bundle the sidecar - it's downloaded on demand
+    // into userData (see sidecar-downloader.ts). Callers must check
+    // isSidecarRuntimeInstalled() before starting the process; this always
+    // points at where a download would have placed it.
+    const cwd = getSidecarRuntimeDir(options.userDataDir);
+    return {
+      cwd,
+      executable: sidecarExePath(cwd),
+      scriptArgs: ["--port", options.port],
+    };
   }
 
+  // Unpackaged (local dev): resolve against the source tree's own venv,
+  // same as before this change.
+  const cwd = path.join(options.sourceRootDir, "sidecar");
   const venvPython =
     options.platform === "win32"
       ? path.join(cwd, ".venv", "Scripts", "python.exe")

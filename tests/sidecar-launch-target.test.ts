@@ -1,65 +1,34 @@
 import * as path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { resolveSidecarLaunchTarget } from "../src/main/sidecar-launch-target";
+import {
+  getSidecarRuntimeDir,
+  isSidecarRuntimeInstalled,
+  resolveSidecarLaunchTarget,
+} from "../src/main/sidecar-launch-target";
 
 describe("resolveSidecarLaunchTarget", () => {
-  it("uses the PyInstaller onedir output at dist/sidecar/sidecar.exe when packaged", () => {
-    const pyinstallerOutput = "C:\\resources\\sidecar\\dist\\sidecar\\sidecar.exe";
-    const existsSync = vi.fn((target: string) => target === pyinstallerOutput);
-
+  it("resolves the packaged sidecar exe from userData/sidecar-runtime, not resourcesPath", () => {
     const target = resolveSidecarLaunchTarget({
       isPackaged: true,
-      resourcesPath: "C:\\resources",
+      userDataDir: "C:\\Users\\test\\AppData\\Roaming\\latent-tools",
       sourceRootDir: "C:\\src",
       port: "8756",
       platform: "win32",
-      existsSync,
     });
 
-    expect(target.executable).toBe(pyinstallerOutput);
+    expect(target.executable).toBe(
+      "C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime\\dist\\sidecar\\sidecar.exe",
+    );
+    expect(target.cwd).toBe("C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime");
     expect(target.scriptArgs).toEqual(["--port", "8756"]);
-    expect(target.cwd).toBe("C:\\resources\\sidecar");
   });
 
-  it("falls back to the venv python when packaged but the compiled exe is missing", () => {
-    const venvPython = "C:\\resources\\sidecar\\.venv\\Scripts\\python.exe";
-    const existsSync = vi.fn((target: string) => target === venvPython);
-
-    const target = resolveSidecarLaunchTarget({
-      isPackaged: true,
-      resourcesPath: "C:\\resources",
-      sourceRootDir: "C:\\src",
-      port: "8756",
-      platform: "win32",
-      existsSync,
-    });
-
-    expect(target.executable).toBe(venvPython);
-    expect(target.scriptArgs).toEqual(["run.py", "--port", "8756"]);
-  });
-
-  it("falls back to bare 'python' on PATH when neither the exe nor a venv exists", () => {
-    const existsSync = vi.fn(() => false);
-
-    const target = resolveSidecarLaunchTarget({
-      isPackaged: true,
-      resourcesPath: "C:\\resources",
-      sourceRootDir: "C:\\src",
-      port: "8756",
-      platform: "win32",
-      existsSync,
-    });
-
-    expect(target.executable).toBe("python");
-    expect(target.scriptArgs).toEqual(["run.py", "--port", "8756"]);
-  });
-
-  it("resolves cwd under the source tree, not resourcesPath, when unpackaged", () => {
+  it("resolves cwd under the source tree, not userData, when unpackaged", () => {
     const existsSync = vi.fn(() => false);
 
     const target = resolveSidecarLaunchTarget({
       isPackaged: false,
-      resourcesPath: "C:\\resources",
+      userDataDir: "C:\\Users\\test\\AppData\\Roaming\\latent-tools",
       sourceRootDir: "C:\\src",
       port: "8756",
       platform: "win32",
@@ -75,7 +44,7 @@ describe("resolveSidecarLaunchTarget", () => {
 
     const target = resolveSidecarLaunchTarget({
       isPackaged: false,
-      resourcesPath: "C:\\resources",
+      userDataDir: "C:\\Users\\test\\AppData\\Roaming\\latent-tools",
       sourceRootDir: "C:\\src",
       port: "8756",
       platform: "win32",
@@ -86,13 +55,13 @@ describe("resolveSidecarLaunchTarget", () => {
     expect(target.scriptArgs).toEqual(["run.py", "--port", "8756"]);
   });
 
-  it("uses the POSIX venv layout (.venv/bin/python) on non-Windows platforms", () => {
+  it("uses the POSIX venv layout (.venv/bin/python) on non-Windows platforms when unpackaged", () => {
     const venvPython = path.join("C:\\src", "sidecar", ".venv", "bin", "python");
     const existsSync = vi.fn((target: string) => target === venvPython);
 
     const target = resolveSidecarLaunchTarget({
       isPackaged: false,
-      resourcesPath: "C:\\resources",
+      userDataDir: "C:\\Users\\test\\AppData\\Roaming\\latent-tools",
       sourceRootDir: "C:\\src",
       port: "8756",
       platform: "linux",
@@ -100,5 +69,51 @@ describe("resolveSidecarLaunchTarget", () => {
     });
 
     expect(target.executable).toBe(venvPython);
+  });
+
+  it("falls back to bare 'python' when unpackaged and no venv exists", () => {
+    const existsSync = vi.fn(() => false);
+
+    const target = resolveSidecarLaunchTarget({
+      isPackaged: false,
+      userDataDir: "C:\\Users\\test\\AppData\\Roaming\\latent-tools",
+      sourceRootDir: "C:\\src",
+      port: "8756",
+      platform: "win32",
+      existsSync,
+    });
+
+    expect(target.executable).toBe("python");
+    expect(target.scriptArgs).toEqual(["run.py", "--port", "8756"]);
+  });
+});
+
+describe("isSidecarRuntimeInstalled", () => {
+  it("is true when the downloaded exe exists", () => {
+    const existsSync = vi.fn(
+      (p: string) =>
+        p ===
+        "C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime\\dist\\sidecar\\sidecar.exe",
+    );
+
+    expect(
+      isSidecarRuntimeInstalled("C:\\Users\\test\\AppData\\Roaming\\latent-tools", existsSync),
+    ).toBe(true);
+  });
+
+  it("is false when nothing has been downloaded yet", () => {
+    const existsSync = vi.fn(() => false);
+
+    expect(
+      isSidecarRuntimeInstalled("C:\\Users\\test\\AppData\\Roaming\\latent-tools", existsSync),
+    ).toBe(false);
+  });
+});
+
+describe("getSidecarRuntimeDir", () => {
+  it("joins userData with sidecar-runtime", () => {
+    expect(getSidecarRuntimeDir("C:\\Users\\test\\AppData\\Roaming\\latent-tools")).toBe(
+      "C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime",
+    );
   });
 });
