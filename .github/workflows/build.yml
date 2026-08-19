@@ -96,37 +96,24 @@ jobs:
       - name: Build Renderer & Main Process Bundle
         run: npm run build
 
-      - name: Diagnostics - disk space and sidecar dist size before packaging
-        shell: pwsh
-        run: |
-          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,2)}}, @{N='UsedGB';E={[math]::Round($_.Used/1GB,2)}}
-          $dist = "sidecar\dist\sidecar"
-          $size = (Get-ChildItem $dist -Recurse -File | Measure-Object -Property Length -Sum).Sum
-          Write-Output "sidecar/dist/sidecar size: $([math]::Round($size/1GB,2)) GB ($size bytes)"
-
       - name: Package Standalone Windows Executable & Installer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --x64
 
-      - name: Diagnostics - disk space and release output after packaging
-        if: always()
-        shell: pwsh
-        run: |
-          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,2)}}, @{N='UsedGB';E={[math]::Round($_.Used/1GB,2)}}
-          if (Test-Path release) {
-            Get-ChildItem release -File -ErrorAction SilentlyContinue | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}}
-          }
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Latent-Tools-Windows-Release
-          path: release/*.exe
+          path: |
+            release/*.msi
+            release/*.zip
           if-no-files-found: error
 
       - name: Attach Executables to GitHub Release
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.exe
+          files: |
+            release/*.msi
+            release/*.zip

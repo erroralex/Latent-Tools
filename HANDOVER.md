@@ -15,9 +15,18 @@ plus inpainting), format conversion (JPEG/PNG/WEBP), and uncensored captioning. 
 on-device. Bulk folder processing is first-class, not an afterthought — the app exists as much to
 prepare LoRA training datasets as for one-off cleanup.
 
-All six planned phases are complete and `v1.0.0` shipped as a standalone Windows release.
-`docs/implementation-plan.md` holds the original full spec (present on disk, but `docs/` is
-gitignored — see Open issues).
+All six planned phases are complete. `docs/implementation-plan.md` holds the original full spec
+(present on disk, but `docs/` is gitignored — see Open issues).
+
+**Release history was reset.** Every GitHub release and tag from the original `v0.1.0-beta.1`
+through `v1.1.4` (plus an `v1.1.5` tag that never got a release, blocked by the packaging fork
+documented below) was deleted, and versioning restarted at `v1.0.0`. None of those releases ever
+had a genuinely working GPU sidecar in the packaged app — three or four independent, stacked
+packaging bugs, all documented below — and none had any real external downloads, so there was no
+upgrade path to preserve. The sections below still reference those old version numbers
+(`v1.1.2`, `v1.1.3`, etc.) as historical markers for *when a bug was found or fixed relative to
+another*, since that sequence is still useful context — but none of those tags exist on GitHub
+anymore. Don't go looking for them.
 
 ### Two processes, one localhost hop
 
@@ -335,8 +344,45 @@ So "all tests pass" out of the box means 55 tests, with 2 real-model tests never
 
 `.github/workflows/build.yml` triggers on `v*` tag pushes, GitHub releases, or manual dispatch —
 not on every push to `main`. The pipeline compiles the PyInstaller sidecar binary, runs both test
-suites, and publishes the NSIS installer plus the portable `.exe`. It is expensive and only
+suites, and publishes the MSI installer plus a portable `.zip`. It is expensive and only
 meaningful when cutting a release.
+
+### Windows packaging is MSI + zip, not NSIS — NSIS's compiler is hard-capped at 32-bit
+
+Through v1.1.5's first build attempt, Windows packaging used electron-builder's `nsis` and
+`portable` targets (the latter is NSIS-based too — a self-extracting NSIS stub). Both broke the
+instant the sidecar's `torch` was fixed to genuinely include CUDA (see above): the packaged
+`sidecar/dist/sidecar` payload is ~4.5GB uncompressed, and `makensis.exe` — the NSIS compiler
+electron-builder shells out to — failed with `File: failed creating mmap of "...nsis.7z"` trying
+to memory-map the compressed archive.
+
+**Confirmed by reading the PE header directly (not assumed): `makensis.exe` is a 32-bit binary**,
+in both the legacy bundle (`nsis-3.0.4.1`, what our previously-pinned `electron-builder ^25.1.8`
+used) and the current bundle newer `electron-builder` 26.x defaults to (`nsis@1.2.1`,
+`nsis-bundle-3.12`). This is not an electron-builder version problem — NSIS's own compiler has
+never shipped an official 64-bit build, across any version. A 32-bit process has a hard virtual
+address space ceiling (~2–4GB), and mmap-ing a multi-GB archive into it can fail — inconsistently,
+since it depends on address-space fragmentation at runtime, which is why a local build with a
+similarly-sized (in fact larger, 4.6GB uncompressed) payload packaged fine while the CI runner's
+build of the same payload failed twice, reproducibly.
+
+**Every prior release avoided this by accident, not by design**: the sidecar was silently CPU-only
+in every release through v1.1.4 (see above), so the packaged payload was small enough to slip
+under NSIS's ceiling without anyone knowing it was close. Fixing the real bug made the app bigger
+in exactly the way it should always have been, which is what exposed this.
+
+**Fix: switched Windows targets from `nsis`/`portable` to `msi`/`zip`.** Neither goes through
+`makensis.exe` — `msi` uses WiX (no single-file mmap step), `zip` is a plain archive with no
+compiler involved at all, so there's no size ceiling to hit. `package.json`'s `build.win.target`
+and `build.nsis` (now `build.msi`) config, and `build.yml`'s artifact globs/upload paths, were
+updated accordingly.
+
+**For the future**: NSIS and MSI installers don't share upgrade/uninstall machinery — MSI tracks
+installs via its own `upgradeCode` (auto-derived from `appId` by electron-builder), independent of
+NSIS's registry-key approach. Not a concern for this reset (nothing to migrate from — see the
+release-history-reset note near the top of this document), but if an NSIS target is ever
+reintroduced alongside MSI later, a user with an MSI install won't get it auto-replaced by an NSIS
+one, or vice versa.
 
 ---
 
@@ -425,6 +471,6 @@ npm start
 | Electron tests | `npm test` |
 | Sidecar tests | `cd sidecar && .venv/Scripts/python -m pytest tests/ -v` |
 | Sidecar GPU tests | `cd sidecar && .venv/Scripts/python -m pytest tests/ -v -m gpu` |
-| Standalone build | `npm run dist` (NSIS installer + portable `.exe`) |
+| Standalone build | `npm run dist` (MSI installer + portable `.zip`) |
 
 Before claiming a change works: run both suites and show the output.

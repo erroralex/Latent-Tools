@@ -136,8 +136,8 @@ Latent Tools combines an Electron frontend with an embedded Python FastAPI sidec
 
 Prebuilt standalone Windows executables are published on the **[Releases Page](https://github.com/erroralex/Latent-Tools/releases)**:
 
-* **Portable Standalone (`Latent-Tools.exe`):** **No installation required & no Python setup required.** Simply download, double-click, and run immediately.
-* **Installer (`Latent-Tools-Setup.exe`):** Optional standard Windows installer with Start Menu shortcuts and uninstaller if you prefer a traditional desktop installation.
+* **Portable Standalone (`Latent-Tools-*.zip`):** **No installation required & no Python setup required.** Extract the zip and run `Latent Tools.exe` from inside it.
+* **Installer (`Latent-Tools-*.msi`):** Standard Windows MSI installer with Start Menu shortcuts and uninstaller if you prefer a traditional desktop installation.
 
 Both prebuilt downloads come fully self-contained with the compiled GPU sidecar bundled inside.
 
