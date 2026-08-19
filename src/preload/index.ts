@@ -15,6 +15,14 @@ contextBridge.exposeInMainWorld("api", {
     );
   },
 
+  // Sidecar Runtime Download
+  downloadSidecarRuntime: () => ipcRenderer.invoke("sidecar:download"),
+  onSidecarDownloadProgress: (
+    callback: (progress: { phase: string; bytesDownloaded: number; totalBytes: number }) => void,
+  ) => {
+    ipcRenderer.on("sidecar:download-progress", (_event, progress) => callback(progress));
+  },
+
   // UI Zoom Factor Controls
   setZoomFactor: (factor: number) => webFrame.setZoomFactor(factor),
   getZoomFactor: () => webFrame.getZoomFactor(),

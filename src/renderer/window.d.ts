@@ -17,6 +17,12 @@ interface Window {
 
     onSidecarStateChange: (callback: (state: string, reason?: string) => void) => void;
 
+    // Sidecar Runtime Download
+    downloadSidecarRuntime: () => Promise<{ success: boolean; error?: string }>;
+    onSidecarDownloadProgress: (
+      callback: (progress: { phase: string; bytesDownloaded: number; totalBytes: number }) => void,
+    ) => void;
+
     // UI Zoom Factor Controls
     setZoomFactor: (factor: number) => void;
     getZoomFactor: () => number;
