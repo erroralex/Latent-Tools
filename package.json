@@ -20,17 +20,6 @@
     "files": [
       "dist/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "sidecar",
-        "to": "sidecar",
-        "filter": [
-          "**/*",
-          "!**/__pycache__/**",
-          "!**/.pytest_cache/**"
-        ]
-      }
-    ],
     "win": {
       "icon": "assets/lt_icon.png",
       "target": [
