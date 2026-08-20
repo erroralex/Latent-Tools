@@ -1,12 +1,6 @@
-## Latent Tools — v1.0.1
+## Latent Tools — v1.0.0
 
 Local-first Windows desktop app for bulk image-dataset prep: AI watermark removal (Florence-2 + LaMa), multi-format image conversion (JPEG/PNG/WEBP), and uncensored training captioning (Qwen2-VL) — running entirely on-device on your NVIDIA GPU.
-
-### Fixed in v1.0.1
-
-- **The GPU sidecar never loaded on a fresh install.** The status pill got stuck on "GPU Sidecar: Starting..." forever, with no "Click to Download AI Components" prompt ever appearing — a race between the main process broadcasting the sidecar's initial state and the renderer registering its IPC listener. The initial state is now sent only after the window has finished loading, so the download prompt reliably appears on first launch. **v1.0.0 never worked past first launch — everyone should upgrade to this release.**
-
----
 
 ### What's New in v1.0.0
 
@@ -16,6 +10,7 @@ Local-first Windows desktop app for bulk image-dataset prep: AI watermark remova
 - **Interactive Single-Image Editor** — Visual overlay canvas with live brush/eraser controls, zoom and pan, undo/redo history, and seamless watermark removal and caption export.
 - **Uncensored Training Dataset Captioning** — Powered by `Qwen2-VL-2B-Instruct` (fast) or `Qwen2-VL-7B-Instruct` (high quality), or custom local model folders with custom trigger words and system prompts.
 - **Multi-Format Conversion & Preset System** — High-performance image conversion (PNG/JPEG/WEBP) with custom compression, quality sliders, ICC/EXIF metadata handling, background flattening color picker, and built-in LoRA/Archive/Web presets.
+- **Per-Machine MSI Installer** — The MSI installer now always shows a destination-folder screen (editable path plus a "Change..." browse dialog) instead of silently defaulting to a per-user AppData folder.
 
 ---
 

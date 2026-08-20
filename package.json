@@ -1,6 +1,6 @@
 {
   "name": "latent-tools",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "author": "Alexander Nilsson",
@@ -39,6 +39,7 @@
     },
     "msi": {
       "oneClick": false,
+      "perMachine": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
