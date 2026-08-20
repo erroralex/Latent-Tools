@@ -133,6 +133,7 @@ async function createWindow(): Promise<void> {
       return { success: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      console.error("Sidecar runtime download/start failed:", err);
       broadcastSidecarState("error", message);
       return { success: false, error: message };
     }

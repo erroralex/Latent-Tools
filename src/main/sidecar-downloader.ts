@@ -9,12 +9,17 @@ export type DownloadProgress = {
   totalBytes: number;
 };
 
+export type FileWriter = {
+  write(chunk: Uint8Array): Promise<void>;
+  close(): Promise<void>;
+};
+
 export type DownloadSidecarRuntimeOptions = {
   version: string;
   destDir: string;
   onProgress: (progress: DownloadProgress) => void;
   fetchFn?: typeof fetch;
-  writeFile?: (path: string, data: Uint8Array) => Promise<void>;
+  openForWrite?: (path: string) => Promise<FileWriter>;
   mkdir?: (path: string) => Promise<void>;
   rm?: (path: string) => Promise<void>;
   extractFn?: (zipPath: string, options: { dir: string }) => Promise<void>;
@@ -34,11 +39,27 @@ async function fetchExpectedChecksum(version: string, fetchFn: typeof fetch): Pr
   return (await response.text()).trim();
 }
 
+async function defaultOpenForWrite(filePath: string): Promise<FileWriter> {
+  const fs = await import("node:fs/promises");
+  const handle = await fs.open(filePath, "w");
+  return {
+    write: async (chunk: Uint8Array) => {
+      await handle.write(chunk);
+    },
+    close: () => handle.close(),
+  };
+}
+
+// Streams the response body straight to disk one chunk at a time. Buffering the
+// whole file in memory (collecting chunks in an array, then concatenating into one
+// Uint8Array) held two full copies of the ~2.8GB download simultaneously and threw
+// "RangeError: Array buffer allocation failed" on ordinary consumer RAM.
 async function downloadZip(
   version: string,
   fetchFn: typeof fetch,
+  writer: FileWriter,
   onProgress: (progress: DownloadProgress) => void,
-): Promise<{ bytes: Uint8Array; sha256: string }> {
+): Promise<{ sha256: string; totalBytes: number }> {
   const response = await fetchFn(assetUrl(version, ""));
   if (!response.ok || !response.body) {
     throw new Error(
@@ -48,32 +69,24 @@ async function downloadZip(
 
   const totalBytes = Number(response.headers?.get?.("content-length") ?? 0);
   const hash = createHash("sha256");
-  const chunks: Uint8Array[] = [];
   let bytesDownloaded = 0;
 
   const reader = response.body.getReader();
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    chunks.push(value);
     hash.update(value);
+    await writer.write(value);
     bytesDownloaded += value.byteLength;
     onProgress({ phase: "downloading", bytesDownloaded, totalBytes });
   }
 
-  const bytes = new Uint8Array(bytesDownloaded);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-
-  return { bytes, sha256: hash.digest("hex") };
+  return { sha256: hash.digest("hex"), totalBytes: bytesDownloaded };
 }
 
 export async function downloadSidecarRuntime(options: DownloadSidecarRuntimeOptions): Promise<void> {
   const fetchFn = options.fetchFn ?? fetch;
-  const writeFile = options.writeFile ?? (await import("node:fs/promises")).writeFile;
+  const openForWrite = options.openForWrite ?? defaultOpenForWrite;
   const mkdir =
     options.mkdir ??
     ((dir: string) =>
@@ -82,19 +95,26 @@ export async function downloadSidecarRuntime(options: DownloadSidecarRuntimeOpti
   const extractFn = options.extractFn ?? ((await import("extract-zip")).default as (zipPath: string, options: { dir: string }) => Promise<void>);
 
   const expectedChecksum = await fetchExpectedChecksum(options.version, fetchFn);
-  const { bytes, sha256 } = await downloadZip(options.version, fetchFn, options.onProgress);
+
+  await mkdir(path.dirname(options.destDir));
+  const tempZipPath = `${options.destDir}.download.zip`;
+  const writer = await openForWrite(tempZipPath);
+  let sha256: string;
+  let totalBytes: number;
+  try {
+    ({ sha256, totalBytes } = await downloadZip(options.version, fetchFn, writer, options.onProgress));
+  } finally {
+    await writer.close();
+  }
 
   if (sha256 !== expectedChecksum) {
+    await rm(tempZipPath);
     throw new Error(
       `Sidecar runtime download checksum mismatch: expected ${expectedChecksum}, got ${sha256}. The download may be corrupted - try again.`,
     );
   }
 
-  await mkdir(path.dirname(options.destDir));
-  const tempZipPath = `${options.destDir}.download.zip`;
-  await writeFile(tempZipPath, bytes);
-
-  options.onProgress({ phase: "extracting", bytesDownloaded: bytes.byteLength, totalBytes: bytes.byteLength });
+  options.onProgress({ phase: "extracting", bytesDownloaded: totalBytes, totalBytes });
   try {
     await extractFn(tempZipPath, { dir: options.destDir });
   } finally {
