@@ -138,7 +138,12 @@ async function createWindow(): Promise<void> {
     }
   });
 
-  void window.loadFile(path.join(__dirname, "../renderer/index.html"));
+  // Await the page load before sending any sidecar state: window.webContents.send()
+  // only reaches a listener once the renderer has called onSidecarStateChange(), which
+  // races a fire-and-forget loadFile(). On a fresh packaged install the "not_installed"
+  // broadcast below is a single synchronous message with no follow-up, so losing that
+  // race left the status pill stuck on its static "Starting..." HTML forever.
+  await window.loadFile(path.join(__dirname, "../renderer/index.html"));
 
   if (app.isPackaged && !isSidecarRuntimeInstalled(app.getPath("userData"))) {
     broadcastSidecarState("not_installed");

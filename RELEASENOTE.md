@@ -1,10 +1,16 @@
-## Latent Tools — v1.0.0
+## Latent Tools — v1.0.1
 
 Local-first Windows desktop app for bulk image-dataset prep: AI watermark removal (Florence-2 + LaMa), multi-format image conversion (JPEG/PNG/WEBP), and uncensored training captioning (Qwen2-VL) — running entirely on-device on your NVIDIA GPU.
 
+### Fixed in v1.0.1
+
+- **The GPU sidecar never loaded on a fresh install.** The status pill got stuck on "GPU Sidecar: Starting..." forever, with no "Click to Download AI Components" prompt ever appearing — a race between the main process broadcasting the sidecar's initial state and the renderer registering its IPC listener. The initial state is now sent only after the window has finished loading, so the download prompt reliably appears on first launch. **v1.0.0 never worked past first launch — everyone should upgrade to this release.**
+
+---
+
 ### What's New in v1.0.0
 
-- **On-Demand AI Runtime Downloads** — The installer and portable packages are now lightweight (tens of MB) instead of multi-gigabyte monolithic bundles. On first launch, click **"Click to Download AI Components"** in the top bar to stream the self-contained CUDA 12.8 / PyTorch runtime (~1-2GB) directly from Hugging Face Hub, with automatic SHA256 checksum verification and extraction into your user profile.
+- **On-Demand AI Runtime Downloads** — The installer and portable packages are lightweight (tens of MB) instead of multi-gigabyte monolithic bundles. On first launch, click **"Click to Download AI Components"** in the top bar to stream the self-contained CUDA 12.8 / PyTorch runtime (~1-2GB) directly from Hugging Face Hub, with automatic SHA256 checksum verification and extraction into your user profile.
 - **Latent Design System** — Complete UI overhaul with the signature Latent dark graphite palette, crisp flat surface hierarchies, Latent Cyan/Violet accents, and real-time GPU telemetry (VRAM usage, temperature, and live sidecar health status).
 - **First-Class Bulk Folder Processing** — Batch watermark detection, inpainting, format conversion, and captioning across entire image folders with a single round-trip pipeline (`/process`), real-time progress bar, and live logs.
 - **Interactive Single-Image Editor** — Visual overlay canvas with live brush/eraser controls, zoom and pan, undo/redo history, and seamless watermark removal and caption export.

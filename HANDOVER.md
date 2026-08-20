@@ -315,6 +315,35 @@ if the following pruning is done — this is scoped, incremental work, not a bug
 5. **A pinned dependency lockfile** (`pip freeze` / `pip-compile`-style) is still worth doing for
    build reproducibility, independent of size — just not a size fix in itself.
 
+### The initial sidecar-state broadcast races the renderer's IPC listener registration
+
+A fifth, independent bug from the packaging ones above, found after the on-demand download
+architecture shipped: every fresh packaged install got stuck showing the static HTML default
+`"GPU Sidecar: Starting..."` forever, with no clickable download affordance and
+`nvidia-smi`/`tasklist` showing no `sidecar.exe` — indistinguishable at a glance from the earlier
+spawn-path bugs, but with a different cause.
+
+`createWindow()` in `src/main/index.ts` called `void window.loadFile(...)` (fire-and-forget) and
+then, in the same synchronous tick, called `broadcastSidecarState("not_installed")` (or
+`startSidecar()`, which itself calls `setState("starting")` synchronously as its first line).
+`window.webContents.send("sidecar:state", ...)` only reaches a listener once the renderer has
+actually executed `window.api.onSidecarStateChange(callback)` — the preload script exposes the
+*function*, but the `ipcRenderer.on("sidecar:state", ...)` registration inside it only runs when
+the renderer's own page script calls it, which happens asynchronously relative to `loadFile`. On a
+fresh install the `"not_installed"` broadcast is a **single** message with no follow-up, so losing
+that race left the UI with no further updates, ever.
+
+This was masked in local dev: `startSidecar()`'s *later* `"ready"` update (after the ~500ms health
+poll) had time to land after the page had loaded, so dev testing looked fine. It only reproduces on
+a genuinely fresh `userData` (no prior `sidecar-runtime` install) — reusing a dev machine's existing
+`%APPDATA%\Latent Tools` masks it too, since `isSidecarRuntimeInstalled` short-circuits to
+`startSidecar()`, which is slow enough to usually win the race by luck.
+
+Fixed by awaiting `window.loadFile(...)` before sending any sidecar state, so the renderer's
+listener is always registered first. Verified against a real `npm run dist` build launched with no
+pre-existing `userData` directory: the status pill now correctly shows "Click to Download AI
+Components" instead of hanging on "Starting...".
+
 ### The app icon exists in two separate locations
 
 `lt_icon.png` and `latent-mark.svg` are duplicated at repo root (`assets/`) and again under
