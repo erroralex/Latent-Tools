@@ -17,7 +17,7 @@ describe("resolveSidecarLaunchTarget", () => {
     });
 
     expect(target.executable).toBe(
-      "C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime\\dist\\sidecar\\sidecar.exe",
+      "C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime\\sidecar.exe",
     );
     expect(target.cwd).toBe("C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime");
     expect(target.scriptArgs).toEqual(["--port", "8756"]);
@@ -92,8 +92,7 @@ describe("isSidecarRuntimeInstalled", () => {
   it("is true when the downloaded exe exists", () => {
     const existsSync = vi.fn(
       (p: string) =>
-        p ===
-        "C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime\\dist\\sidecar\\sidecar.exe",
+        p === "C:\\Users\\test\\AppData\\Roaming\\latent-tools\\sidecar-runtime\\sidecar.exe",
     );
 
     expect(

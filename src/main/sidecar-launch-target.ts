@@ -28,7 +28,10 @@ export function isSidecarRuntimeInstalled(
 }
 
 function sidecarExePath(runtimeDir: string): string {
-  return path.join(runtimeDir, "dist", "sidecar", "sidecar.exe");
+  // CI zips dist/sidecar/* directly (Compress-Archive -Path dist\sidecar\*), so the
+  // downloaded archive's root already is the PyInstaller onedir output - sidecar.exe
+  // sits straight under runtimeDir, not nested under dist/sidecar/.
+  return path.join(runtimeDir, "sidecar.exe");
 }
 
 export function resolveSidecarLaunchTarget(

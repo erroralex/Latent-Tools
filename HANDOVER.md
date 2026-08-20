@@ -352,6 +352,46 @@ Components" instead of hanging on "Starting...".
 titlebar `<img>` all resolve to the **`src/renderer/assets/`** copy instead. A brand-mark update
 that only touches one location ships an installer icon and an in-app mark that disagree.
 
+### The on-demand sidecar download never actually worked end-to-end until now
+
+Two independent, stacked bugs — neither ever exercised because nobody had run a real ~3GB download
+against a real Hugging Face-hosted zip before: the download path was only ever tested with tiny
+fake payloads in unit tests, and the extracted-exe path was copy-pasted from the old
+`extraResources`-bundling era without checking what the actual downloaded archive looks like.
+
+1. **`downloadZip()` buffered the entire download in memory before writing to disk.** It pushed
+   each streamed chunk into an array, then concatenated the whole array into one `Uint8Array` after
+   the download finished. For the ~2.8GB sidecar runtime this holds two full copies in memory at
+   once (the chunk list plus the concatenated buffer) — a ~5.6GB peak allocation that throws
+   `RangeError: Array buffer allocation failed` on ordinary consumer RAM. Reproduced directly: the
+   download progress reached 2867/2867 MB and then immediately errored. Fixed by streaming each
+   chunk straight to a `FileWriter` (an injectable `fs.open()`-backed handle, same
+   dependency-injection pattern as `fetchFn`/`mkdir`/`rm`/`extractFn`) as it arrives, hashing
+   incrementally — no buffering of the file contents at any point.
+2. **Past the memory fix, extraction succeeds but the sidecar still fails to launch — a path
+   mismatch.** `sidecarExePath()` in `src/main/sidecar-launch-target.ts` expected
+   `sidecar-runtime/dist/sidecar/sidecar.exe`, copied from the old `extraResources` layout (which
+   copied the whole `sidecar/` source tree verbatim, landing the PyInstaller output at
+   `sidecar/dist/sidecar/sidecar.exe`). But `.github/workflows/build.yml` zips the runtime with
+   `Compress-Archive -Path dist\sidecar\* -DestinationPath ...` — the `*` means the zip's root
+   **is** the PyInstaller onedir output, so after extraction the exe sits at
+   `sidecar-runtime/sidecar.exe` directly, one level up from where the code was looking. Since the
+   real exe was never at the path being checked, `resolveSidecarLaunchTarget()` handed `spawn()` a
+   nonexistent path, which fails with the child `"error"` event added for the earlier spawn-launch
+   bug (see above) — but that failure is silent to the console (no stdout from a process that never
+   started), so the only signs are the pill flipping to "Error" with no further detail and no
+   `sidecar.exe` in `tasklist`. Confirmed by inspecting a real post-extraction `userData` directory:
+   `sidecar-runtime\sidecar.exe` existed, `sidecar-runtime\dist\sidecar\sidecar.exe` did not. Fixed
+   by pointing `sidecarExePath()` at `runtimeDir/sidecar.exe`.
+
+**Both bugs were invisible to every existing test.** The downloader's unit tests only ever pushed a
+few dozen bytes through a mocked `fetch`/`writeFile`, never enough to expose an in-memory buffering
+problem; the launch-target tests asserted the (wrong) expected path against itself, so they stayed
+green even though the path didn't match the real artifact layout. Caught only by actually running
+the packaged app through a full real download against the real Hugging Face asset — same lesson as
+every other packaging bug in this file: unit tests passing is not evidence that the download-and-launch
+path works, only running it for real is.
+
 ### Renderer UI gotchas
 
 - **`display: none` kills pointer events.** The mask overlay canvas owns every brush
