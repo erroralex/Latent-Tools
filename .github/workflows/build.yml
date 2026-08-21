@@ -110,8 +110,6 @@ jobs:
         run: npm run build
 
       - name: Package Standalone Windows Executable & Installer
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --x64
 
       - name: Upload Build Artifacts

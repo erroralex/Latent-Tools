@@ -392,6 +392,27 @@ the packaged app through a full real download against the real Hugging Face asse
 every other packaging bug in this file: unit tests passing is not evidence that the download-and-launch
 path works, only running it for real is.
 
+### The v1.0.0 release shipped every Windows asset twice, under two different names
+
+Found after the v1.0.0 GitHub release was published: it carried four assets instead of two —
+`Latent-Tools-1.0.0.msi` / `Latent-Tools-1.0.0-win.zip` **and** `Latent.Tools.1.0.0.msi` /
+`Latent.Tools-1.0.0-win.zip`, same byte sizes, uploaded about a minute apart. Not a naming-config
+bug — a double-publish bug. `.github/workflows/build.yml`'s packaging step set `GH_TOKEN` in the
+environment right before invoking `electron-builder` with no `--publish never` and no `publish`
+key in `package.json`'s `build` config. electron-builder auto-detects a GitHub token plus a
+version-matching tag and **publishes the built `.msi`/`.zip` to the GitHub release itself** as a
+side effect of building — entirely separately from, and about a minute before, the workflow's own
+explicit `softprops/action-gh-release` step further down, which uploads the exact same files from
+`release/*.msi`/`release/*.zip` again. One CI run, two independent uploaders, same files. The
+dash-vs-dot filename split is just GitHub sanitizing the space in `productName: "Latent Tools"`
+differently depending on which of the two upload paths produced the asset.
+
+Fixed by adding `"publish": null` to `package.json`'s `build` config and dropping the `GH_TOKEN`
+env var from the packaging step — the explicit `action-gh-release` step (which needs its own
+`GITHUB_TOKEN`, already provided by the job's default `permissions: contents: write`) stays the
+only publisher. The four duplicate assets on the already-published `v1.0.0` release are a leftover
+from before this fix, not a symptom of an unfixed bug going forward.
+
 ### Renderer UI gotchas
 
 - **`display: none` kills pointer events.** The mask overlay canvas owns every brush
