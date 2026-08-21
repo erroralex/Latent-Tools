@@ -145,7 +145,7 @@ The installer and portable zip are lightweight downloads (tens of MB). On first 
 
 ## 📜 License
 
-Distributed under the **MIT License**. Free for personal use.
+Distributed under the **MIT License with the Commons Clause**. Free to use, modify, and share. The Commons Clause restricts *selling* the Software or offering it as a paid hosted/consulting service. See [LICENSE](LICENSE) for the full text.
 
 ---
 
